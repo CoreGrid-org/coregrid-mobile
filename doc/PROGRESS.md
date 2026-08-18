@@ -7,8 +7,12 @@ assumptions about the codebase. For the platform-wide picture (backend + React s
 module, see [`MOBILE-SPECIFICATION.md` §8](MOBILE-SPECIFICATION.md#8-traceability); for who owns it, see
 [`TEAM-ALLOCATION.md`](TEAM-ALLOCATION.md).
 
-Status as of 2026-08-17: repository scaffolded (documentation only) — no Flutter project exists yet
-(`flutter create` not run), no code, no tests, no CI.
+Status as of 2026-08-18: - 'Hasitha Erandika' `flutter create` run, project skeleton in place (`lib/app/`, `lib/shared/theme/`,
+mandated + supporting packages from `MOBILE-SPECIFICATION.md` §2 added to `pubspec.yaml`), CI wired up
+(`.github/workflows/ci.yml`), `flutter analyze`/`flutter test` passing, and a debug APK builds successfully.
+No feature folders yet — `lib/features/` is still empty; each owner creates their own per
+`CONTRIBUTING.md`. No ThunderID PKCE sign-in yet (`features/auth/` not started), so the app currently boots
+to a placeholder home screen with no real routes.
 
 ## Legend
 

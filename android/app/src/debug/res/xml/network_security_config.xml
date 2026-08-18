@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-build only (lives under src/debug/, never merged into release) — trusts
+  the local ThunderID dev instance's self-signed cert (see
+  doc/setup/ThunderID-mobile-client.md) so `flutter run` against a locally
+  running ThunderID container works over adb-reversed localhost. System CAs
+  still apply to everything else.
+-->
+<network-security-config>
+    <domain-config>
+        <domain includeSubdomains="false">localhost</domain>
+        <trust-anchors>
+            <certificates src="@raw/thunderid_dev_cert" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
