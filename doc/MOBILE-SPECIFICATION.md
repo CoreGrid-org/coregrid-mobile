@@ -139,18 +139,36 @@ doesn't spell it out.
 | | |
 |---|---|
 | Trigger | App cold start with no valid session, or explicit sign-out |
-| Sequence | Splash → sign-in button → external browser (ThunderID) → redirect back via custom scheme → token exchange → `/api/me` → dashboard |
-| States | Signing in, sign-in failed (non-technical message, retry), signed out |
+| Sequence | Splash → sign-in button → external browser (ThunderID) → redirect back via custom scheme → token exchange → `/api/me` → role check → dashboard, or `/access-restricted` |
+| States | Signing in, sign-in failed (non-technical message, retry), role not supported, signed out |
 | API calls | Token exchange via ThunderID (not the CoreGrid API directly); `GET /api/me` on success |
+
+**Role gate (main SRS §3.4, scope change v1.5):** ThunderID's `CoreGridUser` type is shared by all four
+roles — there is no way to restrict *sign-in* to specific roles at the identity-provider level — so this app
+enforces the split itself, after `GET /api/me` resolves `role`. Officer and Staff proceed to the dashboard;
+Auditor and Administrator land on `/access-restricted` instead (`features/auth/screens/
+access_restricted_screen.dart`), and their refresh token is cleared immediately rather than left valid —
+an unsupported role never counts as a real mobile session. Mirrors the React frontend's own
+`/access-restricted` route (`CoreGrid/doc/setup/ThunderID.md`). The full role-to-platform picture — why each
+role uses the client(s) it does, and how both clients integrate with ThunderID and the API — is
+`CoreGrid/doc/SRS/03-system-architecture.md` §3.4.1 (Figure 10).
+
+**Dev Sign In (debug builds only):** a `kDebugMode`-gated button on the sign-in screen opens a role picker
+and calls `AuthController.devSignIn(role)`, which sets auth state directly — no ThunderID, no backend call,
+no token persisted. The picker only offers Staff and Inventory Officer — the two roles this app actually
+serves — not Auditor/Administrator, since those never reach this app for real. `kDebugMode` is a
+compile-time constant that's `false` in release/profile builds, so this branch is dead-code-eliminated from
+anything that isn't a debug build — it cannot ship.
 
 ### 4.2 Dashboard — FR-083
 
 | | |
 |---|---|
 | Trigger | Successful sign-in, or app resume with a valid session |
-| Sequence | Task-focused summary: verification tasks due, maintenance assigned to the user, transfers awaiting their confirmation — each section links to its own list |
+| Sequence | Role-branched (main SRS §2.3.1): Officer sees verification tasks due, maintenance assigned, transfers awaiting confirmation; Staff sees their own fault reports and status only — narrower, since Staff has no verification/maintenance-management/transfer capability |
 | States | Loading, empty (per section — "No tasks due"), error (per section, independently retryable), populated |
 | API calls | Aggregated from the verification, maintenance and transfer list endpoints (main SRS §9), scoped to the current user |
+| Status | **Mock scaffold only** (`features/dashboard/screens/{dashboard,officer_dashboard,staff_dashboard}_screen.dart`) — hardcoded sample rows, no provider, no API call yet. Built ahead of the "last, once other features exist" plan in `TEAM-ALLOCATION.md` specifically so Dev Sign In (§4.1) has somewhere real to land; a visible "Mock dashboard" banner says so on-screen. Replacing it with the real, data-backed version stays this owner's task once `features/verification`, `features/maintenance` and `features/transfers` exist. |
 
 ### 4.3 Scan / Manual Entry — FR-024, FR-025, IF-06, IF-07, IF-10, IF-12
 
@@ -178,6 +196,7 @@ doesn't spell it out.
 | Sequence | Assert presence → assert location (defaults to registered location, editable) → assert condition → submit → result screen showing whether a discrepancy was raised |
 | States | In progress (multi-step, must survive backgrounding without losing entered state), submitting, discrepancy raised, no discrepancy, submission error |
 | API calls | `POST /api/assets/{id}/verify`; discrepancy raised manually (FR-061) goes through a separate photo-attached submission |
+| Note | Officer only (main SRS scope change v1.5) — Auditor no longer completes verification tasks via mobile scan; Auditor reviews results on the web console instead |
 
 ### 4.6 Fault Reporting — FR-033, IF-05, IF-11
 
@@ -215,7 +234,7 @@ doesn't spell it out.
 | Sequence | Initiate (states objective, receives a workflow ID immediately — does not block on completion) → status screen (current step, agents completed) → outcome screen (recommendation + approval status) once resolved |
 | States | Initiating, in progress (polled or pushed), outcome available, failed |
 | API calls | `POST /api/workflows`, `GET /api/workflows/{id}` |
-| Note | No approval action here — approval is React-only per the responsibility boundary (main SRS §3.4) |
+| Note | No approval action here — approval is React-only per the responsibility boundary (main SRS §3.4). Officer only — Administrator initiates and Auditor/Administrator view workflow status from the web console instead (scope change v1.5); this screen is unreachable for those roles per §4.1's role gate |
 
 ### 4.10 Notifications — FR-080
 
@@ -234,12 +253,15 @@ Three configurations, selected at build time via `--dart-define`, not committed 
 
 | Flavor | API base URL | ThunderID client |
 |---|---|---|
-| `dev` | Local backend (`10.0.2.2` for an Android emulator; the host machine's LAN IP for a physical device) | Dev-registered mobile client (doc/setup/ThunderID-mobile-client.md) |
+| `dev` | `https://localhost:7240`, reached via `adb reverse` — see `doc/setup/local-dev-networking.md` for why this replaces the `10.0.2.2` emulator alias (it avoids an OIDC issuer-URL mismatch against ThunderID) and the TLS-trust setup it needs | Dev-registered mobile client (doc/setup/ThunderID-mobile-client.md) |
 | `staging` | Deployed staging API | Staging-registered mobile client |
 | `prod` | Deployed production API | Production-registered mobile client |
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000 --dart-define=THUNDERID_CLIENT_ID=<dev-client-id>
+flutter run \
+  --dart-define=API_BASE_URL=https://localhost:7240 \
+  --dart-define=THUNDERID_BASE_URL=https://localhost:8090 \
+  --dart-define=THUNDERID_CLIENT_ID=Ok35LLY76ZrK-5j1qsJCxQ
 ```
 
 Read these via `String.fromEnvironment` in `shared/api/` and `shared/auth/` — never hardcode a URL or client

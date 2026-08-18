@@ -14,8 +14,11 @@ database) before working here.
   debugging enabled — this is the app's minimum target (SRS §2.4). Installed via
   [Android Studio](https://developer.android.com/studio) on every platform.
 - A running CoreGrid backend + ThunderID instance (see the main repo's `CONTRIBUTING.md`), reachable from
-  the device or emulator you're testing against. An Android emulator reaches the host machine's `localhost`
-  via `10.0.2.2`, not `127.0.0.1`, on every OS — a physical device needs the host's LAN IP instead.
+  the device or emulator you're testing against. Use `adb reverse` to forward the emulator's (or a
+  USB-connected physical device's) `localhost` to the host's `localhost` — see
+  [`doc/setup/local-dev-networking.md`](doc/setup/local-dev-networking.md) for the full runbook, including
+  why this is preferred over the `10.0.2.2` emulator alias (it avoids an OIDC issuer-URL mismatch against
+  ThunderID) and the TLS-trust setup both ThunderID and the backend's self-signed dev certs need.
 
 Run `flutter doctor -v` after any of the setups below and resolve everything under the Flutter and Android
 toolchain sections before continuing; the web/desktop sections it also prints don't matter for this repo
@@ -95,6 +98,7 @@ specific URL into source that gets committed.
 ```bash
 flutter pub get
 flutter run
+flutter emulators --launch Pixel_6 
 ```
 
 ## 5. Before committing

@@ -10,9 +10,12 @@ module, see [`MOBILE-SPECIFICATION.md` §8](MOBILE-SPECIFICATION.md#8-traceabili
 Status as of 2026-08-18: - 'Hasitha Erandika' `flutter create` run, project skeleton in place (`lib/app/`, `lib/shared/theme/`,
 mandated + supporting packages from `MOBILE-SPECIFICATION.md` §2 added to `pubspec.yaml`), CI wired up
 (`.github/workflows/ci.yml`), `flutter analyze`/`flutter test` passing, and a debug APK builds successfully.
-No feature folders yet — `lib/features/` is still empty; each owner creates their own per
-`CONTRIBUTING.md`. No ThunderID PKCE sign-in yet (`features/auth/` not started), so the app currently boots
-to a placeholder home screen with no real routes.
+`features/auth/` and `features/dashboard/` have landed (both this owner's scope per `TEAM-ALLOCATION.md`):
+ThunderID PKCE sign-in via `flutter_appauth`, the SRS §2.3.1/v1.5 role gate (Auditor/Administrator routed to
+`/access-restricted`), a `kDebugMode`-only Dev Sign In bypass, and a role-branched dashboard — Officer and
+Staff see different sections, matching §2.3.1 exactly, but every row is **mock/hardcoded data** (a banner
+says so on-screen); no `/api/...` call exists yet. Every other `lib/features/` folder is still empty; each
+owner creates their own per `CONTRIBUTING.md`.
 
 ## Legend
 
@@ -22,7 +25,7 @@ to a placeholder home screen with no real routes.
 
 | Requirement | Owner | Status |
 |---|---|---|
-| FR-001/007/008 — Sign in/out via ThunderID PKCE, role-aware nav, sign-out clears session | Student 4 (Hasitha) | ❌ |
+| FR-001/007/008 — Sign in/out via ThunderID PKCE, role-aware nav, sign-out clears session | Student 4 (Hasitha) | 🟡 (sign-in, role gate and route guard work; sign-out clears local state only — doesn't yet call ThunderID's revoke/end-session endpoint, so FR-008's "terminate the identity-provider session" isn't fully met) |
 | FR-020 — Attribute-driven asset detail rendering | Student 1 (Jayashan) | ❌ |
 | FR-024 — QR scan → authoritative asset record within 3s | Student 1 (Jayashan) | ❌ |
 | FR-025 — Manual asset-code entry fallback | Student 1 (Jayashan) | ❌ |
@@ -40,7 +43,7 @@ to a placeholder home screen with no real routes.
 | FR-067/069 — Initiate agentic evaluation, view workflow status | Student 4 (Hasitha) | ❌ |
 | FR-076 — Display evaluation outcome | Student 4 (Hasitha) | ❌ |
 | FR-080 — In-app notifications | Student 2 (Seneja) | ❌ |
-| FR-083 — Task-focused dashboard | Student 4 (Hasitha) | ❌ |
+| FR-083 — Task-focused dashboard | Student 4 (Hasitha) | 🟡 (mock scaffold, role-branched per §2.3.1 — no live data/API call yet) |
 
 ## Next milestone
 

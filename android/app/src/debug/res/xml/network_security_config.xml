@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Debug-build only (lives under src/debug/, never merged into release) — trusts
-  the local ThunderID dev instance's self-signed cert (see
-  doc/setup/ThunderID-mobile-client.md) so `flutter run` against a locally
-  running ThunderID container works over adb-reversed localhost. System CAs
-  still apply to everything else.
+  Debug-build only (lives under src/debug/, never merged into release) — trusts the local ThunderID dev
+  instance's and the local CoreGrid backend's self-signed certs (see doc/setup/local-dev-networking.md) so
+  `flutter run` against both, reached over adb-reversed localhost (`adb reverse tcp:8090 tcp:8090` and
+  `adb reverse tcp:7240 tcp:7240`), works without a cert-trust error. This only covers the app's own HTTP
+  calls (dio, flutter_appauth's discovery/token requests) — the external user agent that renders ThunderID's
+  actual sign-in page (SEC-ID-06) is a separate system-browser process with its own trust store, not this
+  file; see the linked doc for how to handle that surface too. System CAs still apply to everything else.
+
+  backend_dev_cert.pem is the machine-specific cert `dotnet dev-certs https` generated for this developer —
+  it is NOT portable to another machine. Regenerate it per doc/setup/local-dev-networking.md if backend TLS
+  calls fail with a cert-trust error (e.g. after clearing dev certs with the dotnet CLI, or on a new machine).
 -->
 <network-security-config>
     <domain-config>
         <domain includeSubdomains="false">localhost</domain>
         <trust-anchors>
             <certificates src="@raw/thunderid_dev_cert" />
+            <certificates src="@raw/backend_dev_cert" />
             <certificates src="system" />
         </trust-anchors>
     </domain-config>

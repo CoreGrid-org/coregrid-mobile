@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +21,8 @@ class SignInScreen extends ConsumerWidget {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (next is AuthAuthenticated) {
         context.go('/home');
+      } else if (next is AuthRoleNotSupported) {
+        context.go('/access-restricted', extra: next.role);
       } else if (next is AuthError) {
         ScaffoldMessenger.of(
           context,
@@ -86,9 +89,50 @@ class SignInScreen extends ConsumerWidget {
                 ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
+              if (kDebugMode) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: isAuthenticating
+                      ? null
+                      : () => _showDevRolePicker(context, ref),
+                  child: const Text('Dev Sign In (bypasses ThunderID)'),
+                ),
+              ],
               const Spacer(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Debug-only — see [AuthController.devSignIn]. Not reachable in a
+  /// release/profile build since the button that opens this is itself
+  /// gated behind `kDebugMode`.
+  void _showDevRolePicker(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                'Sign in as…',
+                style: Theme.of(sheetContext).textTheme.titleMedium,
+              ),
+            ),
+            for (final role in kMobileSupportedRoles)
+              ListTile(
+                title: Text(roleLabel(role)),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  ref.read(authControllerProvider.notifier).devSignIn(role);
+                },
+              ),
+          ],
         ),
       ),
     );
