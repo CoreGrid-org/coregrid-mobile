@@ -2,6 +2,9 @@
 /// `--dart-define` (or `--dart-define-from-file`) — never hardcoded, never
 /// committed (`doc/MOBILE-SPECIFICATION.md` §5.1).
 abstract final class AuthConfig {
+  /// Enables the local asset demo API for emulator-only feature checks.
+  static const bool useMockData = bool.fromEnvironment('MOCK_DATA');
+
   /// CoreGrid backend base URL, e.g. `http://localhost:5083`.
   static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
