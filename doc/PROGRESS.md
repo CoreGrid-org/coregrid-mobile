@@ -26,11 +26,11 @@ owner creates their own per `CONTRIBUTING.md`.
 | Requirement | Owner | Status |
 |---|---|---|
 | FR-001/007/008 — Sign in/out via ThunderID PKCE, role-aware nav, sign-out clears session | Student 4 (Hasitha) | 🟡 (sign-in, role gate and route guard work; sign-out clears local state only — doesn't yet call ThunderID's revoke/end-session endpoint, so FR-008's "terminate the identity-provider session" isn't fully met) |
-| FR-020 — Attribute-driven asset detail rendering | Student 1 (Jayashan) | ❌ |
-| FR-024 — QR scan → authoritative asset record within 3s | Student 1 (Jayashan) | ❌ |
-| FR-025 — Manual asset-code entry fallback | Student 1 (Jayashan) | ❌ |
-| FR-028 — Asset search/filter (basic lookup + recent list) | Student 1 (Jayashan) | ❌ |
-| FR-029 — Record asset condition | Student 1 (Jayashan) | ❌ |
+| FR-020 — Attribute-driven asset detail rendering | Student 1 (Jayashan) | ✅ (`features/assets/` — `AssetDetailScreen` renders custom attributes from `data_type` alone, no domain-specific code; see [`doc/features/asset-detail.md`](features/asset-detail.md). Widget-tested; not yet exercised end-to-end against a live backend — blocked on ThunderID native client) |
+| FR-024 — QR scan → authoritative asset record within 3s | Student 1 (Jayashan) | 🟡 (`GET /api/assets/{id}` + `qr/{code}` client, the manual-entry lookup screen and the detail screen it lands on are done; the camera scanner itself — `features/scan/` — is not) |
+| FR-025 — Manual asset-code entry fallback | Student 1 (Jayashan) | 🟡 (`AssetLookupScreen` at `/assets`, reachable from both dashboards' "Enter Code" button → resolves via `GET /api/assets/qr/{code}` → detail screen; non-leaking 404 + offline states. The full camera-refused fallback wiring folds in with `features/scan/`) |
+| FR-028 — Asset search/filter (basic lookup + recent list) | Student 1 (Jayashan) | ✅ (dashboard Search Assets route with server-side search by code/name/custom attribute, department/location/category/asset-type/status/condition filters, sorting and pagination via `GET /api/assets`; mock asset data supported) |
+| FR-029 — Record asset condition | Student 1 (Jayashan) | ✅ (`features/assets/` — `PATCH /api/assets/{id}/condition` via the condition-update sheet, five-point scale, history written server-side; gated client-side to ACTIVE/UNDER_MAINTENANCE) |
 | FR-031 — Physical verification (presence/location/condition assertion) | Student 1 (Jayashan) | ❌ |
 | FR-033 — Fault report with photo evidence | Student 2 (Seneja) | ❌ |
 | FR-037 — Maintenance status progress update | Student 2 (Seneja) | ❌ |

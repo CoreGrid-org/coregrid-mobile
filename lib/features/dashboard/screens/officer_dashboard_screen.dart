@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/dashboard_section.dart';
 
@@ -22,6 +23,18 @@ class OfficerDashboardBody extends StatelessWidget {
               onPressed: () => notBuiltYet(context, 'features/scan'),
               icon: const Icon(Icons.qr_code_scanner),
               label: const Text('Scan Asset'),
+            ),
+            // FR-025 — manual code entry, always available (real: routes to
+            // features/assets/ Asset Detail).
+            OutlinedButton.icon(
+              onPressed: () => context.push('/assets'),
+              icon: const Icon(Icons.keyboard_outlined),
+              label: const Text('Enter Code'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/assets/search'),
+              icon: const Icon(Icons.manage_search),
+              label: const Text('Search Assets'),
             ),
             OutlinedButton.icon(
               onPressed: () => notBuiltYet(context, 'features/transfers'),
