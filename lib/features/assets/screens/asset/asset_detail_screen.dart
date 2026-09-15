@@ -5,36 +5,58 @@ import 'package:intl/intl.dart';
 import '../../../../shared/api/api_exception.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_detail.dart';
-import '../../models/asset/asset_history_entry.dart';
 import '../../widgets/asset/asset_attribute_list.dart';
 import '../../widgets/asset/asset_detail_actions.dart';
+import '../../widgets/asset/asset_detail_sections.dart';
 
-/// FR-020 / §4.4 — the attribute-driven asset detail read view, reached from a
-/// scan or a manual code lookup. Route: `/assets/:id`.
-///
-/// States (IF-01 vocabulary, applied here for consistency): loading, error
-/// (not found / offline / other, each retryable), populated.
 class AssetDetailScreen extends ConsumerWidget {
   const AssetDetailScreen({super.key, required this.assetId});
 
   final String assetId;
+
+  static const orange = Color(0xFFFF5A00);
+  static const lightOrange = Color(0xFFFFF0E8);
+  static const darkText = Color(0xFF202625);
+  static const secondaryText = Color(0xFF59635F);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asset = ref.watch(assetDetailProvider(assetId));
 
     return Scaffold(
+      backgroundColor: Colors.white,
+
       appBar: AppBar(
-        title: Text(asset.asData?.value.assetCode ?? 'Asset'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        title: Text(
+          asset.asData?.value.assetCode ?? 'Asset',
+          style: const TextStyle(
+            color: darkText,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: darkText),
       ),
+
       body: RefreshIndicator(
+        color: orange,
+
         onRefresh: () => ref.refresh(assetDetailProvider(assetId).future),
+
         child: asset.when(
-          loading: () => const _CenteredScroll(child: CircularProgressIndicator()),
+          loading: () => const _CenteredScroll(
+            child: CircularProgressIndicator(color: orange),
+          ),
+
           error: (error, _) => _AssetError(
             error: error,
             onRetry: () => ref.invalidate(assetDetailProvider(assetId)),
           ),
+
           data: (asset) => _AssetBody(asset: asset),
         ),
       ),
@@ -42,253 +64,221 @@ class AssetDetailScreen extends ConsumerWidget {
   }
 }
 
-class _AssetBody extends StatelessWidget {
+class _AssetBody extends StatefulWidget {
   const _AssetBody({required this.asset});
 
   final AssetDetail asset;
 
   @override
+  State<_AssetBody> createState() => _AssetBodyState();
+}
+
+class _AssetBodyState extends State<_AssetBody> {
+  int _selectedTab = 0;
+
+  static const orange = Color(0xFFFF5A00);
+  static const lightOrange = Color(0xFFFFF0E8);
+  static const darkText = Color(0xFF202625);
+  static const secondaryText = Color(0xFF59635F);
+
+  @override
   Widget build(BuildContext context) {
+    final asset = widget.asset;
+    final condition =
+        asset.condition?.label ??
+        (asset.conditionRaw.isEmpty ? 'Unknown' : asset.conditionRaw);
+
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
       children: [
-        Text(asset.name, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        Text(
-          asset.assetTypeName,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: lightOrange,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                size: 32,
+                color: orange,
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    asset.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 27,
+                      height: 1.15,
+                      fontWeight: FontWeight.w800,
+                      color: darkText,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    asset.assetTypeName,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: secondaryText,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            _Tag(
+            AssetStatusTag(
               icon: Icons.circle,
               label: asset.lifecycleStatus.label,
             ),
-            _Tag(
+            AssetStatusTag(
               icon: Icons.health_and_safety_outlined,
-              label: asset.condition?.label ??
-                  (asset.conditionRaw.isEmpty ? 'Unknown' : asset.conditionRaw),
+              label: condition,
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         AssetDetailActions(asset: asset),
+        const SizedBox(height: 24),
+        _AssetTabBar(
+          selectedIndex: _selectedTab,
+          onSelected: (index) => setState(() => _selectedTab = index),
+        ),
         const SizedBox(height: 20),
-        _Section(
-          title: 'Details',
-          child: Column(
-            children: [
-              _DetailRow(label: 'Asset code', value: asset.assetCode),
-              _DetailRow(label: 'Department', value: asset.departmentName),
-              _DetailRow(label: 'Location', value: asset.locationName),
-              _DetailRow(
-                label: 'Acquired',
-                value: DateFormat.yMMMMd().format(asset.acquisitionDate),
-              ),
-              _DetailRow(
-                label: 'Acquisition cost',
-                value: _money(asset.acquisitionCost),
-              ),
-              _DetailRow(
-                label: 'Residual value',
-                value: _money(asset.residualValue),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _Section(
-          title: 'Attributes',
-          child: AssetAttributeList(attributes: asset.attributes),
-        ),
-        const SizedBox(height: 12),
-        _HistorySection(assetId: asset.id),
+        _selectedContent(asset),
         const SizedBox(height: 32),
       ],
     );
+  }
+
+  Widget _selectedContent(AssetDetail asset) {
+    return switch (_selectedTab) {
+      0 => AssetDetailSection(
+        title: 'Details',
+        icon: Icons.info_outline_rounded,
+        child: Column(
+          children: [
+            AssetDetailRow(label: 'Asset code', value: asset.assetCode),
+            AssetDetailRow(label: 'Department', value: asset.departmentName),
+            AssetDetailRow(label: 'Location', value: asset.locationName),
+            AssetDetailRow(
+              label: 'Acquired',
+              value: DateFormat.yMMMMd().format(asset.acquisitionDate),
+            ),
+            AssetDetailRow(
+              label: 'Acquisition cost',
+              value: _money(asset.acquisitionCost),
+            ),
+            AssetDetailRow(
+              label: 'Residual value',
+              value: _money(asset.residualValue),
+            ),
+          ],
+        ),
+      ),
+      1 => AssetDetailSection(
+        title: 'Attributes',
+        icon: Icons.tune_rounded,
+        child: AssetAttributeList(attributes: asset.attributes),
+      ),
+      _ => AssetHistorySection(assetId: asset.id),
+    };
   }
 
   static String _money(num value) =>
       NumberFormat.decimalPatternDigits(decimalDigits: 2).format(value);
 }
 
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child});
+class _AssetTabBar extends StatelessWidget {
+  const _AssetTabBar({required this.selectedIndex, required this.onSelected});
 
-  final String title;
-  final Widget child;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  static const orange = Color(0xFFFF5A00);
+  static const inactive = Color(0xFF59635F);
+
+  static const tabs = [
+    (label: 'Details', icon: Icons.info_outline_rounded),
+    (label: 'Attributes', icon: Icons.tune_rounded),
+    (label: 'History', icon: Icons.history_rounded),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            child,
-          ],
-        ),
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE8E9E8))),
       ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
+          for (var index = 0; index < tabs.length; index++)
+            Expanded(
+              child: InkWell(
+                onTap: () => onSelected(index),
+                child: Container(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: selectedIndex == index
+                            ? orange
+                            : Colors.transparent,
+                        width: 3,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        tabs[index].icon,
+                        size: 21,
+                        color: selectedIndex == index ? orange : inactive,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          tabs[index].label,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: selectedIndex == index ? orange : inactive,
+                            fontSize: 14,
+                            fontWeight: selectedIndex == index
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value.isEmpty ? '—' : value,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _Tag extends StatelessWidget {
-  const _Tag({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: colors.secondaryContainer,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: colors.onSecondaryContainer),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: colors.onSecondaryContainer,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HistorySection extends StatelessWidget {
-  const _HistorySection({required this.assetId});
-
-  final String assetId;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: ExpansionTile(
-        title: Text(
-          'History',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        // ExpansionTile builds its children only once expanded, so the history
-        // request doesn't fire until the user actually opens the section.
-        children: [
-          Consumer(
-            builder: (context, ref, _) {
-              final history = ref.watch(assetHistoryProvider(assetId));
-              return history.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: CircularProgressIndicator(),
-                ),
-                error: (error, _) => Text(
-                  error is ApiException
-                      ? error.message
-                      : 'Couldn\'t load history.',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                data: (entries) => entries.isEmpty
-                    ? const Text('No history recorded yet.')
-                    : Column(
-                        children: [
-                          for (final entry in entries)
-                            _HistoryTile(entry: entry),
-                        ],
-                      ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.entry});
-
-  final AssetHistoryEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(entry.description, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 2),
-          Text(
-            [
-              DateFormat.yMMMd().add_jm().format(entry.createdAt.toLocal()),
-              if (entry.actorEmail != null) entry.actorEmail,
-            ].join(' · '),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// ============================================================================
+// ERROR
+// ============================================================================
 
 class _AssetError extends StatelessWidget {
   const _AssetError({required this.error, required this.onRetry});
@@ -296,67 +286,131 @@ class _AssetError extends StatelessWidget {
   final Object error;
   final VoidCallback onRetry;
 
+  static const orange = Color(0xFFFF5A00);
+  static const lightOrange = Color(0xFFFFF0E8);
+  static const darkText = Color(0xFF202625);
+  static const secondaryText = Color(0xFF59635F);
+
   @override
   Widget build(BuildContext context) {
-    final api = error is ApiException ? error : null;
+    final api = error is ApiException ? error as ApiException : null;
 
     final (icon, title, detail) = switch (api) {
       ApiException(isNotFound: true) => (
-        Icons.search_off_outlined,
+        Icons.search_off_rounded,
         'Asset not found',
         'No asset with this code exists in your organisation.',
       ),
+
       ApiException(isNetworkError: true) => (
-        Icons.wifi_off_outlined,
+        Icons.wifi_off_rounded,
         'You\'re offline',
-        'Connect to a network and try again — no cached asset data is shown.',
+        'Connect to a network and try again — '
+            'no cached asset data is shown.',
       ),
+
       ApiException(isUnauthorized: true) => (
-        Icons.lock_outline,
+        Icons.lock_outline_rounded,
         'Session expired',
         'Please sign out and sign in again.',
       ),
+
       ApiException(:final message) => (
-        Icons.error_outline,
+        Icons.error_outline_rounded,
         'Couldn\'t load this asset',
         message,
       ),
+
       _ => (
-        Icons.error_outline,
+        Icons.error_outline_rounded,
         'Couldn\'t load this asset',
         'Something went wrong. Try again.',
       ),
     };
 
     return _CenteredScroll(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            detail,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+      child: Container(
+        padding: const EdgeInsets.all(26),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x08000000),
+              blurRadius: 12,
+              offset: Offset(0, 3),
             ),
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: lightOrange,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(icon, size: 30, color: orange),
+            ),
+
+            const SizedBox(height: 18),
+
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                color: darkText,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              detail,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.45,
+                color: secondaryText,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            SizedBox(
+              height: 50,
+              child: FilledButton.icon(
+                onPressed: onRetry,
+                style: FilledButton.styleFrom(
+                  backgroundColor: orange,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text(
+                  'Retry',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Keeps content centred but still scrollable, so [RefreshIndicator] works in
-/// the loading and error states too.
+// ============================================================================
+// CENTERED SCROLL
+// ============================================================================
+
 class _CenteredScroll extends StatelessWidget {
   const _CenteredScroll({required this.child});
 
@@ -365,16 +419,18 @@ class _CenteredScroll extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Center(child: child),
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(child: child),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -19,6 +19,12 @@ class AssetVerificationScreen extends ConsumerStatefulWidget {
 
 class _AssetVerificationScreenState
     extends ConsumerState<AssetVerificationScreen> {
+  static const orange = Color(0xFFFF5A00);
+  static const lightOrange = Color(0xFFFFF0E8);
+  static const darkText = Color(0xFF202625);
+  static const secondaryText = Color(0xFF59635F);
+  static const fieldFill = Color(0xFFF8F9F8);
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _locationController;
   late AssetCondition _condition;
@@ -30,7 +36,9 @@ class _AssetVerificationScreenState
   @override
   void initState() {
     super.initState();
-    _locationController = TextEditingController(text: widget.asset.locationName);
+    _locationController = TextEditingController(
+      text: widget.asset.locationName,
+    );
     _condition = widget.asset.condition ?? AssetCondition.good;
   }
 
@@ -74,30 +82,125 @@ class _AssetVerificationScreenState
   Widget build(BuildContext context) {
     final result = _result;
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Asset')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          'Verify Asset',
+          style: TextStyle(
+            color: darkText,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: darkText),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
           children: [
-            Text(widget.asset.name, style: Theme.of(context).textTheme.headlineSmall),
-            Text(widget.asset.assetCode),
-            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: lightOrange,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.fact_check_outlined,
+                      color: orange,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.asset.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: darkText,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.asset.assetCode,
+                          style: const TextStyle(
+                            color: secondaryText,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
             Card(
+              elevation: 0,
+              color: fieldFill,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
               child: SwitchListTile(
                 title: const Text('Asset is present'),
-                subtitle: const Text('Confirm the physical asset is here.'),
+                subtitle: const Text(
+                  'Confirm the physical asset is here.',
+                  style: TextStyle(color: secondaryText),
+                ),
                 value: _present,
-                onChanged: _submitting ? null : (value) => setState(() => _present = value),
+                onChanged: _submitting
+                    ? null
+                    : (value) => setState(() => _present = value),
+                activeTrackColor: orange,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
               ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _locationController,
               enabled: !_submitting,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Observed location',
-                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: fieldFill,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  borderSide: BorderSide(color: orange, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 17,
+                ),
               ),
               validator: (value) => value == null || value.trim().isEmpty
                   ? 'Enter the observed location'
@@ -107,9 +210,26 @@ class _AssetVerificationScreenState
             DropdownButtonFormField<AssetCondition>(
               initialValue: _condition,
               isExpanded: true,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Observed condition',
-                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: fieldFill,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                  borderSide: BorderSide(color: orange, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 17,
+                ),
               ),
               items: [
                 for (final condition in AssetCondition.values)
@@ -125,16 +245,33 @@ class _AssetVerificationScreenState
                     },
             ),
             const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _submitting ? null : _submit,
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.fact_check_outlined),
-              label: Text(_submitting ? 'Submitting…' : 'Submit verification'),
+            SizedBox(
+              height: 54,
+              child: FilledButton.icon(
+                onPressed: _submitting ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: orange,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.fact_check_outlined),
+                label: Text(
+                  _submitting ? 'Submitting…' : 'Submit verification',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
@@ -152,7 +289,8 @@ class _AssetVerificationScreenState
                 title: result.discrepancyRaised
                     ? 'Discrepancy raised'
                     : 'Asset verified',
-                message: result.message ??
+                message:
+                    result.message ??
                     (result.discrepancyRaised
                         ? 'The submitted values differ from the asset record.'
                         : 'The asset matches the recorded details.'),
