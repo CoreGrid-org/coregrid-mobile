@@ -102,7 +102,34 @@ class AuthController extends Notifier<AuthState> {
         : AuthRoleNotSupported(role);
   }
 
+  /// FR-008: sign-out must terminate the identity-provider session, not just
+  /// clear local state — otherwise the stored refresh token would remain
+  /// valid if it ever leaked. Revokes it via ThunderID's RFC 7009 endpoint
+  /// (`oauth2/revoke`, from the discovery document) before clearing local
+  /// storage. Best-effort: revocation failing (offline, ThunderID down)
+  /// still signs the user out locally — SEC-ID-05 cares that no token is
+  /// logged or left in shared storage, not that revocation is guaranteed.
   Future<void> signOut() async {
+    final refreshToken = await _tokenStorage.readRefreshToken();
+    if (refreshToken != null && AuthConfig.thunderIdIssuer.isNotEmpty) {
+      try {
+        await Dio().post<void>(
+          '${AuthConfig.thunderIdIssuer}/oauth2/revoke',
+          data: {
+            'token': refreshToken,
+            'token_type_hint': 'refresh_token',
+            'client_id': AuthConfig.thunderIdClientId,
+          },
+          options: Options(
+            contentType: Headers.formUrlEncodedContentType,
+            validateStatus: (_) => true,
+          ),
+        );
+      } catch (_) {
+        // Offline or ThunderID unreachable — local sign-out still proceeds.
+      }
+    }
+
     await _tokenStorage.clear();
     state = const AuthUnauthenticated();
   }

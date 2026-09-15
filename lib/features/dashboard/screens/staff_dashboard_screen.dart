@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/theme/app_theme.dart';
 import '../widgets/dashboard_section.dart';
 
 /// Staff's dashboard body — SRS §2.3.1: what they've reported and its
@@ -12,41 +13,45 @@ class StaffDashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const accent = RoleAccent.staff;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 12,
+          runSpacing: 12,
           children: [
-            FilledButton.icon(
-              onPressed: () => notBuiltYet(context, 'features/scan'),
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Scan Asset'),
+            QuickActionTile(
+              primary: true,
+              accent: accent,
+              icon: Icons.qr_code_scanner,
+              label: 'Scan Asset',
+              onTap: () => notBuiltYet(context, 'features/scan'),
             ),
             // FR-025 — manual code entry, always available (real: routes to
             // features/assets/ Asset Detail).
-            OutlinedButton.icon(
-              onPressed: () => context.push('/assets'),
-              icon: const Icon(Icons.keyboard_outlined),
-              label: const Text('Enter Code'),
+            QuickActionTile(
+              icon: Icons.keyboard_outlined,
+              label: 'Enter Code',
+              onTap: () => context.push('/assets'),
             ),
-            OutlinedButton.icon(
-              onPressed: () => context.push('/assets/search'),
-              icon: const Icon(Icons.manage_search),
-              label: const Text('Search Assets'),
+            QuickActionTile(
+              icon: Icons.manage_search,
+              label: 'Search Assets',
+              onTap: () => context.push('/assets/search'),
             ),
-            OutlinedButton.icon(
-              onPressed: () => notBuiltYet(context, 'features/maintenance'),
-              icon: const Icon(Icons.report_problem_outlined),
-              label: const Text('Report Fault'),
+            QuickActionTile(
+              icon: Icons.report_problem_outlined,
+              label: 'Report Fault',
+              onTap: () => notBuiltYet(context, 'features/maintenance'),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         DashboardSection(
           title: 'My Fault Reports',
           icon: Icons.assignment_outlined,
+          accent: accent,
           emptyLabel: 'You haven\'t reported any faults yet',
           rows: const [
             DashboardRow(
