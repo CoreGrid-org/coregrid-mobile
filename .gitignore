@@ -29,6 +29,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/coverage/
 
 # Symbolication related
 app.*.symbols
@@ -45,3 +46,6 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+
+# Claude Code project state — local to each contributor's machine, not shared team config.
+.claude/
