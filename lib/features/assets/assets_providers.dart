@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/api/api_client.dart';
 import '../../shared/auth/auth_controller.dart';
 import '../../shared/auth/auth_state.dart';
 import 'assets_api.dart';
@@ -12,27 +13,38 @@ import 'models/asset/asset_search.dart';
 /// provider per feature-level concern, screens just `watch` it). `autoDispose`
 /// so leaving the screen drops the cached record — a field user re-scanning
 /// should always get a fresh read, never a stale one (FR-024 A4).
-final assetDetailProvider =
-    FutureProvider.autoDispose.family<AssetDetail, String>((ref, assetId) {
+final assetDetailProvider = FutureProvider.autoDispose
+    .family<AssetDetail, String>((ref, assetId) {
       return ref.watch(assetsApiProvider).getById(assetId);
+    });
+
+/// Search always uses the backend API. The mock-data switch is intentionally
+/// not applied here because FR-025 search validation must exercise the real
+/// server-side filters, sorting, and pagination contract.
+final realAssetsSearchApiProvider = Provider<SearchableAssetsApi>((ref) {
+  return SearchableAssetsApiClient(ref.watch(apiClientProvider));
+});
+
+final realAssetsCatalogApiProvider = Provider<AssetsApi>((ref) {
+  return SearchableAssetsApiClient(ref.watch(apiClientProvider));
+});
+
+final assetFilterOptionsProvider = FutureProvider.autoDispose
+    .family<List<String>, String>((ref, resourcePath) {
+      return ref
+          .watch(realAssetsCatalogApiProvider)
+          .getFilterOptions(resourcePath);
     });
 
 final assetSearchProvider = FutureProvider.autoDispose
     .family<AssetSearchResult, AssetSearchQuery>((ref, query) {
-      final api = ref.watch(assetsApiProvider);
-      if (api is! SearchableAssetsApi) {
-        throw StateError('The configured assets API does not support search.');
-      }
-      return (api as SearchableAssetsApi).search(query);
+      return ref.watch(realAssetsSearchApiProvider).search(query);
     });
 
 /// The asset's lifecycle history, loaded lazily when the user expands the
 /// History section (FR-027).
-final assetHistoryProvider =
-    FutureProvider.autoDispose.family<List<AssetHistoryEntry>, String>((
-      ref,
-      assetId,
-    ) {
+final assetHistoryProvider = FutureProvider.autoDispose
+    .family<List<AssetHistoryEntry>, String>((ref, assetId) {
       return ref.watch(assetsApiProvider).getHistory(assetId);
     });
 

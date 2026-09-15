@@ -110,32 +110,32 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Department',
               value: _department,
-              options: const ['', 'Operations'],
-              onChanged: (value) => setState(() => _department = value!),
+              resourcePath: '/api/departments',
+              onChanged: (value) => setState(() => _department = value ?? ''),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Location',
               value: _location,
-              options: const ['', 'Plant A - Section 3'],
-              onChanged: (value) => setState(() => _location = value!),
+              resourcePath: '/api/locations',
+              onChanged: (value) => setState(() => _location = value ?? ''),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Asset type',
               value: _assetType,
-              options: const ['', 'Equipment'],
-              onChanged: (value) => setState(() => _assetType = value!),
+              resourcePath: '/api/asset-types',
+              onChanged: (value) => setState(() => _assetType = value ?? ''),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Category',
               value: _category,
-              options: const ['', 'Equipment'],
-              onChanged: (value) => setState(() => _category = value!),
+              resourcePath: '/api/asset-categories',
+              onChanged: (value) => setState(() => _category = value ?? ''),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -219,20 +219,65 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
     );
   }
 
-  Widget _selectionRow({
+  Widget _databaseSelection({
     required String label,
     required String value,
-    required List<String> options,
+    required String resourcePath,
     required ValueChanged<String?> onChanged,
   }) {
-    return _selection(
-      label: label,
-      value: value,
-      options: options,
-      onChanged: onChanged,
-      fullWidth: true,
+    final options = ref.watch(assetFilterOptionsProvider(resourcePath));
+    return options.when(
+      loading: () => InputDecorator(
+        decoration: _filterDecoration(label),
+        child: const Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+      error: (error, _) => InputDecorator(
+        decoration: _filterDecoration(label),
+        child: Text(
+          'Could not load options',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+      data: (values) => DropdownButtonFormField<String>(
+        initialValue: value.isEmpty || !values.contains(value) ? null : value,
+        isExpanded: true,
+        decoration: _filterDecoration(label),
+        hint: const Text('Any'),
+        items: [
+          const DropdownMenuItem<String>(value: '', child: Text('Any')),
+          for (final option in values)
+            DropdownMenuItem(value: option, child: Text(option)),
+        ],
+        onChanged: onChanged,
+      ),
     );
   }
+
+  InputDecoration _filterDecoration(String label) => InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: _fieldFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: const BorderSide(color: _orange, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+  );
 
   Widget _selection({
     required String label,
