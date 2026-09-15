@@ -121,8 +121,8 @@ class _RaiseDiscrepancyScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Flag something the automatic comparison can\'t catch — '
-                'describe it, and attach a photo if it helps.',
+                'Flag something the automatic comparison cannot catch. '
+                'Describe it, and attach a photo if it helps.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

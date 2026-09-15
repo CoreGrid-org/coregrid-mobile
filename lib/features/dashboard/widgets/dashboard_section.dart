@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 void notBuiltYet(BuildContext context, String feature) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text('$feature isn\'t built yet — this is a mock dashboard.'),
+      content: Text('$feature isn\'t built yet, this is a mock dashboard.'),
     ),
   );
 }
 
-/// Maps a status label to a semantic color — Material 3 has no built-in
+/// Maps a status label to a semantic color. Material 3 has no built-in
 /// success/warning roles, so this is a small, deliberately conservative
 /// palette shared by every status chip on the dashboard rather than each
 /// section picking its own ad hoc colors.
@@ -24,14 +24,9 @@ Color statusColor(BuildContext context, String status) {
   };
 }
 
-/// One quick-action tile — icon-in-a-circle over a label, used for the row
-/// of shortcuts atop each role's dashboard. A nicer, more scannable grouping
-/// than a row of plain buttons; [primary] tints the tile with [accent]
-/// (the role's [RoleAccent]) to mark the one primary action (e.g. "Scan
-/// Asset"/"Report Fault") — everything else stays neutral.
-class QuickActionTile extends StatelessWidget {
-  const QuickActionTile({
-    super.key,
+/// Config for one [QuickActionsGrid] entry.
+class QuickAction {
+  const QuickAction({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -44,46 +39,76 @@ class QuickActionTile extends StatelessWidget {
   final VoidCallback onTap;
   final Color? accent;
   final bool primary;
+}
+
+/// The row of shortcuts atop each role's dashboard, as a fixed 4-column
+/// grid rather than a `Wrap` so it stays evenly aligned regardless of how
+/// many actions a role has, instead of leaving a ragged half-filled last
+/// row. Icon language matches `OnboardingScreen`'s rounded squares, not a
+/// circle, so the dashboard reads as the same design system as the intro.
+class QuickActionsGrid extends StatelessWidget {
+  const QuickActionsGrid({super.key, required this.actions});
+
+  final List<QuickAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 8,
+      childAspectRatio: 0.78,
+      children: [for (final action in actions) _QuickActionTile(action)],
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile(this.action);
+
+  final QuickAction action;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final tint = accent ?? colors.primary;
-    final background = primary ? tint : colors.surfaceContainerHigh;
-    final foreground = primary ? _onColor(tint) : colors.onSurface;
+    final tint = action.accent ?? colors.primary;
+    final background = action.primary ? tint : tint.withValues(alpha: 0.10);
+    final foreground = action.primary ? _onColor(tint) : tint;
 
-    return SizedBox(
-      width: 84,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: background,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: foreground, size: 24),
+    return InkWell(
+      onTap: action.onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(18),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ],
-        ),
+            child: Icon(action.icon, color: foreground, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            action.label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }
 
-  /// A readable foreground for an arbitrary brand accent used as a fill —
-  /// every current [RoleAccent] is dark enough for white text/icons, but
+  /// A readable foreground for an arbitrary brand accent used as a fill.
+  /// Every current `RoleAccent` is dark enough for white text/icons, but
   /// this keeps the tile correct if a lighter accent is added later.
   Color _onColor(Color background) =>
       ThemeData.estimateBrightnessForColor(background) == Brightness.dark
@@ -91,7 +116,7 @@ class QuickActionTile extends StatelessWidget {
       : Colors.black;
 }
 
-/// One labelled card of rows on a dashboard — shared by
+/// One labelled card of rows on a dashboard, shared by
 /// [OfficerDashboardScreen] and [StaffDashboardScreen] so each only states
 /// its own section titles and rows, not the card chrome.
 class DashboardSection extends StatelessWidget {
@@ -109,7 +134,7 @@ class DashboardSection extends StatelessWidget {
   final List<DashboardRow> rows;
   final String emptyLabel;
 
-  /// Tints the header icon's circle — defaults to the theme's primary when
+  /// Tints the header icon tile, defaults to the theme's primary when
   /// omitted, so a section can pick up a role's accent color instead.
   final Color? accent;
 
@@ -121,18 +146,22 @@ class DashboardSection extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: tint.withValues(alpha: 0.14),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Icon(icon, size: 18, color: tint),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     title,
@@ -146,7 +175,7 @@ class DashboardSection extends StatelessWidget {
             const SizedBox(height: 4),
             if (rows.isEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 8, left: 42),
+                padding: const EdgeInsets.only(top: 10, left: 46),
                 child: Text(
                   emptyLabel,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -163,7 +192,7 @@ class DashboardSection extends StatelessWidget {
   }
 }
 
-/// One row within a [DashboardSection] — an asset code / description on the
+/// One row within a [DashboardSection]: an asset code / description on the
 /// left, a status chip on the right, semantically colored by [statusColor].
 class DashboardRow extends StatelessWidget {
   const DashboardRow({
@@ -183,7 +212,7 @@ class DashboardRow extends StatelessWidget {
     final tint = statusColor(context, status);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10, left: 42),
+      padding: const EdgeInsets.only(top: 12, left: 46),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

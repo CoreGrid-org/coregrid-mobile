@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../widgets/dashboard_section.dart';
 
-/// Staff's dashboard body — SRS §2.3.1: what they've reported and its
+/// Staff's dashboard body. SRS §2.3.1: what they've reported and its
 /// status (FR-033, FR-080, summarised per FR-083). Deliberately narrower
-/// than the Officer's — Staff has no verification, maintenance-management or
-/// transfer capability. Mock data — see [DashboardScreen]'s banner.
+/// than the Officer's; Staff has no verification, maintenance-management or
+/// transfer capability. Mock data, see [DashboardScreen]'s banner.
 class StaffDashboardBody extends StatelessWidget {
   const StaffDashboardBody({super.key});
 
@@ -17,50 +17,51 @@ class StaffDashboardBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            QuickActionTile(
+        QuickActionsGrid(
+          actions: [
+            QuickAction(
               primary: true,
               accent: accent,
               icon: Icons.qr_code_scanner,
               label: 'Scan Asset',
               onTap: () => notBuiltYet(context, 'features/scan'),
             ),
-            // FR-025 — manual code entry, always available (real: routes to
+            // FR-025: manual code entry, always available (routes to
             // features/assets/ Asset Detail).
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.keyboard_outlined,
               label: 'Enter Code',
               onTap: () => context.push('/assets'),
             ),
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.manage_search,
               label: 'Search Assets',
               onTap: () => context.push('/assets/search'),
             ),
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.report_problem_outlined,
               label: 'Report Fault',
               onTap: () => notBuiltYet(context, 'features/maintenance'),
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 28),
         DashboardSection(
           title: 'My Fault Reports',
           icon: Icons.assignment_outlined,
           accent: accent,
-          emptyLabel: 'You haven\'t reported any faults yet',
+          emptyLabel: 'You have not reported any faults yet',
           rows: const [
             DashboardRow(
-              label: 'AST-00412 — Printer, Office 3',
+              label: 'AST-00412: Printer, Office 3',
               detail: 'Reported 3 days ago',
               status: 'In Progress',
             ),
             DashboardRow(
-              label: 'AST-00389 — Chair, Office 1',
+              label: 'AST-00389: Chair, Office 1',
               detail: 'Reported 1 week ago',
               status: 'Resolved',
             ),

@@ -102,7 +102,7 @@ class _InitiateWorkflowScreenState
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.check_circle_outline),
-                    title: Text('${asset.assetCode} — ${asset.name}'),
+                    title: Text('${asset.assetCode}: ${asset.name}'),
                     trailing: IconButton(
                       icon: const Icon(Icons.close),
                       tooltip: 'Change asset',

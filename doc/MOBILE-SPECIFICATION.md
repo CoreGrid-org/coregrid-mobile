@@ -153,13 +153,6 @@ an unsupported role never counts as a real mobile session. Mirrors the React fro
 role uses the client(s) it does, and how both clients integrate with ThunderID and the API — is
 `CoreGrid/doc/SRS/03-system-architecture.md` §3.4.1 (Figure 10).
 
-**Dev Sign In (debug builds only):** a `kDebugMode`-gated button on the sign-in screen opens a role picker
-and calls `AuthController.devSignIn(role)`, which sets auth state directly — no ThunderID, no backend call,
-no token persisted. The picker only offers Staff and Inventory Officer — the two roles this app actually
-serves — not Auditor/Administrator, since those never reach this app for real. `kDebugMode` is a
-compile-time constant that's `false` in release/profile builds, so this branch is dead-code-eliminated from
-anything that isn't a debug build — it cannot ship.
-
 ### 4.2 Dashboard — FR-083
 
 | | |
@@ -168,7 +161,7 @@ anything that isn't a debug build — it cannot ship.
 | Sequence | Role-branched (main SRS §2.3.1): Officer sees verification tasks due, maintenance assigned, transfers awaiting confirmation; Staff sees their own fault reports and status only — narrower, since Staff has no verification/maintenance-management/transfer capability |
 | States | Loading, empty (per section — "No tasks due"), error (per section, independently retryable), populated |
 | API calls | Aggregated from the verification, maintenance and transfer list endpoints (main SRS §9), scoped to the current user |
-| Status | **Mock scaffold only** (`features/dashboard/screens/{dashboard,officer_dashboard,staff_dashboard}_screen.dart`) — hardcoded sample rows, no provider, no API call yet. Built ahead of the "last, once other features exist" plan in `TEAM-ALLOCATION.md` specifically so Dev Sign In (§4.1) has somewhere real to land; a visible "Mock dashboard" banner says so on-screen. Replacing it with the real, data-backed version stays this owner's task once `features/verification`, `features/maintenance` and `features/transfers` exist. |
+| Status | **Partially live** (`features/dashboard/screens/{dashboard,officer_dashboard,staff_dashboard}_screen.dart`) — "Verification Tasks Due" reads real data from `features/verification/`; "Maintenance Assigned to Me" and "Transfers Awaiting My Confirmation" stay hardcoded sample rows until `features/maintenance`/`features/transfers` exist to back them, disclosed with an on-screen banner. |
 
 ### 4.3 Scan / Manual Entry — FR-024, FR-025, IF-06, IF-07, IF-10, IF-12
 

@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -79,27 +78,6 @@ class AuthController extends Notifier<AuthState> {
     } catch (e) {
       state = AuthError('Sign-in failed: $e');
     }
-  }
-
-  /// Debug-only bypass of the ThunderID PKCE flow — jumps straight to the
-  /// dashboard as the given role, without a running ThunderID instance or
-  /// backend. The picker only offers [kMobileSupportedRoles] (Staff,
-  /// Inventory Officer) since Auditor/Administrator never reach this app for
-  /// real; the unsupported-role branch below is kept only as a safety net if
-  /// this is ever called with something else. `kDebugMode` is a compile-time
-  /// constant (`false` in release/profile builds), so the guarded branch is
-  /// dead-code-eliminated from any real build — this can never ship. No
-  /// token is persisted: the access token is an obvious placeholder, never a
-  /// real bearer credential.
-  void devSignIn(String role) {
-    if (!kDebugMode) return;
-    state = kMobileSupportedRoles.contains(role)
-        ? AuthAuthenticated(
-            accessToken: 'dev-bypass-token',
-            displayName: roleLabel(role),
-            role: role,
-          )
-        : AuthRoleNotSupported(role);
   }
 
   /// FR-008: sign-out must terminate the identity-provider session, not just

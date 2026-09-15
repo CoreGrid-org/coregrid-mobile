@@ -64,7 +64,7 @@ class _WorkflowList extends StatelessWidget {
           child: ListTile(
             onTap: () => context.push('/workflows/${workflow.id}'),
             leading: Icon(_iconFor(workflow)),
-            title: Text('${workflow.assetCode} — ${workflow.objective}'),
+            title: Text('${workflow.assetCode}: ${workflow.objective}'),
             subtitle: Text(_subtitleFor(workflow)),
             trailing: Chip(
               label: Text(workflow.status),

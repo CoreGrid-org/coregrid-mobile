@@ -7,6 +7,7 @@ import '../features/assets/screens/asset/asset_search_screen.dart';
 import '../features/auth/screens/access_restricted_screen.dart';
 import '../features/auth/screens/sign_in_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
+import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/verification/screens/raise_discrepancy_screen.dart';
 import '../features/verification/screens/verification_task_detail_screen.dart';
 import '../features/verification/screens/verification_task_list_screen.dart';
@@ -28,7 +29,7 @@ const _officerOnlyPrefixes = ['/verification', '/workflows'];
 /// feature's folder. Each feature wires its own routes in here as it lands.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/sign-in',
+    initialLocation: '/onboarding',
     redirect: (context, state) {
       final isOfficerOnly = _officerOnlyPrefixes.any(
         (prefix) => state.matchedLocation.startsWith(prefix),
@@ -40,6 +41,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return role == 'InventoryOfficer' ? null : '/home';
     },
     routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(
         path: '/sign-in',
         builder: (context, state) => const SignInScreen(),

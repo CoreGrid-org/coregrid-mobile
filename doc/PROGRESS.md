@@ -13,8 +13,9 @@ mandated + supporting packages from `MOBILE-SPECIFICATION.md` §2 added to `pubs
 `features/auth/`, `features/dashboard/`, `features/verification/` and `features/workflows/` have all landed
 (this owner's full scope per `TEAM-ALLOCATION.md`): ThunderID PKCE sign-in via `flutter_appauth`, the SRS
 §2.3.1/v1.5 role gate (Auditor/Administrator routed to `/access-restricted`), sign-out now revokes the
-refresh token against ThunderID's `oauth2/revoke` before clearing local state (FR-008), a `kDebugMode`-only
-Dev Sign In bypass, and a role-branched dashboard. `features/verification/` (task list, scan-stand-in
+refresh token against ThunderID's `oauth2/revoke` before clearing local state (FR-008), and a role-branched
+dashboard. There is no dev/bypass sign-in path; every sign-in goes through the real ThunderID PKCE flow.
+`features/verification/` (task list, scan-stand-in
 complete flow, manual discrepancy raising with a compressed photo) and `features/workflows/` (initiate,
 poll status, show outcome) are both live against the real backend — no mock data — and both are
 Inventory-Officer-only, guarded at the router level (`go_router`'s `redirect`), matching the SRS's
@@ -50,7 +51,7 @@ Awaiting My Confirmation" stay mock until their owners' features exist to summar
 | FR-067/069 — Initiate agentic evaluation, view workflow status | Student 4 (Hasitha) | ✅ (`features/workflows/` — `InitiateWorkflowScreen` at `/workflows/new` resolves an asset by code then `POST /api/agent-workflows`; `WorkflowListScreen`/`WorkflowDetailScreen` at `/workflows` and `/workflows/:id`, the latter polling `GET /api/agent-workflows/{id}` every 5s until resolved. This app never calls `/evaluate` or `/run-policy-agent` — those run inside the backend's own agent orchestration, not from a mobile trigger) |
 | FR-076 — Display evaluation outcome | Student 4 (Hasitha) | ✅ (`WorkflowDetailScreen` — recommendation, approval status, high-impact flag, or the failure reason if the evaluation failed; no approval action, per the React-only responsibility boundary) |
 | FR-080 — In-app notifications | Student 2 (Seneja) | ❌ |
-| FR-083 — Task-focused dashboard | Student 4 (Hasitha) | 🟡 (role-branched per §2.3.1; "Verification Tasks Due" is now live via `features/verification/`, "Maintenance Assigned to Me"/"Transfers Awaiting My Confirmation" stay mock until `features/maintenance`/`features/transfers` exist to summarise — banner on-screen says so) |
+| FR-083 — Task-focused dashboard | Student 4 (Hasitha) | 🟡 (role-branched per §2.3.1; "Verification Tasks Due" is now live via `features/verification/`, "Maintenance Assigned to Me"/"Transfers Awaiting My Confirmation" stay mock until `features/maintenance`/`features/transfers` exist to summarise — banner on-screen says so. Quick-action buttons were checked directly against `CoreGrid/doc/SRS/02-overall-description.md` §2.3.1's Mobile-users table, not `TEAM-ALLOCATION.md` — that file assigns folders to people, it doesn't define what a role may do. One gap found and fixed: Officer's dashboard had no Report Fault entry point even though FR-033 is Officer-*and*-Staff, not Staff-only; Staff's dashboard was already correctly scoped, and no dashboard exposes asset registration, which per §2.3.1 is React-only for every role, not just non-Flutter for Staff) |
 
 ## Next milestone
 

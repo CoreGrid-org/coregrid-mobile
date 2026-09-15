@@ -6,12 +6,19 @@ import '../../../shared/theme/app_theme.dart';
 import '../../verification/verification_providers.dart';
 import '../widgets/dashboard_section.dart';
 
-/// Inventory Officer's dashboard body — SRS §2.3.1: verification tasks,
-/// maintenance assigned to them, and transfers awaiting their confirmation
-/// (FR-058, FR-037, FR-046, summarised per FR-083). Maintenance/transfers
-/// rows are still mock (those features aren't built) — see
-/// [DashboardScreen]'s banner; the verification section below is live
-/// (`features/verification/`, this owner's own feature).
+/// Inventory Officer's dashboard body. SRS §2.3.1's Mobile-users table
+/// lists this role's Flutter scope as: scan/lookup, verification tasks and
+/// completion (FR-031/058/059), discrepancy raising (FR-061), fault
+/// reporting (FR-033, shared with Staff, not Staff-only), condition
+/// recording (FR-029), maintenance progress update (FR-037), transfer
+/// request and receipt confirmation (FR-043/046), and agent workflow
+/// initiate/outcome (FR-067/076), summarised per FR-083. Asset
+/// registration (FR-021-023) is not in this list anywhere: per the SRS's
+/// own Web-users table it's React-only, not just Officer-only, so this
+/// dashboard has no "add asset" action for any role. Maintenance/transfer
+/// rows are still mock (those features aren't built); the verification
+/// section below is live (`features/verification/`, this owner's own
+/// feature).
 class OfficerDashboardBody extends ConsumerWidget {
   const OfficerDashboardBody({super.key});
 
@@ -21,47 +28,58 @@ class OfficerDashboardBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            QuickActionTile(
+        QuickActionsGrid(
+          actions: [
+            QuickAction(
               primary: true,
               accent: accent,
               icon: Icons.qr_code_scanner,
               label: 'Scan Asset',
               onTap: () => notBuiltYet(context, 'features/scan'),
             ),
-            // FR-025 — manual code entry, always available (real: routes to
+            // FR-025: manual code entry, always available (routes to
             // features/assets/ Asset Detail).
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.keyboard_outlined,
               label: 'Enter Code',
               onTap: () => context.push('/assets'),
             ),
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.manage_search,
               label: 'Search Assets',
               onTap: () => context.push('/assets/search'),
             ),
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.fact_check_outlined,
               label: 'Verification',
               onTap: () => context.push('/verification'),
             ),
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.smart_toy_outlined,
-              label: 'Agent Workflows',
+              label: 'Workflows',
               onTap: () => context.push('/workflows'),
             ),
-            QuickActionTile(
+            QuickAction(
+              accent: accent,
               icon: Icons.local_shipping_outlined,
-              label: 'Raise Transfer',
+              label: 'Transfer',
               onTap: () => notBuiltYet(context, 'features/transfers'),
+            ),
+            // FR-033: fault reporting is Officer and Staff (SRS §2.3.1
+            // Mobile-users table), not Staff-only.
+            QuickAction(
+              accent: accent,
+              icon: Icons.report_problem_outlined,
+              label: 'Report Fault',
+              onTap: () => notBuiltYet(context, 'features/maintenance'),
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 28),
         _VerificationTasksDueSection(accent: accent),
         DashboardSection(
           title: 'Maintenance Assigned to Me',
@@ -69,8 +87,8 @@ class OfficerDashboardBody extends ConsumerWidget {
           accent: accent,
           rows: const [
             DashboardRow(
-              label: 'AST-00147 — Air Compressor',
-              detail: 'Corrective, priority: High',
+              label: 'AST-00147: Air Compressor',
+              detail: 'Corrective, priority high',
               status: 'In Progress',
             ),
           ],
@@ -81,7 +99,7 @@ class OfficerDashboardBody extends ConsumerWidget {
           accent: accent,
           rows: const [
             DashboardRow(
-              label: 'AST-00305 — Laptop, from Finance Dept.',
+              label: 'AST-00305: Laptop, from Finance Dept.',
               detail: 'Requested 1 day ago',
               status: 'In Transit',
             ),
@@ -92,7 +110,7 @@ class OfficerDashboardBody extends ConsumerWidget {
   }
 }
 
-/// The dashboard's one live section (FR-058 data, summarised per FR-083) —
+/// The dashboard's one live section (FR-058 data, summarised per FR-083);
 /// everything else on this screen is still mock pending
 /// `features/maintenance`/`features/transfers`. Loading/error states
 /// collapse quietly into the section itself rather than blocking the rest
@@ -116,7 +134,7 @@ class _VerificationTasksDueSection extends ConsumerWidget {
         rows: [
           for (final task in value.where((t) => t.isPending).take(3))
             DashboardRow(
-              label: '${task.assetCode} — ${task.assetName}',
+              label: '${task.assetCode}: ${task.assetName}',
               detail: task.isOverdue
                   ? 'Overdue since ${task.dueDate.year}-${task.dueDate.month.toString().padLeft(2, '0')}-${task.dueDate.day.toString().padLeft(2, '0')}'
                   : 'Due ${task.dueDate.year}-${task.dueDate.month.toString().padLeft(2, '0')}-${task.dueDate.day.toString().padLeft(2, '0')}',
@@ -128,14 +146,14 @@ class _VerificationTasksDueSection extends ConsumerWidget {
         title: 'Verification Tasks Due',
         icon: Icons.fact_check_outlined,
         accent: accent,
-        emptyLabel: 'Couldn\'t load verification tasks',
+        emptyLabel: 'Could not load verification tasks',
         rows: const [],
       ),
       _ => DashboardSection(
         title: 'Verification Tasks Due',
         icon: Icons.fact_check_outlined,
         accent: accent,
-        emptyLabel: 'Loading…',
+        emptyLabel: 'Loading...',
         rows: const [],
       ),
     };

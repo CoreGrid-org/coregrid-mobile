@@ -76,7 +76,7 @@ class _TaskCard extends StatelessWidget {
               : Icons.fact_check_outlined,
           color: statusColor,
         ),
-        title: Text('${task.assetCode} — ${task.assetName}'),
+        title: Text('${task.assetCode}: ${task.assetName}'),
         subtitle: Text(
           '${task.campaignName} · Due ${_formatDate(task.dueDate)}'
           '${task.isOverdue ? ' (overdue)' : ''}',

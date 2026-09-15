@@ -53,7 +53,7 @@ class _WorkflowStatus extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '${workflow.assetCode} — ${workflow.objective}',
+            '${workflow.assetCode}: ${workflow.objective}',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 4),
@@ -80,7 +80,7 @@ class _WorkflowStatus extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         if (!workflow.isResolved && !workflow.isFailed)
-                          const Text('In progress — updates automatically.'),
+                          const Text('In progress. Updates automatically.'),
                       ],
                     ),
                   ),

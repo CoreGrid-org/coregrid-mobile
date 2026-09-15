@@ -80,7 +80,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('AST-001 — Generator'), findsOneWidget);
+    expect(find.textContaining('AST-001: Generator'), findsOneWidget);
     expect(find.text('Objective'), findsOneWidget);
   });
 
