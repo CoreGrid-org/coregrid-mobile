@@ -82,8 +82,11 @@ Projects/
 ## 2. Register the mobile client in ThunderID
 
 The mobile app is a **public client** — no client secret is embedded in the APK. Register it in ThunderID
-as a mobile/native application with a custom-scheme redirect URI and PKCE (SRS Appendix C, item 4). Record
-the client ID and redirect scheme in `doc/setup/` here, not in code or committed config — see
+as a mobile/native application with a custom-scheme redirect URI and PKCE (SRS Appendix C, item 4), with
+**Sign-In Approach set to Redirect / hosted login, not Bring Your Own UI** — see
+[`doc/setup/ThunderID-mobile-client.md`](doc/setup/ThunderID-mobile-client.md) for why BYOUI conflicts with
+SEC-ID-06. Record the client ID and redirect scheme in your own untracked local config (`.env.json`, gitignored — see `.env.example` for the shape `--dart-define-from-file` expects), never in code or a
+committed file — see
 [`CoreGrid/doc/setup/ThunderID.md`](../CoreGrid/doc/setup/ThunderID.md) for how the equivalent React
 registration was done.
 
@@ -97,8 +100,8 @@ specific URL into source that gets committed.
 
 ```bash
 flutter pub get
-flutter run
-flutter emulators --launch Pixel_6 
+flutter emulators --launch Pixel_6
+flutter run --dart-define-from-file=.env.json
 ```
 
 ## 5. Before committing

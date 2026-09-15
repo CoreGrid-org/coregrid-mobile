@@ -73,12 +73,37 @@ own trust store — the network security config above does not cover it. Either:
 
 ## 4. Run the app
 
+Put your three values in a gitignored `.env.json` at the repo root (copy `.env.example`) rather than
+retyping `--dart-define` flags every run:
+
+```json
+{
+  "API_BASE_URL": "https://localhost:7240",
+  "THUNDERID_ISSUER": "https://localhost:8090",
+  "THUNDERID_CLIENT_ID": "<dev Client ID from the ThunderID console — see ThunderID-mobile-client.md>"
+}
+```
+
+Then, with an emulator booted (or a device connected) and step 2's `adb reverse` already run against it:
+
+```bash
+flutter run --dart-define-from-file=.env.json
+```
+
+Equivalent without the file, if you'd rather pass the values directly:
+
 ```bash
 flutter run \
   --dart-define=API_BASE_URL=https://localhost:7240 \
-  --dart-define=THUNDERID_BASE_URL=https://localhost:8090 \
+  --dart-define=THUNDERID_ISSUER=https://localhost:8090 \
   --dart-define=THUNDERID_CLIENT_ID=<dev Client ID from the ThunderID console — see ThunderID-mobile-client.md>
 ```
+
+`THUNDERID_ISSUER`, not `THUNDERID_BASE_URL` — matches the flag `AuthConfig`
+(`lib/shared/auth/auth_config.dart`) actually reads. Passing
+`THUNDERID_BASE_URL` is silently ignored: `AuthConfig.thunderIdIssuer` stays
+empty, `AuthConfig.isConfigured` is `false`, and sign-in fails immediately
+with "App isn't configured" rather than reaching ThunderID at all.
 
 ## Why not `10.0.2.2`? {#why-not-1002}
 

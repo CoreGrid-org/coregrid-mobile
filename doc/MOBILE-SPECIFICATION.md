@@ -233,7 +233,7 @@ anything that isn't a debug build — it cannot ship.
 | Trigger | "Request Evaluation" from asset detail; workflow status from a notification or the dashboard |
 | Sequence | Initiate (states objective, receives a workflow ID immediately — does not block on completion) → status screen (current step, agents completed) → outcome screen (recommendation + approval status) once resolved |
 | States | Initiating, in progress (polled or pushed), outcome available, failed |
-| API calls | `POST /api/workflows`, `GET /api/workflows/{id}` |
+| API calls | `POST /api/agent-workflows`, `GET /api/agent-workflows/{id}` (`AgentWorkflowsController` — this section previously said `/api/workflows`, the route name before the backend controller landed) |
 | Note | No approval action here — approval is React-only per the responsibility boundary (main SRS §3.4). Officer only — Administrator initiates and Auditor/Administrator view workflow status from the web console instead (scope change v1.5); this screen is unreachable for those roles per §4.1's role gate |
 
 ### 4.10 Notifications — FR-080
@@ -257,15 +257,24 @@ Three configurations, selected at build time via `--dart-define`, not committed 
 | `staging` | Deployed staging API | Staging-registered mobile client |
 | `prod` | Deployed production API | Production-registered mobile client |
 
+Recommended: copy `.env.example` to a gitignored `.env.json` with your real values, then:
+
+```bash
+flutter run --dart-define-from-file=.env.json
+```
+
+Equivalent without the file:
+
 ```bash
 flutter run \
   --dart-define=API_BASE_URL=https://localhost:7240 \
-  --dart-define=THUNDERID_BASE_URL=https://localhost:8090 \
-  --dart-define=THUNDERID_CLIENT_ID=Ok35LLY76ZrK-5j1qsJCxQ
+  --dart-define=THUNDERID_ISSUER=https://localhost:8090 \
+  --dart-define=THUNDERID_CLIENT_ID=<dev Client ID from the ThunderID console>
 ```
 
 Read these via `String.fromEnvironment` in `shared/api/` and `shared/auth/` — never hardcode a URL or client
-ID in source that gets committed, and never commit a `.env` file containing them (see `.gitignore`).
+ID in source that gets committed, and never commit a `.env`/`.env.json` file containing them (see
+`.gitignore`).
 
 ### 5.2 App identity and versioning
 

@@ -51,7 +51,15 @@ owner's larger share of the work is Component C's backend/React transfer-and-dis
 
 Verification-campaign task list and the field verification flow (FR-058, FR-059), manual discrepancy raising
 (FR-061), and agent-status display (FR-067–FR-069, FR-076 — the main SRS's Flutter cell for this component
-names "agent status display" explicitly). This owner's Flutter scope also includes the pieces §12/§18 don't
+names "agent status display" explicitly). **Built** — see `doc/PROGRESS.md` for the live status and the
+exact endpoints each screen calls; both features are Inventory-Officer-only on mobile (Staff has no role in
+either — SRS scope change v1.5) and are guarded at the router level, not just hidden from the dashboard.
+One backend fix landed alongside them, in this owner's own Component D scope: `DiscrepanciesController`'s
+manual-raise action (FR-061) was Auditor/Administrator-only, which would have 403'd every call this app
+makes — FR-061 is explicitly an Officer/Flutter requirement (main SRS `06-functional-requirements.md`), so
+`InventoryOfficer` was added to that endpoint's allowed roles, and a `POST /api/verification-tasks/photos`
+upload endpoint was added (none existed) so the discrepancy photo has somewhere to go before the raise call.
+This owner's Flutter scope also includes the pieces §12/§18 don't
 assign to any single component, because they're genuinely cross-cutting rather than missing an owner:
 
 | Piece | Why it isn't in anyone's FR range | Recommendation |
