@@ -200,18 +200,20 @@ class DashboardRow extends StatelessWidget {
     required this.label,
     required this.detail,
     required this.status,
+    this.onTap,
   });
 
   final String label;
   final String detail;
   final String status;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final tint = statusColor(context, status);
 
-    return Padding(
+    final Widget child = Padding(
       padding: const EdgeInsets.only(top: 12, left: 46),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,5 +255,14 @@ class DashboardRow extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: child,
+      );
+    }
+    return child;
   }
 }

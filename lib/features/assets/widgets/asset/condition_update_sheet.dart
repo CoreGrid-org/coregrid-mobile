@@ -28,10 +28,12 @@ class ConditionUpdateSheet extends ConsumerStatefulWidget {
   }) {
     return showModalBottomSheet<bool>(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) =>
-          ConditionUpdateSheet(assetId: assetId, current: current),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => ConditionUpdateSheet(assetId: assetId, current: current),
     );
   }
 
@@ -41,6 +43,10 @@ class ConditionUpdateSheet extends ConsumerStatefulWidget {
 }
 
 class _ConditionUpdateSheetState extends ConsumerState<ConditionUpdateSheet> {
+  static const orange = Color(0xFFFF5A00);
+  static const darkText = Color(0xFF202625);
+  static const secondaryText = Color(0xFF59635F);
+
   AssetCondition? _selected;
 
   @override
@@ -66,9 +72,8 @@ class _ConditionUpdateSheetState extends ConsumerState<ConditionUpdateSheet> {
       final message = error is ApiException
           ? error.message
           : 'Couldn\'t update the condition. Try again.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -89,49 +94,135 @@ class _ConditionUpdateSheetState extends ConsumerState<ConditionUpdateSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Record condition',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Set the asset\'s condition as you\'ve just inspected it. '
-              'The change is added to the asset history.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD7DCD9),
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            RadioGroup<AssetCondition>(
-              groupValue: _selected,
-              onChanged: isSubmitting
-                  ? (_) {}
-                  : (value) => setState(() => _selected = value),
-              child: Column(
-                children: [
-                  for (final condition in AssetCondition.values)
-                    RadioListTile<AssetCondition>(
-                      value: condition,
-                      title: Text(condition.label),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                ],
+            Text(
+              'Record condition',
+              style: const TextStyle(
+                color: darkText,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 8),
-            FilledButton(
-              onPressed: (isSubmitting || _selected == null || unchanged)
-                  ? null
-                  : _submit,
-              child: isSubmitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(unchanged ? 'No change' : 'Save condition'),
+            Text(
+              'Set the asset\'s condition as you\'ve just inspected it. '
+              'The change is added to the asset history.',
+              style: const TextStyle(
+                color: secondaryText,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 18),
+            for (final condition in AssetCondition.values) ...[
+              _ConditionOption(
+                condition: condition,
+                selected: _selected == condition,
+                enabled: !isSubmitting,
+                onTap: () => setState(() => _selected = condition),
+              ),
+              const SizedBox(height: 8),
+            ],
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 52,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: orange,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFFE1E3E2),
+                  disabledForegroundColor: const Color(0xFF8B9290),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: (isSubmitting || _selected == null || unchanged)
+                    ? null
+                    : _submit,
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(unchanged ? 'No change' : 'Save condition'),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConditionOption extends StatelessWidget {
+  const _ConditionOption({
+    required this.condition,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final AssetCondition condition;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  static const orange = Color(0xFFFF5A00);
+  static const lightOrange = Color(0xFFFFF0E8);
+  static const darkText = Color(0xFF202625);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? lightOrange : const Color(0xFFF8F9F8),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? orange : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? orange : const Color(0xFF59635F),
+                size: 23,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                condition.label,
+                style: const TextStyle(
+                  color: darkText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

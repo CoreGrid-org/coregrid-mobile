@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/api/api_exception.dart';
 import '../../assets_api.dart';
+import '../../assets_providers.dart';
 import '../../models/asset/asset_condition.dart';
 import '../../models/asset/asset_detail.dart';
 import '../../models/asset/asset_verification.dart';
@@ -19,8 +20,14 @@ class AssetVerificationScreen extends ConsumerStatefulWidget {
 
 class _AssetVerificationScreenState
     extends ConsumerState<AssetVerificationScreen> {
+  static const orange = Color(0xFFFF5A00);
+  static const lightOrange = Color(0xFFFFF0E8);
+  static const darkText = Color(0xFF202625);
+  static const secondaryText = Color(0xFF59635F);
+  static const fieldFill = Color(0xFFF8F9F8);
+
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _locationController;
+  late String _location;
   late AssetCondition _condition;
   bool _present = true;
   bool _submitting = false;
@@ -30,13 +37,12 @@ class _AssetVerificationScreenState
   @override
   void initState() {
     super.initState();
-    _locationController = TextEditingController(text: widget.asset.locationName);
+    _location = widget.asset.locationName;
     _condition = widget.asset.condition ?? AssetCondition.good;
   }
 
   @override
   void dispose() {
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -58,7 +64,7 @@ class _AssetVerificationScreenState
         assetId: widget.asset.id,
         request: AssetVerificationRequest(
           present: _present,
-          location: _locationController.text,
+          location: _location,
           condition: _condition,
         ),
       );
@@ -70,47 +76,183 @@ class _AssetVerificationScreenState
     }
   }
 
+  InputDecoration _fieldDecoration(String label) => InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: fieldFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: const BorderSide(color: orange, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+  );
+
   @override
   Widget build(BuildContext context) {
     final result = _result;
+    final locations = ref.watch(assetFilterOptionsProvider('/api/locations'));
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Asset')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          'Verify Asset',
+          style: TextStyle(
+            color: darkText,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: darkText),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
           children: [
-            Text(widget.asset.name, style: Theme.of(context).textTheme.headlineSmall),
-            Text(widget.asset.assetCode),
-            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: lightOrange,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.fact_check_outlined,
+                      color: orange,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.asset.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: darkText,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.asset.assetCode,
+                          style: const TextStyle(
+                            color: secondaryText,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
             Card(
+              elevation: 0,
+              color: fieldFill,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
               child: SwitchListTile(
                 title: const Text('Asset is present'),
-                subtitle: const Text('Confirm the physical asset is here.'),
+                subtitle: const Text(
+                  'Confirm the physical asset is here.',
+                  style: TextStyle(color: secondaryText),
+                ),
                 value: _present,
-                onChanged: _submitting ? null : (value) => setState(() => _present = value),
+                onChanged: _submitting
+                    ? null
+                    : (value) => setState(() => _present = value),
+                activeTrackColor: orange,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _locationController,
-              enabled: !_submitting,
-              decoration: const InputDecoration(
-                labelText: 'Observed location',
-                border: OutlineInputBorder(),
+            locations.when(
+              loading: () => InputDecorator(
+                decoration: _fieldDecoration('Observed location'),
+                child: const SizedBox(
+                  height: 20,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
               ),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Enter the observed location'
-                  : null,
+              error: (error, _) => InputDecorator(
+                decoration: _fieldDecoration('Observed location'),
+                child: Text(
+                  'Could not load locations',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+              data: (values) {
+                final options = {
+                  ...values,
+                  if (_location.isNotEmpty) _location,
+                }.toList();
+                return DropdownButtonFormField<String>(
+                  initialValue: _location.isEmpty ? null : _location,
+                  isExpanded: true,
+                  decoration: _fieldDecoration('Observed location'),
+                  hint: const Text('Select observed location'),
+                  items: [
+                    for (final location in options)
+                      DropdownMenuItem(
+                        value: location,
+                        child: Text(location, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Select the observed location'
+                      : null,
+                  onChanged: _submitting
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setState(() => _location = value);
+                          }
+                        },
+                );
+              },
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<AssetCondition>(
               initialValue: _condition,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Observed condition',
-                border: OutlineInputBorder(),
-              ),
+              decoration: _fieldDecoration('Observed condition'),
               items: [
                 for (final condition in AssetCondition.values)
                   DropdownMenuItem(
@@ -125,16 +267,33 @@ class _AssetVerificationScreenState
                     },
             ),
             const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _submitting ? null : _submit,
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.fact_check_outlined),
-              label: Text(_submitting ? 'Submitting…' : 'Submit verification'),
+            SizedBox(
+              height: 54,
+              child: FilledButton.icon(
+                onPressed: _submitting ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: orange,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.fact_check_outlined),
+                label: Text(
+                  _submitting ? 'Submitting…' : 'Submit verification',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
@@ -152,7 +311,8 @@ class _AssetVerificationScreenState
                 title: result.discrepancyRaised
                     ? 'Discrepancy raised'
                     : 'Asset verified',
-                message: result.message ??
+                message:
+                    result.message ??
                     (result.discrepancyRaised
                         ? 'The submitted values differ from the asset record.'
                         : 'The asset matches the recorded details.'),

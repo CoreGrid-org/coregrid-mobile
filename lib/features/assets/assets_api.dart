@@ -3,13 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/api/api_client.dart';
 import '../../shared/api/api_exception.dart';
-import '../../shared/auth/auth_config.dart';
 import 'models/asset/asset_condition.dart';
 import 'models/asset/asset_detail.dart';
 import 'models/asset/asset_history_entry.dart';
+import 'models/asset/asset_maintenance_history.dart';
 import 'models/asset/asset_search.dart';
 import 'models/asset/asset_verification.dart';
-import 'mock_assets_api.dart';
 
 abstract interface class SearchableAssetsApi {
   Future<AssetSearchResult> search(AssetSearchQuery query);
@@ -46,6 +45,48 @@ class AssetsApi {
     );
   }
 
+  /// Loads names for the database-backed search filters. The API resources
+  /// may return either a plain list or a paged `{items: [...]}` envelope.
+  Future<List<String>> getFilterOptions(String resourcePath) async {
+    try {
+      final response = await _dio.get<Object>(resourcePath);
+      final data = response.data;
+      final rawItems = data is List
+          ? data
+          : data is Map
+          ? (data['items'] ?? data['data'] ?? const [])
+          : const [];
+      if (rawItems is! List) return const [];
+      return rawItems
+          .map((item) {
+            if (item is String) return item;
+            if (item is Map) {
+              return (item['name'] ?? item['label'] ?? item['value'])
+                  ?.toString();
+            }
+            return null;
+          })
+          .whereType<String>()
+          .where((value) => value.trim().isNotEmpty)
+          .toSet()
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// Returns the maintenance records used by the asset repair summary.
+  Future<AssetMaintenanceHistory> getMaintenanceHistory(String assetId) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/agent-tools/assets/$assetId/maintenance-history',
+      );
+      return AssetMaintenanceHistory.fromJson(response.data ?? const {});
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   /// `PATCH /api/assets/{id}/condition` — records a new condition on the
   /// defined scale (FR-029). Returns 204; the change is written to asset
   /// history server-side.
@@ -62,7 +103,6 @@ class AssetsApi {
       throw ApiException.fromDio(e);
     }
   }
-
 
   /// `GET /api/assets/{id}/history` — the immutable lifecycle log (FR-027),
   /// newest first as the backend orders it. `page`/`page_size` map to the
@@ -88,10 +128,7 @@ class AssetsApi {
     }
   }
 
-  Future<T> _get<T>(
-    String path,
-    T Function(Map<String, dynamic>) parse,
-  ) async {
+  Future<T> _get<T>(String path, T Function(Map<String, dynamic>) parse) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(path);
       final data = response.data;
@@ -109,7 +146,7 @@ class AssetsApi {
 }
 
 class SearchableAssetsApiClient extends AssetsApi
-  implements SearchableAssetsApi, VerifiableAssetsApi {
+    implements SearchableAssetsApi, VerifiableAssetsApi {
   SearchableAssetsApiClient(super.dio);
 
   @override
@@ -161,6 +198,5 @@ class SearchableAssetsApiClient extends AssetsApi
 }
 
 final assetsApiProvider = Provider<AssetsApi>((ref) {
-  if (AuthConfig.useMockData) return MockAssetsApi();
   return SearchableAssetsApiClient(ref.watch(apiClientProvider));
 });

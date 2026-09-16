@@ -39,7 +39,7 @@ Awaiting My Confirmation" stay mock until their owners' features exist to summar
 | FR-025 — Manual asset-code entry fallback | Student 1 (Jayashan) | 🟡 (`AssetLookupScreen` at `/assets`, reachable from both dashboards' "Enter Code" button → resolves via `GET /api/assets/qr/{code}` → detail screen; non-leaking 404 + offline states. The full camera-refused fallback wiring folds in with `features/scan/`) |
 | FR-028 — Asset search/filter (basic lookup + recent list) | Student 1 (Jayashan) | ✅ (dashboard Search Assets route with server-side search by code/name/custom attribute, department/location/category/asset-type/status/condition filters, sorting and pagination via `GET /api/assets`; mock asset data supported) |
 | FR-029 — Record asset condition | Student 1 (Jayashan) | ✅ (`features/assets/` — `PATCH /api/assets/{id}/condition` via the condition-update sheet, five-point scale, history written server-side; gated client-side to ACTIVE/UNDER_MAINTENANCE) |
-| FR-031 — Physical verification (presence/location/condition assertion) | Student 1 (Jayashan) | ❌ |
+| FR-031 — Physical verification (presence/location/condition assertion) | Student 1 (Jayashan) | ✅ (`features/assets/` & `features/verification/` — `AssetVerificationScreen` and `VerificationTaskDetailScreen` assert presence, location, and condition via `POST /api/assets/{id}/verify` and `PATCH /api/verification-tasks/{id}/complete`; updates condition/location history and auto-raises discrepancy on mismatch) |
 | FR-033 — Fault report with photo evidence | Student 2 (Seneja) | ❌ |
 | FR-037 — Maintenance status progress update | Student 2 (Seneja) | ❌ |
 | FR-042 — Maintenance list/filter | Student 2 (Seneja) | ❌ |
