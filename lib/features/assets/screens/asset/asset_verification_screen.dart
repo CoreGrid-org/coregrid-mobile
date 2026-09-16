@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/api/api_exception.dart';
 import '../../assets_api.dart';
+import '../../assets_providers.dart';
 import '../../models/asset/asset_condition.dart';
 import '../../models/asset/asset_detail.dart';
 import '../../models/asset/asset_verification.dart';
@@ -26,7 +27,7 @@ class _AssetVerificationScreenState
   static const fieldFill = Color(0xFFF8F9F8);
 
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _locationController;
+  late String _location;
   late AssetCondition _condition;
   bool _present = true;
   bool _submitting = false;
@@ -36,15 +37,12 @@ class _AssetVerificationScreenState
   @override
   void initState() {
     super.initState();
-    _locationController = TextEditingController(
-      text: widget.asset.locationName,
-    );
+    _location = widget.asset.locationName;
     _condition = widget.asset.condition ?? AssetCondition.good;
   }
 
   @override
   void dispose() {
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -66,7 +64,7 @@ class _AssetVerificationScreenState
         assetId: widget.asset.id,
         request: AssetVerificationRequest(
           present: _present,
-          location: _locationController.text,
+          location: _location,
           condition: _condition,
         ),
       );
@@ -78,9 +76,29 @@ class _AssetVerificationScreenState
     }
   }
 
+  InputDecoration _fieldDecoration(String label) => InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: fieldFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: const BorderSide(color: orange, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+  );
+
   @override
   Widget build(BuildContext context) {
     final result = _result;
+    final locations = ref.watch(assetFilterOptionsProvider('/api/locations'));
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -178,59 +196,63 @@ class _AssetVerificationScreenState
               ),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _locationController,
-              enabled: !_submitting,
-              decoration: InputDecoration(
-                labelText: 'Observed location',
-                filled: true,
-                fillColor: fieldFill,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
-                  borderSide: BorderSide(color: orange, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 17,
+            locations.when(
+              loading: () => InputDecorator(
+                decoration: _fieldDecoration('Observed location'),
+                child: const SizedBox(
+                  height: 20,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
                 ),
               ),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Enter the observed location'
-                  : null,
+              error: (error, _) => InputDecorator(
+                decoration: _fieldDecoration('Observed location'),
+                child: Text(
+                  'Could not load locations',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+              data: (values) {
+                final options = {
+                  ...values,
+                  if (_location.isNotEmpty) _location,
+                }.toList();
+                return DropdownButtonFormField<String>(
+                  initialValue: _location.isEmpty ? null : _location,
+                  isExpanded: true,
+                  decoration: _fieldDecoration('Observed location'),
+                  hint: const Text('Select observed location'),
+                  items: [
+                    for (final location in options)
+                      DropdownMenuItem(
+                        value: location,
+                        child: Text(location, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Select the observed location'
+                      : null,
+                  onChanged: _submitting
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setState(() => _location = value);
+                          }
+                        },
+                );
+              },
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<AssetCondition>(
               initialValue: _condition,
               isExpanded: true,
-              decoration: InputDecoration(
-                labelText: 'Observed condition',
-                filled: true,
-                fillColor: fieldFill,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
-                  borderSide: BorderSide(color: orange, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 17,
-                ),
-              ),
+              decoration: _fieldDecoration('Observed condition'),
               items: [
                 for (final condition in AssetCondition.values)
                   DropdownMenuItem(

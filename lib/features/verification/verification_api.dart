@@ -67,6 +67,23 @@ class VerificationApi {
     }
   }
 
+  /// Returns open discrepancies for the campaign so completion can surface
+  /// the automatic discrepancy created by the backend comparison.
+  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async {
+    try {
+      final response = await _dio.get<List<dynamic>>(
+        '/api/discrepancies',
+        queryParameters: {'campaignId': campaignId, 'onlyOpen': true},
+      );
+      return (response.data ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(Discrepancy.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   /// `GET /api/locations` — options for the "asserted location" picker.
   Future<List<VerificationLocation>> getLocations() async {
     try {

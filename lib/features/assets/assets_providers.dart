@@ -7,6 +7,7 @@ import 'assets_api.dart';
 import 'models/asset/asset_condition.dart';
 import 'models/asset/asset_detail.dart';
 import 'models/asset/asset_history_entry.dart';
+import 'models/asset/asset_maintenance_history.dart';
 import 'models/asset/asset_search.dart';
 
 /// The asset shown on the detail screen, keyed by asset id (§3.2 — one
@@ -46,6 +47,11 @@ final assetSearchProvider = FutureProvider.autoDispose
 final assetHistoryProvider = FutureProvider.autoDispose
     .family<List<AssetHistoryEntry>, String>((ref, assetId) {
       return ref.watch(assetsApiProvider).getHistory(assetId);
+    });
+
+final assetMaintenanceHistoryProvider = FutureProvider.autoDispose
+    .family<AssetMaintenanceHistory, String>((ref, assetId) {
+      return ref.watch(assetsApiProvider).getMaintenanceHistory(assetId);
     });
 
 /// Whether the current user may perform a physical verification (FR-031 /

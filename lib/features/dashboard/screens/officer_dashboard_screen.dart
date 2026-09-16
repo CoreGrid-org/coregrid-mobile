@@ -139,6 +139,7 @@ class _VerificationTasksDueSection extends ConsumerWidget {
                   ? 'Overdue since ${task.dueDate.year}-${task.dueDate.month.toString().padLeft(2, '0')}-${task.dueDate.day.toString().padLeft(2, '0')}'
                   : 'Due ${task.dueDate.year}-${task.dueDate.month.toString().padLeft(2, '0')}-${task.dueDate.day.toString().padLeft(2, '0')}',
               status: task.status.apiValue,
+              onTap: () => context.push('/verification/${task.id}'),
             ),
         ],
       ),

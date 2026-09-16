@@ -6,6 +6,7 @@ import '../../shared/api/api_exception.dart';
 import 'models/asset/asset_condition.dart';
 import 'models/asset/asset_detail.dart';
 import 'models/asset/asset_history_entry.dart';
+import 'models/asset/asset_maintenance_history.dart';
 import 'models/asset/asset_search.dart';
 import 'models/asset/asset_verification.dart';
 
@@ -69,6 +70,18 @@ class AssetsApi {
           .where((value) => value.trim().isNotEmpty)
           .toSet()
           .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// Returns the maintenance records used by the asset repair summary.
+  Future<AssetMaintenanceHistory> getMaintenanceHistory(String assetId) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/agent-tools/assets/$assetId/maintenance-history',
+      );
+      return AssetMaintenanceHistory.fromJson(response.data ?? const {});
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

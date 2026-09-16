@@ -188,6 +188,7 @@ class _AssetBodyState extends State<_AssetBody> {
               label: 'Residual value',
               value: _money(asset.residualValue),
             ),
+            AssetRepairSummary(assetId: asset.id),
           ],
         ),
       ),

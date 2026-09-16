@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../shared/api/api_exception.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_history_entry.dart';
+import '../../models/asset/asset_maintenance_history.dart';
 
 class AssetDetailSection extends StatelessWidget {
   const AssetDetailSection({
@@ -112,6 +113,99 @@ class AssetDetailRow extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class AssetRepairSummary extends ConsumerWidget {
+  const AssetRepairSummary({super.key, required this.assetId});
+
+  final String assetId;
+
+  static const orange = Color(0xFFFF5A00);
+  static const secondaryText = Color(0xFF59635F);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(assetMaintenanceHistoryProvider(assetId));
+    return history.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.only(top: 16),
+        child: LinearProgressIndicator(color: orange),
+      ),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Text(
+          'Repair summary unavailable.',
+          style: TextStyle(color: secondaryText),
+        ),
+      ),
+      data: (summary) => _RepairSummaryContent(summary: summary),
+    );
+  }
+}
+
+class _RepairSummaryContent extends StatelessWidget {
+  const _RepairSummaryContent({required this.summary});
+
+  final AssetMaintenanceHistory summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0E8),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Repair summary',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            _RepairSummaryRow(
+              label: 'Repairs completed',
+              value: summary.repairCount.toString(),
+            ),
+            _RepairSummaryRow(
+              label: 'Last repair',
+              value: summary.lastRepairDate == null
+                  ? 'No completed repairs'
+                  : DateFormat.yMMMMd().format(summary.lastRepairDate!),
+            ),
+            _RepairSummaryRow(
+              label: 'Total repair cost',
+              value: NumberFormat.decimalPatternDigits(decimalDigits: 2)
+                  .format(summary.totalRepairCost),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RepairSummaryRow extends StatelessWidget {
+  const _RepairSummaryRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
         ],
       ),
     );

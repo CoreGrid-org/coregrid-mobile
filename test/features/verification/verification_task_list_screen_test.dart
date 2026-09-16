@@ -47,6 +47,9 @@ class _FakeVerificationApi implements VerificationApi {
     required String description,
     String? photoUrl,
   }) => throw UnimplementedError();
+
+  @override
+  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async => const [];
 }
 
 VerificationTask _task({String status = 'Pending', bool overdue = false}) {
