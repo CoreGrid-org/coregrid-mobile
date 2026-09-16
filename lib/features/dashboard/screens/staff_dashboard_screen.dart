@@ -24,7 +24,7 @@ class StaffDashboardBody extends StatelessWidget {
               accent: accent,
               icon: Icons.qr_code_scanner,
               label: 'Scan Asset',
-              onTap: () => notBuiltYet(context, 'features/scan'),
+              onTap: () => context.push('/scan'),
             ),
             // FR-025: manual code entry, always available (routes to
             // features/assets/ Asset Detail).

@@ -9,19 +9,41 @@ import '../../widgets/asset/asset_attribute_list.dart';
 import '../../widgets/asset/asset_detail_actions.dart';
 import '../../widgets/asset/asset_detail_sections.dart';
 
-class AssetDetailScreen extends ConsumerWidget {
-  const AssetDetailScreen({super.key, required this.assetId});
+class AssetDetailScreen extends ConsumerStatefulWidget {
+  const AssetDetailScreen({
+    super.key,
+    required this.assetId,
+    this.initialAsset,
+  });
 
   final String assetId;
-
-  static const orange = Color(0xFFFF5A00);
-  static const lightOrange = Color(0xFFFFF0E8);
-  static const darkText = Color(0xFF202625);
-  static const secondaryText = Color(0xFF59635F);
+  final AssetDetail? initialAsset;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asset = ref.watch(assetDetailProvider(assetId));
+  ConsumerState<AssetDetailScreen> createState() => _AssetDetailScreenState();
+}
+
+class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
+  AssetDetail? _displayedAsset;
+
+  static const orange = Color(0xFFFF5A00);
+  static const darkText = Color(0xFF202625);
+
+  @override
+  Widget build(BuildContext context) {
+    final fetchedAsset = ref.watch(assetDetailProvider(widget.assetId));
+    ref.listen<AsyncValue<AssetDetail>>(assetDetailProvider(widget.assetId), (
+      _,
+      next,
+    ) {
+      final latest = next.asData?.value;
+      if (latest != null && mounted) setState(() => _displayedAsset = latest);
+    });
+    final asset = _displayedAsset != null
+        ? AsyncValue<AssetDetail>.data(_displayedAsset!)
+        : widget.initialAsset != null
+        ? AsyncValue<AssetDetail>.data(widget.initialAsset!)
+        : fetchedAsset;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -45,7 +67,8 @@ class AssetDetailScreen extends ConsumerWidget {
       body: RefreshIndicator(
         color: orange,
 
-        onRefresh: () => ref.refresh(assetDetailProvider(assetId).future),
+        onRefresh: () =>
+            ref.refresh(assetDetailProvider(widget.assetId).future),
 
         child: asset.when(
           loading: () => const _CenteredScroll(
@@ -54,7 +77,7 @@ class AssetDetailScreen extends ConsumerWidget {
 
           error: (error, _) => _AssetError(
             error: error,
-            onRetry: () => ref.invalidate(assetDetailProvider(assetId)),
+            onRetry: () => ref.invalidate(assetDetailProvider(widget.assetId)),
           ),
 
           data: (asset) => _AssetBody(asset: asset),
