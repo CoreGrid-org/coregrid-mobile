@@ -22,7 +22,7 @@ Inventory-Officer-only, guarded at the router level (`go_router`'s `redirect`), 
 "Flutter is field operations, Officer + Staff only" split (v1.5). The dashboard's "Verification Tasks Due"
 section now reads live data from `features/verification/`; "Maintenance Assigned to Me" and "Transfers
 Awaiting My Confirmation" stay mock until their owners' features exist to summarise. `features/assets/`
-(Student 1) is also underway; `features/scan/`, `features/maintenance/`, `features/notifications/` and
+(Student 1) is also underway; `features/maintenance/`, `features/notifications/` and
 `features/transfers/` are still empty — each owner builds their own per `CONTRIBUTING.md`.
 
 ## Legend
@@ -35,8 +35,8 @@ Awaiting My Confirmation" stay mock until their owners' features exist to summar
 |---|---|---|
 | FR-001/007/008 — Sign in/out via ThunderID PKCE, role-aware nav, sign-out clears session | Student 4 (Hasitha) | ✅ (sign-in, role gate and route guard work; sign-out now revokes the stored refresh token via ThunderID's `oauth2/revoke` — RFC 7009 — before clearing local state, best-effort so an offline sign-out still succeeds locally) |
 | FR-020 — Attribute-driven asset detail rendering | Student 1 (Jayashan) | ✅ (`features/assets/` — `AssetDetailScreen` renders custom attributes from `data_type` alone, no domain-specific code; see [`doc/features/asset-detail.md`](features/asset-detail.md). Widget-tested; not yet exercised end-to-end against a live backend — blocked on ThunderID native client) |
-| FR-024 — QR scan → authoritative asset record within 3s | Student 1 (Jayashan) | 🟡 (`GET /api/assets/{id}` + `qr/{code}` client, the manual-entry lookup screen and the detail screen it lands on are done; the camera scanner itself — `features/scan/` — is not) |
-| FR-025 — Manual asset-code entry fallback | Student 1 (Jayashan) | 🟡 (`AssetLookupScreen` at `/assets`, reachable from both dashboards' "Enter Code" button → resolves via `GET /api/assets/qr/{code}` → detail screen; non-leaking 404 + offline states. The full camera-refused fallback wiring folds in with `features/scan/`) |
+| FR-024 — QR scan → authoritative asset record within 3s | Student 1 (Jayashan) | ✅ (`features/scan/` opens the device camera from both dashboards, accepts QR codes, resolves `GET /api/assets/qr/{code}`, and immediately opens the returned authoritative record; torch, permission refusal, unknown-code, and offline recovery included) |
+| FR-025 — Manual asset-code entry fallback | Student 1 (Jayashan) | ✅ (`AssetLookupScreen` at `/assets`, reachable from both dashboards' "Enter Code" button and the scanner's camera-refused/error fallback → resolves via `GET /api/assets/qr/{code}` → detail screen; non-leaking 404 + offline states) |
 | FR-028 — Asset search/filter (basic lookup + recent list) | Student 1 (Jayashan) | ✅ (dashboard Search Assets route with server-side search by code/name/custom attribute, department/location/category/asset-type/status/condition filters, sorting and pagination via `GET /api/assets`; mock asset data supported) |
 | FR-029 — Record asset condition | Student 1 (Jayashan) | ✅ (`features/assets/` — `PATCH /api/assets/{id}/condition` via the condition-update sheet, five-point scale, history written server-side; gated client-side to ACTIVE/UNDER_MAINTENANCE) |
 | FR-031 — Physical verification (presence/location/condition assertion) | Student 1 (Jayashan) | ✅ (`features/assets/` & `features/verification/` — `AssetVerificationScreen` and `VerificationTaskDetailScreen` assert presence, location, and condition via `POST /api/assets/{id}/verify` and `PATCH /api/verification-tasks/{id}/complete`; updates condition/location history and auto-raises discrepancy on mismatch) |

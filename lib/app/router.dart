@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../features/assets/screens/asset/asset_detail_screen.dart';
 import '../features/assets/screens/asset/asset_lookup_screen.dart';
 import '../features/assets/screens/asset/asset_search_screen.dart';
+import '../features/assets/models/asset/asset_detail.dart';
+import '../features/scan/screens/scan_asset_screen.dart';
 import '../features/auth/screens/access_restricted_screen.dart';
 import '../features/auth/screens/sign_in_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
@@ -58,8 +60,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             AccessRestrictedScreen(role: state.extra as String? ?? ''),
       ),
-      // features/assets/ — FR-025 manual code entry, the reachable entry point
-      // to the detail screen until features/scan/ lands.
+      // features/assets/ — FR-025 manual asset-code entry fallback.
       GoRoute(
         path: '/assets',
         builder: (context, state) => const AssetLookupScreen(),
@@ -68,12 +69,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/assets/search',
         builder: (context, state) => const AssetSearchScreen(),
       ),
-      // features/assets/ — FR-020/§4.4. Resolves the asset by id; reached from
-      // the lookup screen above, or a scan once features/scan/ exists.
+      GoRoute(
+        path: '/scan',
+        builder: (context, state) => const ScanAssetScreen(),
+      ),
+      // features/assets/ — FR-020/§4.4. Reached from manual lookup or scan.
       GoRoute(
         path: '/assets/:id',
-        builder: (context, state) =>
-            AssetDetailScreen(assetId: state.pathParameters['id']!),
+        builder: (context, state) => AssetDetailScreen(
+          assetId: state.pathParameters['id']!,
+          initialAsset: state.extra as AssetDetail?,
+        ),
       ),
       // features/verification/ — FR-058 task list, FR-059 completion,
       // FR-061 manual discrepancy raising. Officer only — see redirect above.
