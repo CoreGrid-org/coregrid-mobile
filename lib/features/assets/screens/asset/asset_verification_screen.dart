@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/api/api_exception.dart';
 import '../../assets_api.dart';
-import '../../assets_providers.dart';
 import '../../models/asset/asset_condition.dart';
 import '../../models/asset/asset_detail.dart';
 import '../../models/asset/asset_verification.dart';
+import '../../../verification/models/verification_location.dart';
+import '../../../verification/verification_providers.dart';
 
 class AssetVerificationScreen extends ConsumerStatefulWidget {
   const AssetVerificationScreen({super.key, required this.asset});
@@ -27,7 +28,7 @@ class _AssetVerificationScreenState
   static const fieldFill = Color(0xFFF8F9F8);
 
   final _formKey = GlobalKey<FormState>();
-  late String _location;
+  String? _locationId;
   late AssetCondition _condition;
   bool _present = true;
   bool _submitting = false;
@@ -37,7 +38,6 @@ class _AssetVerificationScreenState
   @override
   void initState() {
     super.initState();
-    _location = widget.asset.locationName;
     _condition = widget.asset.condition ?? AssetCondition.good;
   }
 
@@ -60,11 +60,20 @@ class _AssetVerificationScreenState
       _result = null;
     });
     try {
+      final locations = await ref.read(verificationLocationsProvider.future);
+      final locationId = _locationId ??
+          locations
+              .where((location) => location.name == widget.asset.locationName)
+              .firstOrNull
+              ?.id;
+      if (locationId == null) {
+        throw StateError('Select a valid observed location.');
+      }
       final result = await (api as VerifiableAssetsApi).verifyAsset(
         assetId: widget.asset.id,
         request: AssetVerificationRequest(
           present: _present,
-          location: _location,
+          locationId: locationId,
           condition: _condition,
         ),
       );
@@ -98,7 +107,7 @@ class _AssetVerificationScreenState
   @override
   Widget build(BuildContext context) {
     final result = _result;
-    final locations = ref.watch(assetFilterOptionsProvider('/api/locations'));
+    final locations = ref.watch(verificationLocationsProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -219,20 +228,20 @@ class _AssetVerificationScreenState
                 ),
               ),
               data: (values) {
-                final options = {
-                  ...values,
-                  if (_location.isNotEmpty) _location,
-                }.toList();
+                final currentLocation = values
+                    .where((location) => location.name == widget.asset.locationName)
+                    .firstOrNull;
+                final selectedId = _locationId ?? currentLocation?.id;
                 return DropdownButtonFormField<String>(
-                  initialValue: _location.isEmpty ? null : _location,
+                  initialValue: selectedId,
                   isExpanded: true,
                   decoration: _fieldDecoration('Observed location'),
                   hint: const Text('Select observed location'),
                   items: [
-                    for (final location in options)
+                    for (final VerificationLocation location in values)
                       DropdownMenuItem(
-                        value: location,
-                        child: Text(location, overflow: TextOverflow.ellipsis),
+                        value: location.id,
+                        child: Text(location.name, overflow: TextOverflow.ellipsis),
                       ),
                   ],
                   validator: (value) => value == null || value.trim().isEmpty
@@ -242,7 +251,7 @@ class _AssetVerificationScreenState
                       ? null
                       : (value) {
                           if (value != null) {
-                            setState(() => _location = value);
+                            setState(() => _locationId = value);
                           }
                         },
                 );
