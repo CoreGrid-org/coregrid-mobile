@@ -11,9 +11,7 @@ import '../../assets/models/asset/asset_detail.dart';
 import '../../../shared/api/api_exception.dart';
 import '../maintenance_providers.dart';
 
-/// FR-080 — staff member or inventory officer reports a fault against an asset,
-/// with observed condition and optional compressed photo evidence (IF-11).
-/// Designed using CoreGrid's orange brand design system.
+/// Screen for reporting a fault against an asset, with observed condition and optional photo.
 class ReportFaultScreen extends ConsumerStatefulWidget {
   const ReportFaultScreen({super.key, this.assetId, this.assetCode});
 

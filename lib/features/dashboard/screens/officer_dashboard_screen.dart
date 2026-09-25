@@ -25,8 +25,7 @@ class OfficerDashboardBody extends ConsumerWidget {
               label: 'Scan Asset',
               onTap: () => context.push('/scan'),
             ),
-            // FR-025: manual code entry, always available (routes to
-            // features/assets/ Asset Detail).
+            // Manual code entry (routes to features/assets/ Asset Detail).
             QuickAction(
               accent: accent,
               icon: Icons.keyboard_outlined,
@@ -57,8 +56,7 @@ class OfficerDashboardBody extends ConsumerWidget {
               label: 'Transfer',
               onTap: () => notBuiltYet(context, 'features/transfers'),
             ),
-            // FR-033: fault reporting is Officer and Staff (SRS §2.3.1
-            // Mobile-users table), not Staff-only.
+            // Fault reporting.
             QuickAction(
               accent: accent,
               icon: Icons.report_problem_outlined,
@@ -99,12 +97,7 @@ class OfficerDashboardBody extends ConsumerWidget {
   }
 }
 
-/// The dashboard's one live section (FR-058 data, summarised per FR-083);
-/// everything else on this screen is still mock pending
-/// `features/maintenance`/`features/transfers`. Loading/error states
-/// collapse quietly into the section itself rather than blocking the rest
-/// of the (still-mock) dashboard, matching §4.2's "per section,
-/// independently retryable" rule.
+/// Verification tasks due section.
 class _VerificationTasksDueSection extends ConsumerWidget {
   const _VerificationTasksDueSection({required this.accent});
 

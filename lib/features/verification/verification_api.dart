@@ -16,7 +16,7 @@ class VerificationApi {
 
   final Dio _dio;
 
-  /// `GET /api/verification-tasks?mine=&onlyPending=` (FR-058) — ordered by
+  /// `GET /api/verification-tasks?mine=&onlyPending=` — ordered by
   /// due date server-side.
   Future<List<VerificationTask>> getTasks({
     bool mine = true,
@@ -36,9 +36,9 @@ class VerificationApi {
     }
   }
 
-  /// `PATCH /api/verification-tasks/{id}/complete` (FR-059) — asserts
+  /// `PATCH /api/verification-tasks/{id}/complete` — asserts
   /// presence/location/condition; the backend auto-raises a discrepancy
-  /// (FR-060) as a side effect when the assertion differs from the register.
+  /// as a side effect when the assertion differs from the register.
   Future<VerificationTask> completeTask({
     required String taskId,
     required bool assertedPresent,
@@ -98,8 +98,7 @@ class VerificationApi {
   }
 
   /// `POST /api/verification-tasks/photos` — uploads a discrepancy photo
-  /// (already compressed client-side to ≤1MB, IF-11) and returns the URL to
-  /// pass as `photoUrl` to [raiseDiscrepancy].
+  /// and returns the URL to pass as `photoUrl` to [raiseDiscrepancy].
   Future<String> uploadPhoto({
     required List<int> bytes,
     required String fileName,
@@ -124,7 +123,7 @@ class VerificationApi {
     }
   }
 
-  /// `POST /api/verification-tasks/{taskId}/discrepancies` (FR-061) — raises
+  /// `POST /api/verification-tasks/{taskId}/discrepancies` — raises
   /// a discrepancy the automatic comparison can't catch (e.g. Surplus, or
   /// anything needing a photo/description).
   Future<Discrepancy> raiseDiscrepancy({

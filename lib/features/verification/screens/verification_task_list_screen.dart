@@ -6,7 +6,7 @@ import '../../../shared/api/api_exception.dart';
 import '../models/verification_task.dart';
 import '../verification_providers.dart';
 
-/// FR-058 — verification task list matching CoreGrid's lookup design system.
+/// Verification task list screen.
 class VerificationTaskListScreen extends ConsumerWidget {
   const VerificationTaskListScreen({super.key});
 

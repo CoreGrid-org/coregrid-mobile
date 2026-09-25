@@ -8,8 +8,7 @@ import '../../assets/assets_api.dart';
 import '../../assets/models/asset/asset_detail.dart';
 import '../../../shared/api/api_exception.dart';
 
-/// FR-024's camera entry point. A successful QR read is resolved against the
-/// API before navigation; the QR value is never treated as asset data itself.
+/// QR code scanner screen — resolves scanned codes against the API before navigating.
 class ScanAssetScreen extends ConsumerStatefulWidget {
   const ScanAssetScreen({super.key});
 

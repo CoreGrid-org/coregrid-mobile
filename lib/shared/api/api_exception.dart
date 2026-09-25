@@ -27,7 +27,7 @@ class ApiException implements Exception {
   final Map<String, List<String>> fieldErrors;
 
   /// True when the failure is connectivity, not an HTTP response — lets a
-  /// screen show the "offline" state (FR-024 A4) instead of a generic error.
+  /// screen show the "offline" state instead of a generic error.
   final bool isNetworkError;
 
   bool get isNotFound => statusCode == 404;

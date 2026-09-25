@@ -16,9 +16,7 @@ class WorkflowsApi {
 
   final Dio _dio;
 
-  /// `GET /api/agent-workflows` (FR-069) — every workflow the caller may see;
-  /// filtering to "mine" happens client-side since the backend doesn't
-  /// accept an `initiatedBy` filter.
+  /// `GET /api/agent-workflows` — retrieves workflows.
   Future<List<AgentWorkflow>> getWorkflows() async {
     try {
       final response = await _dio.get<List<dynamic>>('/api/agent-workflows');
@@ -31,8 +29,7 @@ class WorkflowsApi {
     }
   }
 
-  /// `GET /api/agent-workflows/{id}` (FR-069/FR-076) — polled by the status
-  /// screen until the workflow resolves.
+  /// `GET /api/agent-workflows/{id}` — polled by the status screen.
   Future<AgentWorkflow> getWorkflowById(String id) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -51,10 +48,7 @@ class WorkflowsApi {
     }
   }
 
-  /// `POST /api/agent-workflows` (FR-067/FR-068) — returns a workflow id
-  /// immediately; the backend runs the evaluation asynchronously (the
-  /// Planner/Policy-Compliance agents are backend-internal — this app never
-  /// calls `/evaluate` or `/run-policy-agent` directly).
+  /// `POST /api/agent-workflows` — creates a new agent workflow.
   Future<AgentWorkflow> createWorkflow({
     required String assetId,
     required String objective,

@@ -98,7 +98,7 @@ class MaintenanceApi {
     }
   }
 
-  /// `POST /api/maintenance/faults` (FR-080) — creates a new fault report.
+  /// `POST /api/maintenance/faults` — creates a new fault report.
   /// Body: `asset_id`, `description`, `observed_condition`, `photo_url?`.
   Future<FaultReport> reportFault({
     required String assetId,

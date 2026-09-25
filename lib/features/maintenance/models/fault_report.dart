@@ -1,4 +1,4 @@
-/// FR-080 — FaultReport DTO, mirrors `POST /api/maintenance/faults` & `GET /api/maintenance` responses.
+/// FaultReport DTO, mirrors maintenance API responses.
 class FaultReport {
   const FaultReport({
     required this.id,

@@ -1,9 +1,4 @@
-/// FR-067/FR-069/FR-076 — matches `AgentWorkflowDto`
-/// (`CoreGrid/backend/Features/Agents/DTOs/AgentWorkflowDtos.cs`). `plan`
-/// and `validation_result` are the Planner/Policy-Compliance agents' full
-/// execution trail (SRS §7) — out of scope for the mobile status/outcome
-/// display (FR-069/FR-076 only need status, recommendation and approval
-/// status), so this model doesn't parse them.
+/// Matches `AgentWorkflowDto`. Holds workflow status, recommendation and approval state.
 class AgentWorkflow {
   const AgentWorkflow({
     required this.id,

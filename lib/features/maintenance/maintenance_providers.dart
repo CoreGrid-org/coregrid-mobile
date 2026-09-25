@@ -7,7 +7,7 @@ import '../../shared/api/api_client.dart';
 import 'maintenance_api.dart';
 import 'models/fault_report.dart';
 
-/// The signed-in user's own fault reports (FR-083).
+/// The signed-in user's own fault reports.
 /// The API derives the owner from the bearer token; no client-side identity
 /// filter or unscoped fallback is allowed.
 final myFaultReportsProvider = FutureProvider.autoDispose<List<FaultReport>>((
@@ -28,7 +28,7 @@ final faultAssetSearchProvider = FutureProvider.autoDispose
       return result.items;
     });
 
-/// Drives "report fault" (FR-080), including optional photo upload (IF-11).
+/// Drives "report fault", including optional photo upload.
 class ReportFaultController extends AsyncNotifier<void> {
   @override
   void build() {}

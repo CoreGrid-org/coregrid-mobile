@@ -4,10 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/auth/auth_controller.dart';
 
-/// Shown when ThunderID accepts sign-in but the account's role isn't served
-/// by this app — Auditor and Administrator are web-console-only (SRS §3.4,
-/// FR-059/067/069 scope change). Mirrors the React frontend's own
-/// `/access-restricted` route (`CoreGrid/doc/setup/ThunderID.md`).
+/// Shown when the signed-in account's role is not supported by this app.
 class AccessRestrictedScreen extends ConsumerWidget {
   const AccessRestrictedScreen({super.key, required this.role});
 
