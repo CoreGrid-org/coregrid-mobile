@@ -20,10 +20,9 @@ abstract final class CoreGridBrand {
 /// differentiate without that risk.
 abstract final class RoleAccent {
   static const Color officer = CoreGridBrand.orange;
-  static const Color staff = CoreGridBrand.magenta;
+  static const Color staff = CoreGridBrand.orange;
 
-  static Color forRole(String? role) =>
-      role == 'InventoryOfficer' ? officer : staff;
+  static Color forRole(String? role) => officer;
 }
 
 /// Shared corner-radius scale — one source for "rounded" across every

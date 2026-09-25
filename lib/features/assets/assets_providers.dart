@@ -62,6 +62,14 @@ final canVerifyAssetsProvider = Provider<bool>((ref) {
   return auth is AuthAuthenticated && auth.role == 'InventoryOfficer';
 });
 
+/// Whether the current user may record an asset condition (FR-029). The
+/// backend's `CanManageAssets` policy rejects Staff with 403, so hide the
+/// action for that role rather than offering an operation that cannot succeed.
+final canUpdateAssetConditionProvider = Provider<bool>((ref) {
+  final auth = ref.watch(authControllerProvider);
+  return auth is AuthAuthenticated && auth.role == 'InventoryOfficer';
+});
+
 /// Drives the "record condition" action (FR-029). Holds only the in-flight
 /// state of the mutation — the asset itself lives in [assetDetailProvider],
 /// which this invalidates on success so the screen re-reads the authoritative

@@ -23,6 +23,7 @@ class AssetDetailActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canVerify = ref.watch(canVerifyAssetsProvider);
+    final canUpdateCondition = ref.watch(canUpdateAssetConditionProvider);
 
     return Wrap(
       spacing: 12,
@@ -73,7 +74,7 @@ class AssetDetailActions extends ConsumerWidget {
             ),
           ),
         ),
-        if (asset.allowsConditionUpdate) ...[
+        if (canUpdateCondition && asset.allowsConditionUpdate) ...[
           const SizedBox(width: 8),
           SizedBox(
             height: 54,

@@ -8,25 +8,13 @@ import '../../../shared/theme/app_theme.dart';
 import 'officer_dashboard_screen.dart';
 import 'staff_dashboard_screen.dart';
 
-/// FR-083: routes to the role-appropriate dashboard body. `features/
-/// verification` now feeds its own section live (see
-/// `OfficerDashboardBody`); `features/maintenance`/`features/transfers`
-/// still don't exist, so those sections stay mock until those owners land
-/// them.
-///
-/// Each role gets a [RoleAccent] tint on its quick actions and sections, a
-/// lightweight visual cue for which dashboard is on screen, without
-/// forking the whole `ColorScheme` per role.
+
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Sign-out (the app bar action below) only changes provider state;
-    // go_router has no `refreshListenable` wired to it, so nothing else
-    // would ever navigate away from `/home` afterwards. Mirrors
-    // `SignInScreen`'s own `ref.listen`-driven navigation on the opposite
-    // transition (signed-out to signed-in).
+
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (next is AuthUnauthenticated) {
         context.go('/sign-in');

@@ -4,6 +4,7 @@ import 'package:coregrid_mobile/features/assets/models/asset/asset_attribute.dar
 import 'package:coregrid_mobile/features/assets/models/asset/asset_condition.dart';
 import 'package:coregrid_mobile/features/assets/models/asset/asset_detail.dart';
 import 'package:coregrid_mobile/features/assets/models/asset/asset_history_entry.dart';
+import 'package:coregrid_mobile/features/assets/models/asset/asset_maintenance_history.dart';
 import 'package:coregrid_mobile/features/assets/screens/asset/asset_detail_screen.dart';
 import 'package:coregrid_mobile/shared/api/api_exception.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,13 @@ class _FakeAssetsApi implements AssetsApi {
 
   @override
   Future<AssetDetail> getByCode(String assetCode) => getById(assetCode);
+
+  @override
+  Future<List<String>> getFilterOptions(String resourcePath) async => const [];
+
+  @override
+  Future<AssetMaintenanceHistory> getMaintenanceHistory(String assetId) async =>
+      AssetMaintenanceHistory(assetId: assetId, records: const []);
 
   @override
   Future<void> updateCondition({
@@ -67,11 +75,13 @@ AssetDetail _asset({
 Widget _harness({
   required _FakeAssetsApi api,
   bool canVerify = false,
+  bool canUpdateCondition = true,
 }) {
   return ProviderScope(
     overrides: [
       assetsApiProvider.overrideWith((ref) => api),
       canVerifyAssetsProvider.overrideWith((ref) => canVerify),
+      canUpdateAssetConditionProvider.overrideWith((ref) => canUpdateCondition),
     ],
     child: const MaterialApp(home: AssetDetailScreen(assetId: 'a1')),
   );
@@ -120,7 +130,9 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Verify'), findsOneWidget);
   });
 
-  testWidgets('Staff never sees the Verify action (FR-024 AC4)', (tester) async {
+  testWidgets('Staff never sees the Verify action (FR-024 AC4)', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _harness(api: _FakeAssetsApi(detail: _asset()), canVerify: false),
     );
@@ -130,9 +142,13 @@ void main() {
     expect(find.text('Report Fault'), findsOneWidget);
   });
 
-  testWidgets('Update Condition is offered for an active asset', (tester) async {
+  testWidgets('Update Condition is offered for an active asset', (
+    tester,
+  ) async {
     await tester.pumpWidget(
-      _harness(api: _FakeAssetsApi(detail: _asset(status: 'ACTIVE'))),
+      _harness(
+        api: _FakeAssetsApi(detail: _asset(status: 'ACTIVE')),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -143,14 +159,30 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      _harness(api: _FakeAssetsApi(detail: _asset(status: 'DISPOSED'))),
+      _harness(
+        api: _FakeAssetsApi(detail: _asset(status: 'DISPOSED')),
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Update Condition'), findsNothing);
   });
 
-  testWidgets('shows "Asset not found" on a 404 (FR-024 AC2/A3)', (tester) async {
+  testWidgets('Staff cannot update an asset condition', (tester) async {
+    await tester.pumpWidget(
+      _harness(
+        api: _FakeAssetsApi(detail: _asset(status: 'ACTIVE')),
+        canUpdateCondition: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update Condition'), findsNothing);
+  });
+
+  testWidgets('shows "Asset not found" on a 404 (FR-024 AC2/A3)', (
+    tester,
+  ) async {
     final api = _FakeAssetsApi(
       error: ApiException(statusCode: 404, message: 'Asset not found.'),
     );

@@ -13,7 +13,7 @@ class StaffDashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accent = RoleAccent.staff;
+    const accent = RoleAccent.officer;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
