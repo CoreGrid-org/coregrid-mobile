@@ -5,9 +5,7 @@ import '../../../../shared/api/api_exception.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_condition.dart';
 
-/// Bottom sheet for recording a new asset condition (FR-029). The scale is
-/// exactly the SRS's five points; the change is written to asset history by
-/// the API, not here.
+/// Bottom sheet for recording a new asset condition.
 ///
 /// Returns `true` through the sheet's `Navigator.pop` when the update
 /// succeeded, so the caller can show a confirmation.

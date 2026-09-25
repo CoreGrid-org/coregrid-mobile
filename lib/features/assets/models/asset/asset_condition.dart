@@ -1,6 +1,4 @@
-/// The five-point asset-condition scale (FR-029). API values are upper-case
-/// (`backend/Domain/Transfers/AssetStatusConstants.cs`); the labels below match
-/// the SRS wording exactly (main SRS §6.4).
+/// The five-point asset-condition scale.
 enum AssetCondition {
   brandNew('NEW', 'New'),
   good('GOOD', 'Good'),

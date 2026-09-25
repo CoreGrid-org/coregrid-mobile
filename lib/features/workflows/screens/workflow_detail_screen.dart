@@ -5,9 +5,7 @@ import '../../../shared/api/api_exception.dart';
 import '../models/agent_workflow.dart';
 import '../workflows_providers.dart';
 
-/// FR-069 (status) / FR-076 (outcome) — polls the workflow every 5s
-/// ([agentWorkflowProvider]) until it resolves or fails. No approval action
-/// here — approval is React-only (main SRS §3.4). Route: `/workflows/:id`.
+/// Workflow detail screen — polls status until complete. Route: `/workflows/:id`.
 class WorkflowDetailScreen extends ConsumerWidget {
   const WorkflowDetailScreen({super.key, required this.workflowId});
 

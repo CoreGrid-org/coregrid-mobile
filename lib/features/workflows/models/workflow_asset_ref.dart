@@ -1,8 +1,4 @@
-/// The minimal asset reference needed to initiate a workflow (FR-067) —
-/// resolved from a manually-typed code via `GET /api/assets/qr/{code}`
-/// (the same endpoint `features/assets/` uses, called independently here
-/// rather than importing that feature's API client — §3.1: a feature owns
-/// its own API calls). Kept to just the fields this screen displays.
+/// Minimal asset reference needed to initiate a workflow.
 class WorkflowAssetRef {
   const WorkflowAssetRef({
     required this.id,

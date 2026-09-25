@@ -16,10 +16,10 @@ void notBuiltYet(BuildContext context, String feature) {
 /// section picking its own ad hoc colors.
 Color statusColor(BuildContext context, String status) {
   final colors = Theme.of(context).colorScheme;
-  return switch (status.toLowerCase()) {
-    'completed' || 'resolved' || 'active' => const Color(0xFF2E7D32),
-    'in progress' || 'in transit' || 'pending' => const Color(0xFFB8860B),
-    'overdue' || 'failed' => colors.error,
+  return switch (status.trim().toLowerCase().replaceAll('_', ' ')) {
+    'completed' || 'resolved' || 'active' || 'approved' => const Color(0xFF2E7D32),
+    'in progress' || 'in transit' || 'pending' || 'requested' || 'open' || 'on hold' => const Color(0xFFB8860B),
+    'overdue' || 'failed' || 'rejected' || 'cancelled' => colors.error,
     _ => colors.onSurfaceVariant,
   };
 }

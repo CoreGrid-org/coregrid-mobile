@@ -11,8 +11,7 @@ import '../../../shared/api/api_exception.dart';
 import '../models/discrepancy.dart';
 import '../verification_providers.dart';
 
-/// FR-061 — raise a discrepancy manually with optional compressed photo,
-/// matching CoreGrid's orange brand design system.
+/// Screen for raising a discrepancy manually with an optional photo.
 class RaiseDiscrepancyScreen extends ConsumerStatefulWidget {
   const RaiseDiscrepancyScreen({super.key, required this.taskId});
 

@@ -6,9 +6,7 @@ import '../../../shared/api/api_exception.dart';
 import '../models/workflow_asset_ref.dart';
 import '../workflows_providers.dart';
 
-/// FR-067/FR-068 — states an objective for an asset, gets back a workflow id
-/// immediately (doesn't block on the evaluation completing). Route:
-/// `/workflows/new`.
+/// Screen to initiate a new agent workflow for an asset. Route: `/workflows/new`.
 class InitiateWorkflowScreen extends ConsumerStatefulWidget {
   const InitiateWorkflowScreen({super.key});
 

@@ -5,20 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../verification/verification_providers.dart';
 import '../widgets/dashboard_section.dart';
+import '../widgets/my_fault_reports_section.dart';
 
-/// Inventory Officer's dashboard body. SRS §2.3.1's Mobile-users table
-/// lists this role's Flutter scope as: scan/lookup, verification tasks and
-/// completion (FR-031/058/059), discrepancy raising (FR-061), fault
-/// reporting (FR-033, shared with Staff, not Staff-only), condition
-/// recording (FR-029), maintenance progress update (FR-037), transfer
-/// request and receipt confirmation (FR-043/046), and agent workflow
-/// initiate/outcome (FR-067/076), summarised per FR-083. Asset
-/// registration (FR-021-023) is not in this list anywhere: per the SRS's
-/// own Web-users table it's React-only, not just Officer-only, so this
-/// dashboard has no "add asset" action for any role. Maintenance/transfer
-/// rows are still mock (those features aren't built); the verification
-/// section below is live (`features/verification/`, this owner's own
-/// feature).
 class OfficerDashboardBody extends ConsumerWidget {
   const OfficerDashboardBody({super.key});
 
@@ -37,8 +25,7 @@ class OfficerDashboardBody extends ConsumerWidget {
               label: 'Scan Asset',
               onTap: () => context.push('/scan'),
             ),
-            // FR-025: manual code entry, always available (routes to
-            // features/assets/ Asset Detail).
+            // Manual code entry (routes to features/assets/ Asset Detail).
             QuickAction(
               accent: accent,
               icon: Icons.keyboard_outlined,
@@ -69,18 +56,18 @@ class OfficerDashboardBody extends ConsumerWidget {
               label: 'Transfer',
               onTap: () => notBuiltYet(context, 'features/transfers'),
             ),
-            // FR-033: fault reporting is Officer and Staff (SRS §2.3.1
-            // Mobile-users table), not Staff-only.
+            // Fault reporting.
             QuickAction(
               accent: accent,
               icon: Icons.report_problem_outlined,
               label: 'Report Fault',
-              onTap: () => notBuiltYet(context, 'features/maintenance'),
+              onTap: () => context.push('/maintenance/report'),
             ),
           ],
         ),
         const SizedBox(height: 28),
         _VerificationTasksDueSection(accent: accent),
+        MyFaultReportsSection(accent: accent),
         DashboardSection(
           title: 'Maintenance Assigned to Me',
           icon: Icons.build_outlined,
@@ -110,12 +97,7 @@ class OfficerDashboardBody extends ConsumerWidget {
   }
 }
 
-/// The dashboard's one live section (FR-058 data, summarised per FR-083);
-/// everything else on this screen is still mock pending
-/// `features/maintenance`/`features/transfers`. Loading/error states
-/// collapse quietly into the section itself rather than blocking the rest
-/// of the (still-mock) dashboard, matching §4.2's "per section,
-/// independently retryable" rule.
+/// Verification tasks due section.
 class _VerificationTasksDueSection extends ConsumerWidget {
   const _VerificationTasksDueSection({required this.accent});
 

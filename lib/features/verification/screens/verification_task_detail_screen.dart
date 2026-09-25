@@ -7,8 +7,7 @@ import '../models/verification_location.dart';
 import '../models/verification_task.dart';
 import '../verification_providers.dart';
 
-/// FR-059 — complete a verification task by asserting presence, location and
-/// condition, matching CoreGrid's orange design system.
+/// Screen for completing a verification task — asserts presence, location and condition.
 class VerificationTaskDetailScreen extends ConsumerStatefulWidget {
   const VerificationTaskDetailScreen({super.key, required this.taskId});
 

@@ -23,6 +23,7 @@ class AssetDetailActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canVerify = ref.watch(canVerifyAssetsProvider);
+    final canUpdateCondition = ref.watch(canUpdateAssetConditionProvider);
 
     return Wrap(
       spacing: 12,
@@ -53,9 +54,9 @@ class AssetDetailActions extends ConsumerWidget {
         SizedBox(
           height: 54,
           child: OutlinedButton.icon(
-            onPressed: () => _notYetInThisRepo(
-              context,
-              'features/maintenance (Report Fault)',
+            onPressed: () => context.push(
+              '/maintenance/report',
+              extra: {'assetId': asset.id, 'assetCode': asset.assetCode},
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: orange,
@@ -73,7 +74,7 @@ class AssetDetailActions extends ConsumerWidget {
             ),
           ),
         ),
-        if (asset.allowsConditionUpdate) ...[
+        if (canUpdateCondition && asset.allowsConditionUpdate) ...[
           const SizedBox(width: 8),
           SizedBox(
             height: 54,
@@ -158,20 +159,5 @@ class AssetDetailActions extends ConsumerWidget {
         ),
       );
     }
-  }
-
-  // ========================================================================
-  // REPORT FAULT
-  // ========================================================================
-
-  /// Report Fault remains owned by
-  /// `features/maintenance/` and is not built in this feature yet.
-  void _notYetInThisRepo(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature isn\'t built yet.'),
-        backgroundColor: orange,
-      ),
-    );
   }
 }

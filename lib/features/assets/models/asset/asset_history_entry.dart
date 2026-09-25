@@ -1,9 +1,5 @@
-/// One row of an asset's immutable lifecycle history (FR-027), from
-/// `GET /api/assets/{id}/history` → `items[]` (`AssetHistoryDto`).
-///
-/// Component A only ever writes `STATUS_CHANGE` / `FIELD_AMENDMENT` rows, but
-/// the endpoint returns every event type (verification, maintenance, transfer,
-/// disposal, agent recommendation), so this model stays generic.
+/// One row of an asset's immutable lifecycle history, from
+/// `GET /api/assets/{id}/history`.
 class AssetHistoryEntry {
   const AssetHistoryEntry({
     required this.id,

@@ -30,14 +30,12 @@ class AssetsApi {
 
   final Dio _dio;
 
-  /// `GET /api/assets/{id}` — the authoritative record for the detail screen
-  /// (FR-020, §4.4). A cross-organisation id returns 404, never 403 (AC2).
+  /// `GET /api/assets/{id}` — the authoritative record for the detail screen.
   Future<AssetDetail> getById(String assetId) {
     return _get('/api/assets/$assetId', AssetDetail.fromJson);
   }
 
-  /// `GET /api/assets/qr/{code}` — manual-entry / scan resolution (FR-024,
-  /// FR-025). Byte-identical to [getById]'s body for the same asset (AC3).
+  /// `GET /api/assets/qr/{code}` — manual-entry / scan resolution.
   Future<AssetDetail> getByCode(String assetCode) {
     return _get(
       '/api/assets/qr/${Uri.encodeComponent(assetCode.trim())}',
@@ -87,9 +85,7 @@ class AssetsApi {
     }
   }
 
-  /// `PATCH /api/assets/{id}/condition` — records a new condition on the
-  /// defined scale (FR-029). Returns 204; the change is written to asset
-  /// history server-side.
+  /// `PATCH /api/assets/{id}/condition` — records a new condition.
   Future<void> updateCondition({
     required String assetId,
     required AssetCondition condition,
@@ -104,9 +100,7 @@ class AssetsApi {
     }
   }
 
-  /// `GET /api/assets/{id}/history` — the immutable lifecycle log (FR-027),
-  /// newest first as the backend orders it. `page`/`page_size` map to the
-  /// backend's `AssetHistoryQueryParameters`.
+  /// `GET /api/assets/{id}/history` — the immutable lifecycle log.
   Future<List<AssetHistoryEntry>> getHistory(
     String assetId, {
     int page = 1,

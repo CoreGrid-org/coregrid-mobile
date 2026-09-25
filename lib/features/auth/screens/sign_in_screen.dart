@@ -5,13 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/auth/auth_controller.dart';
 import '../../../shared/auth/auth_state.dart';
 
-/// Splash / sign-in screen — SRS §4.1 (FR-001, FR-008, SEC-ID-06).
-///
-/// "Sign In" launches the ThunderID Authorization Code + PKCE flow via
-/// Chrome Custom Tabs (RFC 8252 external user agent — never an embedded
-/// WebView), not a native username/password form: ThunderID itself doesn't
-/// support a password grant, and collecting credentials in-app would defeat
-/// SSO/MFA and train users to enter passwords into arbitrary apps.
+/// Sign-in screen — authenticates via OAuth2 PKCE.
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
 

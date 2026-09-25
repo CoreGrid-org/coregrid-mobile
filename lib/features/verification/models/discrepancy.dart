@@ -1,5 +1,4 @@
-/// FR-060/FR-061 — matches `DiscrepancyDto`
-/// (`CoreGrid/backend/Features/Verification/DTOs/DiscrepancyDto.cs`).
+/// Matches `DiscrepancyDto`.
 /// `Surplus` and `DataMismatch` are deliberately included even though this
 /// app only raises discrepancies manually (never automatically) — the
 /// backend accepts any classification from a manual raise, only the

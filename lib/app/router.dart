@@ -10,6 +10,9 @@ import '../features/auth/screens/access_restricted_screen.dart';
 import '../features/auth/screens/sign_in_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
+import '../features/maintenance/screens/report_fault_screen.dart';
+import '../features/maintenance/screens/fault_detail_screen.dart';
+import '../features/maintenance/models/fault_report.dart';
 import '../features/verification/screens/raise_discrepancy_screen.dart';
 import '../features/verification/screens/verification_task_detail_screen.dart';
 import '../features/verification/screens/verification_task_list_screen.dart';
@@ -20,10 +23,9 @@ import '../shared/auth/auth_controller.dart';
 import '../shared/auth/auth_state.dart';
 
 /// `features/verification/` and `features/workflows/` are Inventory Officer
-/// only on mobile (FR-058/FR-059/FR-061/FR-067/FR-069/FR-076 — SRS scope
-/// change v1.5; Staff has no role in either). Both dashboards never link to
+/// only on mobile. Both dashboards never link to
 /// these routes for a Staff session, but a direct navigation is still
-/// guarded here per §3.3's `redirect`-based role gate.
+/// guarded here.
 const _officerOnlyPrefixes = ['/verification', '/workflows'];
 
 /// Route table mirrors the `lib/features/` layout one-to-one
@@ -60,7 +62,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             AccessRestrictedScreen(role: state.extra as String? ?? ''),
       ),
-      // features/assets/ — FR-025 manual asset-code entry fallback.
+      // Manual asset-code entry fallback.
       GoRoute(
         path: '/assets',
         builder: (context, state) => const AssetLookupScreen(),
@@ -73,7 +75,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/scan',
         builder: (context, state) => const ScanAssetScreen(),
       ),
-      // features/assets/ — FR-020/§4.4. Reached from manual lookup or scan.
+      // Asset detail — reached from manual lookup or scan.
       GoRoute(
         path: '/assets/:id',
         builder: (context, state) => AssetDetailScreen(
@@ -81,8 +83,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialAsset: state.extra as AssetDetail?,
         ),
       ),
-      // features/verification/ — FR-058 task list, FR-059 completion,
-      // FR-061 manual discrepancy raising. Officer only — see redirect above.
+      // Fault reporting, available to Staff and Officer.
+      GoRoute(
+        path: '/maintenance/report',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, String?>?;
+          return ReportFaultScreen(
+            assetId: extra?['assetId'],
+            assetCode: extra?['assetCode'],
+          );
+        },
+      ),
+      // features/maintenance/ — details for a fault report selected from the
+      // signed-in user's dashboard list.
+      GoRoute(
+        path: '/maintenance/:id',
+        builder: (context, state) =>
+            FaultDetailScreen(report: state.extra as FaultReport),
+      ),
+      // Verification task list. Officer only.
       GoRoute(
         path: '/verification',
         builder: (context, state) => const VerificationTaskListScreen(),
@@ -95,12 +114,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/verification/:taskId/discrepancy',
-        builder: (context, state) => RaiseDiscrepancyScreen(
-          taskId: state.pathParameters['taskId']!,
-        ),
+        builder: (context, state) =>
+            RaiseDiscrepancyScreen(taskId: state.pathParameters['taskId']!),
       ),
-      // features/workflows/ — FR-067/FR-068 initiate, FR-069/FR-076
-      // status/outcome. Officer only — see redirect above.
+      // Workflows routes. Officer only.
       GoRoute(
         path: '/workflows',
         builder: (context, state) => const WorkflowListScreen(),
