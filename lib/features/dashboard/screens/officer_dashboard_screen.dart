@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../verification/verification_providers.dart';
 import '../widgets/dashboard_section.dart';
-
+import '../widgets/my_fault_reports_section.dart';
 
 class OfficerDashboardBody extends ConsumerWidget {
   const OfficerDashboardBody({super.key});
@@ -63,12 +63,13 @@ class OfficerDashboardBody extends ConsumerWidget {
               accent: accent,
               icon: Icons.report_problem_outlined,
               label: 'Report Fault',
-              onTap: () => notBuiltYet(context, 'features/maintenance'),
+              onTap: () => context.push('/maintenance/report'),
             ),
           ],
         ),
         const SizedBox(height: 28),
         _VerificationTasksDueSection(accent: accent),
+        MyFaultReportsSection(accent: accent),
         DashboardSection(
           title: 'Maintenance Assigned to Me',
           icon: Icons.build_outlined,

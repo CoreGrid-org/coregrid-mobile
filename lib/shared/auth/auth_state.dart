@@ -14,12 +14,18 @@ class AuthAuthenticating extends AuthState {
 class AuthAuthenticated extends AuthState {
   const AuthAuthenticated({
     required this.accessToken,
+    this.userId,
+    this.email,
     this.displayName,
     this.role,
   });
 
   /// In-memory only — never persisted (SEC-ID-05).
   final String accessToken;
+
+  /// From `GET /api/me`.
+  final String? userId;
+  final String? email;
 
   /// From `GET /api/me`; null if that call hasn't succeeded (e.g. the
   /// backend isn't reachable) — sign-in via ThunderID still counts.

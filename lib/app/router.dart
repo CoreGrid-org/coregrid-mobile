@@ -10,6 +10,9 @@ import '../features/auth/screens/access_restricted_screen.dart';
 import '../features/auth/screens/sign_in_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
+import '../features/maintenance/screens/report_fault_screen.dart';
+import '../features/maintenance/screens/fault_detail_screen.dart';
+import '../features/maintenance/models/fault_report.dart';
 import '../features/verification/screens/raise_discrepancy_screen.dart';
 import '../features/verification/screens/verification_task_detail_screen.dart';
 import '../features/verification/screens/verification_task_list_screen.dart';
@@ -81,6 +84,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialAsset: state.extra as AssetDetail?,
         ),
       ),
+      // features/maintenance/ — FR-080 fault reporting, available to Staff.
+      GoRoute(
+        path: '/maintenance/report',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, String?>?;
+          return ReportFaultScreen(
+            assetId: extra?['assetId'],
+            assetCode: extra?['assetCode'],
+          );
+        },
+      ),
+      // features/maintenance/ — details for a fault report selected from the
+      // signed-in user's dashboard list.
+      GoRoute(
+        path: '/maintenance/:id',
+        builder: (context, state) =>
+            FaultDetailScreen(report: state.extra as FaultReport),
+      ),
       // features/verification/ — FR-058 task list, FR-059 completion,
       // FR-061 manual discrepancy raising. Officer only — see redirect above.
       GoRoute(
@@ -95,9 +116,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/verification/:taskId/discrepancy',
-        builder: (context, state) => RaiseDiscrepancyScreen(
-          taskId: state.pathParameters['taskId']!,
-        ),
+        builder: (context, state) =>
+            RaiseDiscrepancyScreen(taskId: state.pathParameters['taskId']!),
       ),
       // features/workflows/ — FR-067/FR-068 initiate, FR-069/FR-076
       // status/outcome. Officer only — see redirect above.
