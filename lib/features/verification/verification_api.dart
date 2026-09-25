@@ -23,14 +23,41 @@ class VerificationApi {
     bool onlyPending = false,
   }) async {
     try {
-      final response = await _dio.get<List<dynamic>>(
-        '/api/verification-tasks',
-        queryParameters: {'mine': mine, 'onlyPending': onlyPending},
-      );
-      return (response.data ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(VerificationTask.fromJson)
-          .toList();
+      const pageSize = 100;
+      final tasks = <VerificationTask>[];
+      var page = 1;
+      var totalPages = 1;
+
+      do {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/verification-tasks',
+          queryParameters: {
+            'mine': mine,
+            'onlyPending': onlyPending,
+            'page': page,
+            'pageSize': pageSize,
+          },
+        );
+        final data = response.data;
+        if (data == null) return tasks;
+
+        final items = data['items'];
+        if (items is! List) {
+          throw ApiException(
+            statusCode: response.statusCode ?? 0,
+            message: 'CoreGrid returned an invalid verification task list.',
+          );
+        }
+        tasks.addAll(
+          items
+              .whereType<Map<String, dynamic>>()
+              .map(VerificationTask.fromJson),
+        );
+        totalPages = (data['total_pages'] as num?)?.toInt() ?? page;
+        page++;
+      } while (page <= totalPages);
+
+      return tasks;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -87,11 +114,36 @@ class VerificationApi {
   /// `GET /api/locations` — options for the "asserted location" picker.
   Future<List<VerificationLocation>> getLocations() async {
     try {
-      final response = await _dio.get<List<dynamic>>('/api/locations');
-      return (response.data ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(VerificationLocation.fromJson)
-          .toList();
+      const pageSize = 100;
+      final locations = <VerificationLocation>[];
+      var page = 1;
+      var totalPages = 1;
+
+      do {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/locations',
+          queryParameters: {'page': page, 'pageSize': pageSize},
+        );
+        final data = response.data;
+        if (data == null) return locations;
+
+        final items = data['items'];
+        if (items is! List) {
+          throw ApiException(
+            statusCode: response.statusCode ?? 0,
+            message: 'CoreGrid returned an invalid location list.',
+          );
+        }
+        locations.addAll(
+          items
+              .whereType<Map<String, dynamic>>()
+              .map(VerificationLocation.fromJson),
+        );
+        totalPages = (data['total_pages'] as num?)?.toInt() ?? page;
+        page++;
+      } while (page <= totalPages);
+
+      return locations;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

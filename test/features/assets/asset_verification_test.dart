@@ -10,7 +10,7 @@ class _FakeVerifiableAssetsApi implements VerifiableAssetsApi {
     required AssetVerificationRequest request,
   }) async {
     if (!request.present ||
-        request.location != 'Plant A - Section 3' ||
+        request.locationId != 'location-a' ||
         request.condition != AssetCondition.good) {
       return const AssetVerificationResult(
         discrepancyRaised: true,
@@ -30,7 +30,7 @@ void main() {
       assetId: 'asset-12345',
       request: const AssetVerificationRequest(
         present: true,
-        location: 'Plant A - Section 3',
+        locationId: 'location-a',
         condition: AssetCondition.good,
       ),
     );
@@ -44,7 +44,7 @@ void main() {
       assetId: 'asset-12345',
       request: const AssetVerificationRequest(
         present: false,
-        location: 'Plant B',
+        locationId: 'location-b',
         condition: AssetCondition.poor,
       ),
     );
