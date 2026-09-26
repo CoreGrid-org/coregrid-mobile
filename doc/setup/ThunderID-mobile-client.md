@@ -33,6 +33,12 @@ Register CoreGrid Mobile in ThunderID as a **mobile / native application** (publ
   App Links/Universal Links instead
 - **Allowed user type:** `CoreGridUser` only (same type as the React SPA — see
   `CoreGrid/doc/setup/ThunderID.md` step 1). Leave "Allow all user types" off.
+- **Access token attributes:** `email`, `given_name`, `family_name`, `roles` — the same set as the React SPA
+  (`CoreGrid/docs/setup/thunderid.md` step 4). **Scopes:** `openid`, `profile`, `email`, `roles` (the app
+  requests all four). The backend's `RoleEnrichmentMiddleware` resolves each bearer token to a CoreGrid user
+  by `sub`, and first-time-provisions one only when all four claims are present; otherwise every call —
+  `GET /api/me` included — returns 401, and the dashboard reports "CoreGrid rejected your sign-in (401)".
+  The signed-in user must also have a CoreGrid role (`Staff` or `InventoryOfficer`) assigned in ThunderID.
 - **Token lifetimes:** inherited from the deployment-wide configuration (access token 15 min, refresh token
   rotation enabled) — nothing mobile-specific to set here
 

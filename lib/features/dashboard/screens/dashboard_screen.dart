@@ -24,6 +24,7 @@ class DashboardScreen extends ConsumerWidget {
     final state = ref.watch(authControllerProvider);
     final role = state is AuthAuthenticated ? state.role : null;
     final displayName = state is AuthAuthenticated ? state.displayName : null;
+    final profileError = state is AuthAuthenticated ? state.profileError : null;
     final accent = RoleAccent.forRole(role);
 
     return Scaffold(
@@ -63,8 +64,10 @@ class DashboardScreen extends ConsumerWidget {
               switch (role) {
                 'InventoryOfficer' => const OfficerDashboardBody(),
                 'Staff' => const StaffDashboardBody(),
-                _ => const Text(
-                  'Signed in, role unknown (backend unreachable).',
+                _ => Text(
+                  'Signed in, but your CoreGrid role couldn\'t be loaded.\n'
+                  '${profileError ?? 'Unknown error.'}\n'
+                  'Sign out and back in to retry.',
                 ),
               },
             ],
