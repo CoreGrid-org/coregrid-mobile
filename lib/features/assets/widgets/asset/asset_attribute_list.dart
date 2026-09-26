@@ -89,7 +89,6 @@ class _AttributeRow extends StatelessWidget {
 
   final AssetAttribute attribute;
 
-  static const darkText = Color(0xFF202625);
   static const secondaryText = Color(0xFF59635F);
 
   @override

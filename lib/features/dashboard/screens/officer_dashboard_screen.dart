@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/theme/app_theme.dart';
+import '../../transfers/transfers_providers.dart';
 import '../../verification/verification_providers.dart';
 import '../widgets/dashboard_section.dart';
 import '../widgets/my_fault_reports_section.dart';
@@ -54,7 +55,7 @@ class OfficerDashboardBody extends ConsumerWidget {
               accent: accent,
               icon: Icons.local_shipping_outlined,
               label: 'Transfer',
-              onTap: () => notBuiltYet(context, 'features/transfers'),
+              onTap: () => context.push('/transfers'),
             ),
             // Fault reporting.
             QuickAction(
@@ -80,18 +81,7 @@ class OfficerDashboardBody extends ConsumerWidget {
             ),
           ],
         ),
-        DashboardSection(
-          title: 'Transfers Awaiting My Confirmation',
-          icon: Icons.move_to_inbox_outlined,
-          accent: accent,
-          rows: const [
-            DashboardRow(
-              label: 'AST-00305: Laptop, from Finance Dept.',
-              detail: 'Requested 1 day ago',
-              status: 'In Transit',
-            ),
-          ],
-        ),
+        _TransfersAwaitingConfirmationSection(accent: accent),
       ],
     );
   }
@@ -116,12 +106,12 @@ class _VerificationTasksDueSection extends ConsumerWidget {
         rows: [
           for (final task in value.where((t) => t.isPending).take(3))
             DashboardRow(
-              label: '${task.assetCode}: ${task.assetName}',
+              label: ': ',
               detail: task.isOverdue
-                  ? 'Overdue since ${task.dueDate.year}-${task.dueDate.month.toString().padLeft(2, '0')}-${task.dueDate.day.toString().padLeft(2, '0')}'
-                  : 'Due ${task.dueDate.year}-${task.dueDate.month.toString().padLeft(2, '0')}-${task.dueDate.day.toString().padLeft(2, '0')}',
+                  ? 'Overdue since --'
+                  : 'Due --',
               status: task.status.apiValue,
-              onTap: () => context.push('/verification/${task.id}'),
+              onTap: () => context.push('/verification/'),
             ),
         ],
       ),
@@ -135,6 +125,52 @@ class _VerificationTasksDueSection extends ConsumerWidget {
       _ => DashboardSection(
         title: 'Verification Tasks Due',
         icon: Icons.fact_check_outlined,
+        accent: accent,
+        emptyLabel: 'Loading...',
+        rows: const [],
+      ),
+    };
+  }
+}
+
+/// Transfers awaiting confirmation section (FR-046).
+class _TransfersAwaitingConfirmationSection extends ConsumerWidget {
+  const _TransfersAwaitingConfirmationSection({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transfers = ref.watch(pendingConfirmationProvider);
+
+    return switch (transfers) {
+      AsyncData(:final value) => DashboardSection(
+        title: 'Transfers Awaiting My Confirmation',
+        icon: Icons.move_to_inbox_outlined,
+        accent: accent,
+        emptyLabel: 'No transfers awaiting confirmation',
+        rows: [
+          for (final t in value.take(3))
+            DashboardRow(
+              label: ': ',
+              detail: t.fromDepartmentName != null
+                  ? 'From '
+                  : 'Transfer approved',
+              status: t.status.label,
+              onTap: () => context.push('/transfers/'),
+            ),
+        ],
+      ),
+      AsyncError() => DashboardSection(
+        title: 'Transfers Awaiting My Confirmation',
+        icon: Icons.move_to_inbox_outlined,
+        accent: accent,
+        emptyLabel: 'Could not load transfers',
+        rows: const [],
+      ),
+      _ => DashboardSection(
+        title: 'Transfers Awaiting My Confirmation',
+        icon: Icons.move_to_inbox_outlined,
         accent: accent,
         emptyLabel: 'Loading...',
         rows: const [],

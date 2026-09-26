@@ -42,8 +42,8 @@ running app; see FR-031's row below. `features/maintenance/`, `features/notifica
 | FR-033 — Fault report with photo evidence | Student 2 (Seneja) | ❌ |
 | FR-037 — Maintenance status progress update | Student 2 (Seneja) | ❌ |
 | FR-042 — Maintenance list/filter | Student 2 (Seneja) | ❌ |
-| FR-043 — Raise transfer request | Student 3 (Bhanuka) | ❌ |
-| FR-046 — Scan-to-confirm transfer receipt | Student 3 (Bhanuka) | ❌ |
+| FR-043 — Raise transfer request | Student 3 (Bhanuka) | ✅ (`features/transfers/` — `InitiateTransferScreen` at `/transfers/new` with cascading department/location pickers via shared `lib/shared/org_config/` providers; `TransferListScreen` at `/transfers`, detail screen with status-gated actions) |
+| FR-046 — Scan-to-confirm transfer receipt | Student 3 (Bhanuka) | ✅ (`features/transfers/` — `ConfirmReceiptScanScreen` at `/transfers/:id/confirm-scan` verifying scanned asset matches transfer asset before confirmation; status-gated entry point on `TransferDetailScreen`; dashboard 'Transfers Awaiting My Confirmation' section live) |
 | FR-058 — Verification task list, ordered by due date | Student 4 (Hasitha) | ✅ (`features/verification/` — `VerificationTaskListScreen` at `/verification`, `GET /api/verification-tasks?mine=true`, server-ordered by due date; loading/empty/error/populated states, overdue styling) |
 | FR-059 — Complete verification task via scan | Student 4 (Hasitha) | ✅ (`VerificationTaskDetailScreen` at `/verification/:taskId` asserts presence/location/condition and submits via `PATCH /api/verification-tasks/{id}/complete`, which auto-raises a discrepancy per FR-060 server-side; reachable directly from the task list and from asset detail's Verify action when that asset has a pending task) |
 | FR-061 — Raise discrepancy manually with photo | Student 4 (Hasitha) | ✅ (`RaiseDiscrepancyScreen` at `/verification/:taskId/discrepancy` — type/description/optional photo, compressed client-side to ≤1MB via `flutter_image_compress` (IF-11) before `POST /api/verification-tasks/photos` then `POST /api/verification-tasks/{taskId}/discrepancies`; backend role check widened to include InventoryOfficer — it was Auditor/Administrator-only, which would have 403'd every mobile call) |
@@ -51,6 +51,10 @@ running app; see FR-031's row below. `features/maintenance/`, `features/notifica
 | FR-076 — Display evaluation outcome | Student 4 (Hasitha) | ✅ (`WorkflowDetailScreen` — recommendation, approval status, high-impact flag, or the failure reason if the evaluation failed; no approval action, per the React-only responsibility boundary) |
 | FR-080 — In-app notifications | Student 2 (Seneja) | ❌ |
 | FR-083 — Task-focused dashboard | Student 4 (Hasitha) | 🟡 (role-branched per §2.3.1; "Verification Tasks Due" is now live via `features/verification/`, "Maintenance Assigned to Me"/"Transfers Awaiting My Confirmation" stay mock until `features/maintenance`/`features/transfers` exist to summarise — banner on-screen says so. Quick-action buttons were checked directly against `CoreGrid/doc/SRS/02-overall-description.md` §2.3.1's Mobile-users table, not `TEAM-ALLOCATION.md` — that file assigns folders to people, it doesn't define what a role may do. One gap found and fixed: Officer's dashboard had no Report Fault entry point even though FR-033 is Officer-*and*-Staff, not Staff-only; Staff's dashboard was already correctly scoped, and no dashboard exposes asset registration, which per §2.3.1 is React-only for every role, not just non-Flutter for Staff) |
+
+### Component C (Bhanuka) — Transfers Status (as of 2026-09-27)
+
+FR-043 (initiate transfer request) and FR-046 (scan-based receipt confirmation) implemented. Transfer list, initiate form with cascading department/location pickers, transfer detail with status-gated confirm action, and QR scan-to-confirm flow with asset identity verification (mismatch detection before confirming receipt). Dashboard 'Transfers Awaiting My Confirmation' section wired to live data. FR-049 (condemnation) not yet started — time-boxed out of today's scope. flutter analyze: 0 issues. flutter build apk --debug: successful build (not yet tested on a live device/emulator).
 
 ## Next milestone
 
