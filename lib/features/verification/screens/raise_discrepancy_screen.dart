@@ -67,7 +67,8 @@ class _RaiseDiscrepancyScreenState
 
   Future<Uint8List> _compressUnderLimit(String path) async {
     var quality = 85;
-    Uint8List result = await FlutterImageCompress.compressWithFile(
+    Uint8List result =
+        await FlutterImageCompress.compressWithFile(
           path,
           quality: quality,
           minWidth: 1280,
@@ -77,7 +78,8 @@ class _RaiseDiscrepancyScreenState
 
     while (result.length > _maxPhotoBytes && quality > 20) {
       quality -= 15;
-      result = await FlutterImageCompress.compressWithFile(
+      result =
+          await FlutterImageCompress.compressWithFile(
             path,
             quality: quality,
             minWidth: 1280,
@@ -131,9 +133,7 @@ class _RaiseDiscrepancyScreenState
             fontWeight: FontWeight.w700,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: RaiseDiscrepancyScreen.darkText,
-        ),
+        iconTheme: const IconThemeData(color: RaiseDiscrepancyScreen.darkText),
       ),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -157,12 +157,14 @@ class _RaiseDiscrepancyScreenState
                 photoBytes: _photoBytes,
                 compressing: _compressing,
                 onPickPhoto: (source) => _pickPhoto(source),
-                onSubmit: (submitState.isLoading || _compressing) ? null : _submit,
+                onSubmit: (submitState.isLoading || _compressing)
+                    ? null
+                    : _submit,
                 isSubmitting: submitState.isLoading,
                 errorMessage: submitState.hasError
                     ? (submitState.error is ApiException
-                        ? (submitState.error as ApiException).message
-                        : 'Couldn\'t raise this discrepancy. Try again.')
+                          ? (submitState.error as ApiException).message
+                          : 'Couldn\'t raise this discrepancy. Try again.')
                     : null,
               ),
             ],
@@ -310,15 +312,10 @@ class _DiscrepancyFormCard extends StatelessWidget {
           ),
           if (compressing) ...[
             const SizedBox(height: 10),
-            const LinearProgressIndicator(
-              color: RaiseDiscrepancyScreen.orange,
-            ),
+            const LinearProgressIndicator(color: RaiseDiscrepancyScreen.orange),
           ],
           const SizedBox(height: 20),
-          _SubmitButton(
-            onSubmit: onSubmit,
-            isSubmitting: isSubmitting,
-          ),
+          _SubmitButton(onSubmit: onSubmit, isSubmitting: isSubmitting),
           if (errorMessage != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -361,7 +358,10 @@ class _PhotoActionButtons extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.camera_alt_outlined, size: 20),
-            label: const Text('Take Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+            label: const Text(
+              'Take Photo',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -378,7 +378,10 @@ class _PhotoActionButtons extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.photo_library_outlined, size: 20),
-            label: const Text('Choose Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+            label: const Text(
+              'Choose Photo',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ],
@@ -387,10 +390,7 @@ class _PhotoActionButtons extends StatelessWidget {
 }
 
 class _SubmitButton extends StatelessWidget {
-  const _SubmitButton({
-    required this.onSubmit,
-    required this.isSubmitting,
-  });
+  const _SubmitButton({required this.onSubmit, required this.isSubmitting});
 
   final VoidCallback? onSubmit;
   final bool isSubmitting;

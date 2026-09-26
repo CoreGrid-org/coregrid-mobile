@@ -17,9 +17,8 @@ class SignInScreen extends ConsumerWidget {
       } else if (next is AuthRoleNotSupported) {
         context.go('/access-restricted', extra: next.role);
       } else if (next is AuthError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(next.message)));
       }
     });
 
@@ -45,16 +44,14 @@ class SignInScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Text(
                 'CoreGrid',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(context).textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Text(
                 'Field Operations',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(color: colors.onSurfaceVariant),
               ),
               const Spacer(flex: 4),
               SizedBox(
@@ -63,7 +60,8 @@ class SignInScreen extends ConsumerWidget {
                 child: FilledButton.icon(
                   onPressed: isAuthenticating
                       ? null
-                      : () => ref.read(authControllerProvider.notifier).signIn(),
+                      : () =>
+                            ref.read(authControllerProvider.notifier).signIn(),
                   icon: isAuthenticating
                       ? const SizedBox(
                           width: 18,
@@ -77,9 +75,8 @@ class SignInScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(
                 'Sign-in opens ThunderID in your browser',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
               const Spacer(),

@@ -10,17 +10,6 @@ import 'models/asset/asset_maintenance_history.dart';
 import 'models/asset/asset_search.dart';
 import 'models/asset/asset_verification.dart';
 
-abstract interface class SearchableAssetsApi {
-  Future<AssetSearchResult> search(AssetSearchQuery query);
-}
-
-abstract interface class VerifiableAssetsApi {
-  Future<AssetVerificationResult> verifyAsset({
-    required String assetId,
-    required AssetVerificationRequest request,
-  });
-}
-
 /// Every `/api/assets` call `features/assets/` owns, over the shared dio
 /// client (`MOBILE-SPECIFICATION.md` §3.1 — API calls live with the feature).
 /// All failures are normalised to [ApiException] so providers/screens never
@@ -122,28 +111,8 @@ class AssetsApi {
     }
   }
 
-  Future<T> _get<T>(String path, T Function(Map<String, dynamic>) parse) async {
-    try {
-      final response = await _dio.get<Map<String, dynamic>>(path);
-      final data = response.data;
-      if (data == null) {
-        throw ApiException(
-          statusCode: response.statusCode ?? 0,
-          message: 'CoreGrid returned an empty response.',
-        );
-      }
-      return parse(data);
-    } on DioException catch (e) {
-      throw ApiException.fromDio(e);
-    }
-  }
-}
-
-class SearchableAssetsApiClient extends AssetsApi
-    implements SearchableAssetsApi, VerifiableAssetsApi {
-  SearchableAssetsApiClient(super.dio);
-
-  @override
+  /// `GET /api/assets` — filtered, paged search (FR-025). Accepts either a
+  /// bare list or the paged envelope.
   Future<AssetSearchResult> search(AssetSearchQuery query) async {
     try {
       final response = await _dio.get<Object>(
@@ -174,7 +143,8 @@ class SearchableAssetsApiClient extends AssetsApi
     }
   }
 
-  @override
+  /// `POST /api/assets/{id}/verify` — physical verification (FR-031); the
+  /// server raises a discrepancy when observations don't match the record.
   Future<AssetVerificationResult> verifyAsset({
     required String assetId,
     required AssetVerificationRequest request,
@@ -189,8 +159,24 @@ class SearchableAssetsApiClient extends AssetsApi
       throw ApiException.fromDio(e);
     }
   }
+
+  Future<T> _get<T>(String path, T Function(Map<String, dynamic>) parse) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(path);
+      final data = response.data;
+      if (data == null) {
+        throw ApiException(
+          statusCode: response.statusCode ?? 0,
+          message: 'CoreGrid returned an empty response.',
+        );
+      }
+      return parse(data);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }
 
 final assetsApiProvider = Provider<AssetsApi>((ref) {
-  return SearchableAssetsApiClient(ref.watch(apiClientProvider));
+  return AssetsApi(ref.watch(apiClientProvider));
 });

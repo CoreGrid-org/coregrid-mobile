@@ -11,8 +11,7 @@ class AssetLookupScreen extends ConsumerStatefulWidget {
   const AssetLookupScreen({super.key});
 
   @override
-  ConsumerState<AssetLookupScreen> createState() =>
-      _AssetLookupScreenState();
+  ConsumerState<AssetLookupScreen> createState() => _AssetLookupScreenState();
 }
 
 class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
@@ -44,17 +43,17 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(assetLookupControllerProvider);
 
-    ref.listen<AsyncValue<AssetDetail?>>(
-      assetLookupControllerProvider,
-      (_, next) {
-        final asset = next.asData?.value;
+    ref.listen<AsyncValue<AssetDetail?>>(assetLookupControllerProvider, (
+      _,
+      next,
+    ) {
+      final asset = next.asData?.value;
 
-        if (asset != null) {
-          context.push('/assets/${asset.id}');
-          ref.read(assetLookupControllerProvider.notifier).reset();
-        }
-      },
-    );
+      if (asset != null) {
+        context.push('/assets/${asset.id}');
+        ref.read(assetLookupControllerProvider.notifier).reset();
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -71,9 +70,7 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: darkText,
-        ),
+        iconTheme: const IconThemeData(color: darkText),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -142,9 +139,7 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFFBF9),
                     borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: const Color(0xFFFFE2D3),
-                    ),
+                    border: Border.all(color: const Color(0xFFFFE2D3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -169,9 +164,7 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
                         textInputAction: TextInputAction.search,
                         textCapitalization: TextCapitalization.characters,
                         inputFormatters: [
-                          FilteringTextInputFormatter.deny(
-                            RegExp(r'\s'),
-                          ),
+                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
                         ],
                         style: const TextStyle(
                           fontSize: 17,
@@ -248,8 +241,9 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
                           onPressed: state.isLoading ? null : _lookup,
                           style: FilledButton.styleFrom(
                             backgroundColor: orange,
-                            disabledBackgroundColor:
-                                orange.withValues(alpha: 0.45),
+                            disabledBackgroundColor: orange.withValues(
+                              alpha: 0.45,
+                            ),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
@@ -265,14 +259,9 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Icon(
-                                  Icons.search_rounded,
-                                  size: 22,
-                                ),
+                              : const Icon(Icons.search_rounded, size: 22),
                           label: Text(
-                            state.isLoading
-                                ? 'Looking up...'
-                                : 'Find Asset',
+                            state.isLoading ? 'Looking up...' : 'Find Asset',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -302,9 +291,7 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8F9F8),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFECEFED),
-                    ),
+                    border: Border.all(color: const Color(0xFFECEFED)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,9 +392,7 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
 // ============================================================================
 
 class _LookupError extends StatelessWidget {
-  const _LookupError({
-    required this.error,
-  });
+  const _LookupError({required this.error});
 
   final Object error;
 
@@ -429,9 +414,7 @@ class _LookupError extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF1F0),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFFFD6D2),
-        ),
+        border: Border.all(color: const Color(0xFFFFD6D2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeAssetsApi implements AssetsApi {
+class _FakeAssetsApi extends Fake implements AssetsApi {
   _FakeAssetsApi({this.detail, this.error});
 
   final AssetDetail? detail;
@@ -114,6 +114,8 @@ void main() {
 
     await tester.pumpWidget(_harness(api: api));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Attributes'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Serial Number'), findsOneWidget);
     expect(find.text('IR-99X'), findsOneWidget);
@@ -191,7 +193,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Asset not found'), findsOneWidget);
-    expect(find.widgetWithText(OutlinedButton, 'Retry'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
   });
 
   testWidgets('shows the offline state on a network error (FR-024 A4)', (

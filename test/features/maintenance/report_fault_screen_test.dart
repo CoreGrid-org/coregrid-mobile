@@ -1,9 +1,4 @@
-import 'package:coregrid_mobile/features/assets/assets_api.dart';
-import 'package:coregrid_mobile/features/assets/models/asset/asset_condition.dart';
 import 'package:coregrid_mobile/features/assets/models/asset/asset_detail.dart';
-import 'package:coregrid_mobile/features/assets/models/asset/asset_history_entry.dart';
-import 'package:coregrid_mobile/features/assets/models/asset/asset_maintenance_history.dart';
-import 'package:coregrid_mobile/features/assets/models/asset/asset_search.dart';
 import 'package:coregrid_mobile/features/maintenance/maintenance_api.dart';
 import 'package:coregrid_mobile/features/maintenance/maintenance_providers.dart';
 import 'package:coregrid_mobile/features/maintenance/models/fault_report.dart';

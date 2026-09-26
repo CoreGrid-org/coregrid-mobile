@@ -49,7 +49,8 @@ class _FakeVerificationApi implements VerificationApi {
   }) => throw UnimplementedError();
 
   @override
-  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async => const [];
+  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async =>
+      const [];
 }
 
 VerificationTask _task({String status = 'Pending', bool overdue = false}) {
@@ -79,18 +80,13 @@ void main() {
     await tester.pumpWidget(_harness(_FakeVerificationApi()));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('No verification tasks assigned to you.'),
-      findsOneWidget,
-    );
+    expect(find.text('No verification tasks assigned to you.'), findsOneWidget);
   });
 
   testWidgets('lists tasks with their campaign and due date (FR-058)', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _harness(_FakeVerificationApi(tasks: [_task()])),
-    );
+    await tester.pumpWidget(_harness(_FakeVerificationApi(tasks: [_task()])));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('AST-001'), findsOneWidget);

@@ -9,8 +9,7 @@ final agentWorkflowsProvider = FutureProvider.autoDispose<List<AgentWorkflow>>((
   ref,
 ) async {
   final workflows = await ref.watch(workflowsApiProvider).getWorkflows();
-  return workflows.toList()
-    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return workflows.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 });
 
 /// One workflow's status/outcome, polled every 5s while unresolved.
@@ -41,9 +40,10 @@ class WorkflowAssetLookupController extends AsyncNotifier<WorkflowAssetRef?> {
 }
 
 final workflowAssetLookupControllerProvider =
-    AsyncNotifierProvider.autoDispose<WorkflowAssetLookupController, WorkflowAssetRef?>(
-      WorkflowAssetLookupController.new,
-    );
+    AsyncNotifierProvider.autoDispose<
+      WorkflowAssetLookupController,
+      WorkflowAssetRef?
+    >(WorkflowAssetLookupController.new);
 
 /// Drives "Request Evaluation".
 class InitiateWorkflowController extends AsyncNotifier<void> {

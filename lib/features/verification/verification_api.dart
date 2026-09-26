@@ -49,9 +49,9 @@ class VerificationApi {
           );
         }
         tasks.addAll(
-          items
-              .whereType<Map<String, dynamic>>()
-              .map(VerificationTask.fromJson),
+          items.whereType<Map<String, dynamic>>().map(
+            VerificationTask.fromJson,
+          ),
         );
         totalPages = (data['total_pages'] as num?)?.toInt() ?? page;
         page++;
@@ -135,9 +135,9 @@ class VerificationApi {
           );
         }
         locations.addAll(
-          items
-              .whereType<Map<String, dynamic>>()
-              .map(VerificationLocation.fromJson),
+          items.whereType<Map<String, dynamic>>().map(
+            VerificationLocation.fromJson,
+          ),
         );
         totalPages = (data['total_pages'] as num?)?.toInt() ?? page;
         page++;

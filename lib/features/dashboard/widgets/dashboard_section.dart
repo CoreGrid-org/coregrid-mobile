@@ -17,8 +17,16 @@ void notBuiltYet(BuildContext context, String feature) {
 Color statusColor(BuildContext context, String status) {
   final colors = Theme.of(context).colorScheme;
   return switch (status.trim().toLowerCase().replaceAll('_', ' ')) {
-    'completed' || 'resolved' || 'active' || 'approved' => const Color(0xFF2E7D32),
-    'in progress' || 'in transit' || 'pending' || 'requested' || 'open' || 'on hold' => const Color(0xFFB8860B),
+    'completed' ||
+    'resolved' ||
+    'active' ||
+    'approved' => const Color(0xFF2E7D32),
+    'in progress' ||
+    'in transit' ||
+    'pending' ||
+    'requested' ||
+    'open' ||
+    'on hold' => const Color(0xFFB8860B),
     'overdue' || 'failed' || 'rejected' || 'cancelled' => colors.error,
     _ => colors.onSurfaceVariant,
   };
@@ -98,9 +106,8 @@ class _QuickActionTile extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500),
+            style: Theme.of(context).textTheme.labelSmall
+                ?.copyWith(fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -165,9 +172,8 @@ class DashboardSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -178,9 +184,8 @@ class DashboardSection extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 10, left: 46),
                 child: Text(
                   emptyLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
                 ),
               )
             else
@@ -224,15 +229,13 @@ class DashboardRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w500),
                 ),
                 Text(
                   detail,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
                 ),
               ],
             ),
@@ -246,10 +249,8 @@ class DashboardRow extends StatelessWidget {
             ),
             child: Text(
               status,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: tint,
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(context).textTheme.labelSmall
+                  ?.copyWith(color: tint, fontWeight: FontWeight.w600),
             ),
           ),
         ],

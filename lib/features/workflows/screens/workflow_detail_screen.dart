@@ -57,9 +57,8 @@ class _WorkflowStatus extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Started ${_formatDateTime(workflow.createdAt)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
           Card(
@@ -100,7 +99,8 @@ class _WorkflowStatus extends StatelessWidget {
               icon: Icons.check_circle_outline,
               color: colors.primary,
               title: 'Recommendation',
-              body: workflow.recommendation ?? 'No recommendation was recorded.',
+              body:
+                  workflow.recommendation ?? 'No recommendation was recorded.',
             ),
             const SizedBox(height: 8),
             Card(

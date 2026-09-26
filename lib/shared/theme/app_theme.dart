@@ -85,9 +85,7 @@ abstract final class AppTheme {
         margin: EdgeInsets.zero,
       ),
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         side: BorderSide.none,
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -119,7 +117,9 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isLight ? scheme.surfaceContainerLow : scheme.surfaceContainer,
+        fillColor: isLight
+            ? scheme.surfaceContainerLow
+            : scheme.surfaceContainer,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
           borderSide: BorderSide.none,

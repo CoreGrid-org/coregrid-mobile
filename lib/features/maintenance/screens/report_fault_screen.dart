@@ -114,7 +114,8 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
 
   Future<Uint8List> _compressUnderLimit(String path) async {
     var quality = 85;
-    Uint8List result = await FlutterImageCompress.compressWithFile(
+    Uint8List result =
+        await FlutterImageCompress.compressWithFile(
           path,
           quality: quality,
           minWidth: 1280,
@@ -124,7 +125,8 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
 
     while (result.length > _maxPhotoBytes && quality > 20) {
       quality -= 15;
-      result = await FlutterImageCompress.compressWithFile(
+      result =
+          await FlutterImageCompress.compressWithFile(
             path,
             quality: quality,
             minWidth: 1280,
@@ -191,9 +193,7 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: ReportFaultScreen.darkText,
-        ),
+        iconTheme: const IconThemeData(color: ReportFaultScreen.darkText),
       ),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -229,15 +229,15 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
                 onRemovePhoto: isLoading
                     ? null
                     : () => setState(() {
-                          _photoBytes = null;
-                          _photoFileName = null;
-                        }),
+                        _photoBytes = null;
+                        _photoFileName = null;
+                      }),
                 onSubmit: (isLoading || _compressing) ? null : _submit,
                 isSubmitting: isLoading,
                 errorMessage: submitState.hasError
                     ? (submitState.error is ApiException
-                        ? (submitState.error as ApiException).message
-                        : 'Couldn\'t submit this report. Please try again.')
+                          ? (submitState.error as ApiException).message
+                          : 'Couldn\'t submit this report. Please try again.')
                     : null,
               ),
             ],
@@ -388,7 +388,9 @@ class _FaultFormCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: ReportFaultScreen.orange.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: ReportFaultScreen.orange.withValues(alpha: 0.4),
+                ),
               ),
               child: Row(
                 children: [
@@ -442,7 +444,10 @@ class _FaultFormCard extends StatelessWidget {
                   ),
                   if (!assetCodeLocked && !isLoading)
                     IconButton(
-                      icon: const Icon(Icons.swap_horiz, color: ReportFaultScreen.orange),
+                      icon: const Icon(
+                        Icons.swap_horiz,
+                        color: ReportFaultScreen.orange,
+                      ),
                       tooltip: 'Change Asset',
                       onPressed: onPickAsset,
                     ),
@@ -454,7 +459,10 @@ class _FaultFormCard extends StatelessWidget {
               onTap: onPickAsset,
               borderRadius: BorderRadius.circular(16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -537,8 +545,9 @@ class _FaultFormCard extends StatelessWidget {
               color: ReportFaultScreen.darkText,
             ),
             decoration: _inputDecoration('Describe the issue or defect…'),
-            validator: (value) =>
-                (value == null || value.trim().isEmpty) ? 'Please describe the fault' : null,
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? 'Please describe the fault'
+                : null,
           ),
           const SizedBox(height: 18),
 
@@ -573,7 +582,11 @@ class _FaultFormCard extends StatelessWidget {
                       backgroundColor: Colors.black54,
                       radius: 16,
                       child: IconButton(
-                        icon: const Icon(Icons.close, size: 16, color: Colors.white),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         onPressed: onRemovePhoto,
                       ),
                     ),
@@ -588,9 +601,7 @@ class _FaultFormCard extends StatelessWidget {
           ),
           if (compressing) ...[
             const SizedBox(height: 10),
-            const LinearProgressIndicator(
-              color: ReportFaultScreen.orange,
-            ),
+            const LinearProgressIndicator(color: ReportFaultScreen.orange),
           ],
           const SizedBox(height: 24),
           _SubmitButton(onSubmit: onSubmit, isSubmitting: isSubmitting),
@@ -640,135 +651,155 @@ class _AssetPickerSheetState extends ConsumerState<_AssetPickerSheet> {
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.75,
         child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Select Department Asset',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: ReportFaultScreen.darkText,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by code or name…',
-                prefixIcon: const Icon(Icons.search, color: ReportFaultScreen.orange),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7E6)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7E6)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: ReportFaultScreen.orange),
-                ),
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
-              onChanged: (val) {
-                setState(() => _searchTerm = val.trim());
-              },
             ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: searchAsync.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: ReportFaultScreen.orange),
-              ),
-              error: (err, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(
-                    'Could not load department assets: $err',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
-                ),
-              ),
-              data: (assets) {
-                if (assets.isEmpty) {
-                  return const Center(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  const Expanded(
                     child: Text(
-                      'No accessible assets found in your department.',
-                      style: TextStyle(color: ReportFaultScreen.secondaryText),
+                      'Select Department Asset',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: ReportFaultScreen.darkText,
+                      ),
                     ),
-                  );
-                }
-                return ListView.separated(
-                  itemCount: assets.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1, indent: 64),
-                  itemBuilder: (context, index) {
-                    final asset = assets[index];
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: ReportFaultScreen.lightOrange,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.inventory_2_outlined,
-                          color: ReportFaultScreen.orange,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        asset.assetCode,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: ReportFaultScreen.darkText,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${asset.name} · ${asset.departmentName}',
-                        style: const TextStyle(
-                          fontSize: 13,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by code or name…',
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: ReportFaultScreen.orange,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF9FAFB),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7E6)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7E6)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: ReportFaultScreen.orange,
+                    ),
+                  ),
+                ),
+                onChanged: (val) {
+                  setState(() => _searchTerm = val.trim());
+                },
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: searchAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: ReportFaultScreen.orange,
+                  ),
+                ),
+                error: (err, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'Could not load department assets: $err',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                ),
+                data: (assets) {
+                  if (assets.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No accessible assets found in your department.',
+                        style: TextStyle(
                           color: ReportFaultScreen.secondaryText,
                         ),
                       ),
-                      trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
-                      onTap: () => Navigator.pop(context, asset),
                     );
-                  },
-                );
-              },
+                  }
+                  return ListView.separated(
+                    itemCount: assets.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1, indent: 64),
+                    itemBuilder: (context, index) {
+                      final asset = assets[index];
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 4,
+                        ),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: ReportFaultScreen.lightOrange,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.inventory_2_outlined,
+                            color: ReportFaultScreen.orange,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          asset.assetCode,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: ReportFaultScreen.darkText,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${asset.name} · ${asset.departmentName}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: ReportFaultScreen.secondaryText,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                        onTap: () => Navigator.pop(context, asset),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -897,10 +928,7 @@ InputDecoration _inputDecoration(String label) {
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(
-        color: ReportFaultScreen.orange,
-        width: 1.5,
-      ),
+      borderSide: const BorderSide(color: ReportFaultScreen.orange, width: 1.5),
     ),
   );
 }

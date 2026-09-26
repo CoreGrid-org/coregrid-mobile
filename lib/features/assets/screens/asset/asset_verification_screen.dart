@@ -41,19 +41,8 @@ class _AssetVerificationScreenState
     _condition = widget.asset.condition ?? AssetCondition.good;
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final api = ref.read(assetsApiProvider);
-    if (api is! VerifiableAssetsApi) {
-      setState(() => _error = StateError('Verification is not available.'));
-      return;
-    }
-
     setState(() {
       _submitting = true;
       _error = null;
@@ -61,7 +50,8 @@ class _AssetVerificationScreenState
     });
     try {
       final locations = await ref.read(verificationLocationsProvider.future);
-      final locationId = _locationId ??
+      final locationId =
+          _locationId ??
           locations
               .where((location) => location.name == widget.asset.locationName)
               .firstOrNull
@@ -69,14 +59,16 @@ class _AssetVerificationScreenState
       if (locationId == null) {
         throw StateError('Select a valid observed location.');
       }
-      final result = await (api as VerifiableAssetsApi).verifyAsset(
-        assetId: widget.asset.id,
-        request: AssetVerificationRequest(
-          present: _present,
-          locationId: locationId,
-          condition: _condition,
-        ),
-      );
+      final result = await ref
+          .read(assetsApiProvider)
+          .verifyAsset(
+            assetId: widget.asset.id,
+            request: AssetVerificationRequest(
+              present: _present,
+              locationId: locationId,
+              condition: _condition,
+            ),
+          );
       if (mounted) setState(() => _result = result);
     } catch (error) {
       if (mounted) setState(() => _error = error);
@@ -229,7 +221,9 @@ class _AssetVerificationScreenState
               ),
               data: (values) {
                 final currentLocation = values
-                    .where((location) => location.name == widget.asset.locationName)
+                    .where(
+                      (location) => location.name == widget.asset.locationName,
+                    )
                     .firstOrNull;
                 final selectedId = _locationId ?? currentLocation?.id;
                 return DropdownButtonFormField<String>(
@@ -241,7 +235,10 @@ class _AssetVerificationScreenState
                     for (final VerificationLocation location in values)
                       DropdownMenuItem(
                         value: location.id,
-                        child: Text(location.name, overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          location.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                   validator: (value) => value == null || value.trim().isEmpty

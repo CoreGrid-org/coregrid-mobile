@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeAssetsApi implements AssetsApi {
+class _FakeAssetsApi extends Fake implements AssetsApi {
   _FakeAssetsApi({this.error});
 
   final Object? error;
@@ -42,10 +42,7 @@ class _FakeAssetsApi implements AssetsApi {
 
   @override
   Future<AssetMaintenanceHistory> getMaintenanceHistory(String assetId) async =>
-      AssetMaintenanceHistory(
-        assetId: assetId,
-        records: const [],
-      );
+      AssetMaintenanceHistory(assetId: assetId, records: const []);
 }
 
 Widget _harness(_FakeAssetsApi api) {
@@ -60,30 +57,31 @@ void main() {
     final api = _FakeAssetsApi();
     await tester.pumpWidget(_harness(api));
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
+    await tester.tap(find.text('Find Asset'));
     await tester.pump();
 
     expect(find.text('Enter an asset code'), findsOneWidget);
     expect(api.lastCodeLookedUp, isNull);
   });
 
-  testWidgets('shows a non-leaking message for a code not in the org (AC2/A3)', (
-    tester,
-  ) async {
-    final api = _FakeAssetsApi(
-      error: ApiException(statusCode: 404, message: 'Asset not found.'),
-    );
-    await tester.pumpWidget(_harness(api));
+  testWidgets(
+    'shows a non-leaking message for a code not in the org (AC2/A3)',
+    (tester) async {
+      final api = _FakeAssetsApi(
+        error: ApiException(statusCode: 404, message: 'Asset not found.'),
+      );
+      await tester.pumpWidget(_harness(api));
 
-    await tester.enterText(find.byType(TextFormField), 'AST-99999');
-    await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), 'AST-99999');
+      await tester.tap(find.text('Find Asset'));
+      await tester.pumpAndSettle();
 
-    expect(
-      find.text('No asset with that code exists in your organisation.'),
-      findsOneWidget,
-    );
-  });
+      expect(
+        find.text('No asset with that code exists in your organisation.'),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('shows the offline message on a network error (A4)', (
     tester,
@@ -98,7 +96,7 @@ void main() {
     await tester.pumpWidget(_harness(api));
 
     await tester.enterText(find.byType(TextFormField), 'AST-1');
-    await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
+    await tester.tap(find.text('Find Asset'));
     await tester.pumpAndSettle();
 
     expect(

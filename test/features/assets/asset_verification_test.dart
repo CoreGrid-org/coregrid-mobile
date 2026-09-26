@@ -3,7 +3,7 @@ import 'package:coregrid_mobile/features/assets/models/asset/asset_condition.dar
 import 'package:coregrid_mobile/features/assets/models/asset/asset_verification.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeVerifiableAssetsApi implements VerifiableAssetsApi {
+class _FakeVerifiableAssetsApi extends Fake implements AssetsApi {
   @override
   Future<AssetVerificationResult> verifyAsset({
     required String assetId,
@@ -39,17 +39,20 @@ void main() {
     expect(result.message, contains('successfully'));
   });
 
-  test('mock verification returns discrepancy for mismatched observations', () async {
-    final result = await _FakeVerifiableAssetsApi().verifyAsset(
-      assetId: 'asset-12345',
-      request: const AssetVerificationRequest(
-        present: false,
-        locationId: 'location-b',
-        condition: AssetCondition.poor,
-      ),
-    );
+  test(
+    'mock verification returns discrepancy for mismatched observations',
+    () async {
+      final result = await _FakeVerifiableAssetsApi().verifyAsset(
+        assetId: 'asset-12345',
+        request: const AssetVerificationRequest(
+          present: false,
+          locationId: 'location-b',
+          condition: AssetCondition.poor,
+        ),
+      );
 
-    expect(result.discrepancyRaised, isTrue);
-    expect(result.message, contains('discrepancy'));
-  });
+      expect(result.discrepancyRaised, isTrue);
+      expect(result.message, contains('discrepancy'));
+    },
+  );
 }

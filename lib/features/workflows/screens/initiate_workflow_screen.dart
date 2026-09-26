@@ -94,7 +94,9 @@ class _InitiateWorkflowScreenState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.search),
-                  label: Text(assetLookup.isLoading ? 'Looking up…' : 'Find asset'),
+                  label: Text(
+                    assetLookup.isLoading ? 'Looking up…' : 'Find asset',
+                  ),
                 )
               else
                 Card(
@@ -106,7 +108,9 @@ class _InitiateWorkflowScreenState
                       tooltip: 'Change asset',
                       onPressed: () {
                         ref
-                            .read(workflowAssetLookupControllerProvider.notifier)
+                            .read(
+                              workflowAssetLookupControllerProvider.notifier,
+                            )
                             .reset();
                         _codeController.clear();
                       },
@@ -132,8 +136,7 @@ class _InitiateWorkflowScreenState
                     labelText: 'Objective',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
+                  validator: (value) => (value == null || value.trim().isEmpty)
                       ? 'State what the agent should evaluate'
                       : null,
                 ),

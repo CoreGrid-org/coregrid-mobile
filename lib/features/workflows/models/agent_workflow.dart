@@ -40,7 +40,8 @@ class AgentWorkflow {
 
   bool get isResolved => completedAt != null;
   bool get isFailed => status.toUpperCase() == 'FAILED';
-  bool get awaitingApproval => approvalStatus.toUpperCase() == 'PENDING' && isHighImpact;
+  bool get awaitingApproval =>
+      approvalStatus.toUpperCase() == 'PENDING' && isHighImpact;
 
   factory AgentWorkflow.fromJson(Map<String, dynamic> json) {
     return AgentWorkflow(

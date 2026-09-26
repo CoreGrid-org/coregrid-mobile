@@ -155,7 +155,10 @@ class _ErrorState extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(message, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
-                  OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+                  OutlinedButton(
+                    onPressed: onRetry,
+                    child: const Text('Retry'),
+                  ),
                 ],
               ),
             ),

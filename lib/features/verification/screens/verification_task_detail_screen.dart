@@ -60,30 +60,28 @@ class _VerificationTaskDetailScreenState
       ),
       body: switch (taskState) {
         AsyncData(value: final task?) => _buildBody(
-            context,
-            task,
-            locationsState,
-            submitState,
-          ),
+          context,
+          task,
+          locationsState,
+          submitState,
+        ),
         AsyncData() => const Center(
-            child: Text(
-              'Task not found.',
-              style: TextStyle(color: VerificationTaskDetailScreen.secondaryText),
-            ),
+          child: Text(
+            'Task not found.',
+            style: TextStyle(color: VerificationTaskDetailScreen.secondaryText),
           ),
+        ),
         AsyncError(:final error) => Center(
-            child: Text(
-              error is ApiException
-                  ? error.message
-                  : 'Couldn\'t load this task.',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+          child: Text(
+            error is ApiException ? error.message : 'Couldn\'t load this task.',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
+        ),
         _ => const Center(
-            child: CircularProgressIndicator(
-              color: VerificationTaskDetailScreen.orange,
-            ),
+          child: CircularProgressIndicator(
+            color: VerificationTaskDetailScreen.orange,
           ),
+        ),
       },
     );
   }
@@ -134,8 +132,8 @@ class _VerificationTaskDetailScreenState
                 isSubmitting: submitState.isLoading,
                 errorMessage: submitState.hasError
                     ? (submitState.error is ApiException
-                        ? (submitState.error as ApiException).message
-                        : 'Couldn\'t submit this verification. Try again.')
+                          ? (submitState.error as ApiException).message
+                          : 'Couldn\'t submit this verification. Try again.')
                     : null,
               ),
             const SizedBox(height: 20),
@@ -258,11 +256,7 @@ class _AlreadyCompletedCard extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(
-            Icons.check_circle_rounded,
-            color: Color(0xFF00897B),
-            size: 24,
-          ),
+          Icon(Icons.check_circle_rounded, color: Color(0xFF00897B), size: 24),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -317,10 +311,7 @@ class _FormSectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _PresenceSwitchTile(
-            present: present,
-            onChanged: onPresentChanged,
-          ),
+          _PresenceSwitchTile(present: present, onChanged: onPresentChanged),
           if (present) ...[
             const SizedBox(height: 16),
             _LocationDropdown(
@@ -335,10 +326,7 @@ class _FormSectionCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 20),
-          _SubmitButton(
-            onSubmit: onSubmit,
-            isSubmitting: isSubmitting,
-          ),
+          _SubmitButton(onSubmit: onSubmit, isSubmitting: isSubmitting),
           if (errorMessage != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -356,10 +344,7 @@ class _FormSectionCard extends StatelessWidget {
 }
 
 class _PresenceSwitchTile extends StatelessWidget {
-  const _PresenceSwitchTile({
-    required this.present,
-    required this.onChanged,
-  });
+  const _PresenceSwitchTile({required this.present, required this.onChanged});
 
   final bool present;
   final ValueChanged<bool>? onChanged;
@@ -423,9 +408,7 @@ class _LocationDropdown extends StatelessWidget {
           for (final location in locations)
             DropdownMenuItem(
               value: location.id,
-              child: Text(
-                '${location.name} (${location.departmentName})',
-              ),
+              child: Text('${location.name} (${location.departmentName})'),
             ),
         ],
         onChanged: onChanged,
@@ -444,10 +427,7 @@ class _LocationDropdown extends StatelessWidget {
 }
 
 class _ConditionDropdown extends StatelessWidget {
-  const _ConditionDropdown({
-    required this.condition,
-    required this.onChanged,
-  });
+  const _ConditionDropdown({required this.condition, required this.onChanged});
 
   final ObservedCondition? condition;
   final ValueChanged<ObservedCondition?>? onChanged;
@@ -464,10 +444,7 @@ class _ConditionDropdown extends StatelessWidget {
       decoration: _inputDecoration('Observed condition'),
       items: [
         for (final item in ObservedCondition.values)
-          DropdownMenuItem(
-            value: item,
-            child: Text(item.label),
-          ),
+          DropdownMenuItem(value: item, child: Text(item.label)),
       ],
       onChanged: onChanged,
       validator: (value) =>
@@ -505,10 +482,7 @@ InputDecoration _inputDecoration(String label) {
 }
 
 class _SubmitButton extends StatelessWidget {
-  const _SubmitButton({
-    required this.onSubmit,
-    required this.isSubmitting,
-  });
+  const _SubmitButton({required this.onSubmit, required this.isSubmitting});
 
   final VoidCallback? onSubmit;
   final bool isSubmitting;

@@ -48,9 +48,7 @@ class VerificationTaskListScreen extends ConsumerWidget {
             error: error,
             onRetry: () => ref.invalidate(myVerificationTasksProvider),
           ),
-          _ => const Center(
-            child: CircularProgressIndicator(color: orange),
-          ),
+          _ => const Center(child: CircularProgressIndicator(color: orange)),
         },
       ),
     );
@@ -159,7 +157,10 @@ class _TaskCardSection extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: VerificationTaskListScreen.lightOrange,
                   borderRadius: BorderRadius.circular(12),
@@ -315,11 +316,7 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: fg,
-        ),
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: fg),
       ),
     );
   }
@@ -464,10 +461,7 @@ class _ErrorState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            OutlinedButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

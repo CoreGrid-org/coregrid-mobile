@@ -8,10 +8,7 @@ import '../../models/asset/asset_attribute.dart';
 /// The widget is completely data-driven. New asset types and attributes
 /// require no changes here.
 class AssetAttributeList extends StatelessWidget {
-  const AssetAttributeList({
-    super.key,
-    required this.attributes,
-  });
+  const AssetAttributeList({super.key, required this.attributes});
 
   final List<AssetAttribute> attributes;
 
@@ -29,21 +26,14 @@ class AssetAttributeList extends StatelessWidget {
     if (attributes.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: const Color(0xFFF8F9F8),
           borderRadius: BorderRadius.circular(14),
         ),
         child: const Row(
           children: [
-            Icon(
-              Icons.info_outline_rounded,
-              size: 20,
-              color: orange,
-            ),
+            Icon(Icons.info_outline_rounded, size: 20, color: orange),
             SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -82,14 +72,10 @@ class AssetAttributeList extends StatelessWidget {
 // ============================================================================
 
 class _AttributeRow extends StatelessWidget {
-  const _AttributeRow({
-    super.key,
-    required this.attribute,
-  });
+  const _AttributeRow({super.key, required this.attribute});
 
   final AssetAttribute attribute;
 
-  static const darkText = Color(0xFF202625);
   static const secondaryText = Color(0xFF59635F);
 
   @override
@@ -97,10 +83,7 @@ class _AttributeRow extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 13,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9F8),
         borderRadius: BorderRadius.circular(14),
@@ -129,13 +112,7 @@ class _AttributeRow extends StatelessWidget {
           // ------------------------------------------------------------
           // ATTRIBUTE VALUE
           // ------------------------------------------------------------
-
-          Expanded(
-            flex: 3,
-            child: _AttributeValue(
-              attribute: attribute,
-            ),
-          ),
+          Expanded(flex: 3, child: _AttributeValue(attribute: attribute)),
         ],
       ),
     );
@@ -147,9 +124,7 @@ class _AttributeRow extends StatelessWidget {
 // ============================================================================
 
 class _AttributeValue extends StatelessWidget {
-  const _AttributeValue({
-    required this.attribute,
-  });
+  const _AttributeValue({required this.attribute});
 
   final AssetAttribute attribute;
 
@@ -209,9 +184,7 @@ class _AttributeValue extends StatelessWidget {
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Icon(
-                value
-                    ? Icons.check_rounded
-                    : Icons.close_rounded,
+                value ? Icons.check_rounded : Icons.close_rounded,
                 size: 18,
                 color: orange,
               ),
@@ -219,10 +192,7 @@ class _AttributeValue extends StatelessWidget {
 
             const SizedBox(width: 8),
 
-            Text(
-              value ? 'Yes' : 'No',
-              style: valueStyle,
-            ),
+            Text(value ? 'Yes' : 'No', style: valueStyle),
           ],
         );
 
@@ -234,9 +204,7 @@ class _AttributeValue extends StatelessWidget {
         final date = attribute.valueDate;
 
         return Text(
-          date == null
-              ? '—'
-              : DateFormat.yMMMMd().format(date),
+          date == null ? '—' : DateFormat.yMMMMd().format(date),
           style: valueStyle,
         );
 
@@ -248,9 +216,7 @@ class _AttributeValue extends StatelessWidget {
         final number = attribute.valueNumber;
 
         return Text(
-          number == null
-              ? '—'
-              : NumberFormat.decimalPattern().format(number),
+          number == null ? '—' : NumberFormat.decimalPattern().format(number),
           style: valueStyle,
         );
 
@@ -259,10 +225,7 @@ class _AttributeValue extends StatelessWidget {
       // --------------------------------------------------------------
 
       case AssetAttributeType.text:
-        return Text(
-          attribute.valueText ?? '—',
-          style: valueStyle,
-        );
+        return Text(attribute.valueText ?? '—', style: valueStyle);
 
       // --------------------------------------------------------------
       // UNKNOWN

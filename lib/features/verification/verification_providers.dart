@@ -56,7 +56,9 @@ class CompleteVerificationTaskController extends AsyncNotifier<void> {
             assertedCondition: assertedCondition,
           ),
     );
-    state = result.hasError ? AsyncError(result.error!, result.stackTrace!) : const AsyncData(null);
+    state = result.hasError
+        ? AsyncError(result.error!, result.stackTrace!)
+        : const AsyncData(null);
     if (result.hasError) return null;
     ref.invalidate(myVerificationTasksProvider);
     return result.value;
@@ -97,7 +99,9 @@ class RaiseDiscrepancyController extends AsyncNotifier<void> {
         photoUrl: photoUrl,
       );
     });
-    state = result.hasError ? AsyncError(result.error!, result.stackTrace!) : const AsyncData(null);
+    state = result.hasError
+        ? AsyncError(result.error!, result.stackTrace!)
+        : const AsyncData(null);
     return !result.hasError;
   }
 }
