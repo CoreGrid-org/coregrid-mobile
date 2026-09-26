@@ -57,3 +57,13 @@ Record the following in your local, **untracked** environment config — never c
 
 Refresh tokens go in `flutter_secure_storage` (Android Keystore-backed). Access tokens stay in memory only.
 Never write either to shared preferences, plain files, or application logs (SEC-ID-05, SEC-ID-06, SRS §4.8).
+
+## Troubleshooting: browser signs in but the app never comes back
+
+Symptom: ThunderID's login completes in Custom Tabs, the redirect fires, but the app stays on "Signing In…"
+(or opens a blank instance) and logcat shows `W/AppAuth: No stored state - unable to handle response`.
+
+Cause: `android:taskAffinity=""` on `MainActivity` (the Flutter template default). It puts the app in a
+different task from AppAuth's `AuthorizationManagementActivity`, so the redirect is delivered to a fresh
+instance that has no record of the pending request. `android/app/src/main/AndroidManifest.xml` deliberately
+omits the attribute — don't re-add it. (flutter_appauth README, "No Redirect to app after login".)

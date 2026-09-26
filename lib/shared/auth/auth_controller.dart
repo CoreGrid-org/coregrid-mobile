@@ -26,6 +26,17 @@ class AuthController extends Notifier<AuthState> {
   final _appAuth = const FlutterAppAuth();
   final _tokenStorage = TokenStorage();
 
+  /// For the two calls made outside the authenticated [apiClientProvider]
+  /// (`/api/me` with a just-issued token, and token revocation). Bounded
+  /// timeouts so an unreachable backend or ThunderID can't leave sign-in or
+  /// sign-out spinning indefinitely.
+  final _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 8),
+    ),
+  );
+
   @override
   AuthState build() => const AuthUnauthenticated();
 
@@ -91,7 +102,7 @@ class AuthController extends Notifier<AuthState> {
     final refreshToken = await _tokenStorage.readRefreshToken();
     if (refreshToken != null && AuthConfig.thunderIdIssuer.isNotEmpty) {
       try {
-        await Dio().post<void>(
+        await _dio.post<void>(
           '${AuthConfig.thunderIdIssuer}/oauth2/revoke',
           data: {
             'token': refreshToken,
@@ -122,8 +133,8 @@ class AuthController extends Notifier<AuthState> {
   ) async {
     if (AuthConfig.apiBaseUrl.isEmpty) return null;
     try {
-      final response = await Dio().get<Map<String, dynamic>>(
-        '${AuthConfig.apiBaseUrl}/api/me',
+      final response = await _dio.get<Map<String, dynamic>>(
+        '${AuthConfig.apiOrigin}/api/me',
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
       final data = response.data;
