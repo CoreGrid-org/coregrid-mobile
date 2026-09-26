@@ -6,7 +6,7 @@ import '../../../shared/api/api_exception.dart';
 import '../models/agent_workflow.dart';
 import '../workflows_providers.dart';
 
-/// FR-069 — agent workflow status list. Route: `/workflows`.
+/// Agent workflow list screen. Route: `/workflows`.
 class WorkflowListScreen extends ConsumerWidget {
   const WorkflowListScreen({super.key});
 
@@ -155,7 +155,10 @@ class _ErrorState extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(message, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
-                  OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+                  OutlinedButton(
+                    onPressed: onRetry,
+                    child: const Text('Retry'),
+                  ),
                 ],
               ),
             ),

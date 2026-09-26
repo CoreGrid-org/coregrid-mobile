@@ -17,7 +17,11 @@ class _FakeWorkflowsApi implements WorkflowsApi {
   @override
   Future<WorkflowAssetRef> resolveAssetByCode(String code) async {
     if (assetError != null) throw assetError!;
-    return const WorkflowAssetRef(id: 'a1', assetCode: 'AST-001', name: 'Generator');
+    return const WorkflowAssetRef(
+      id: 'a1',
+      assetCode: 'AST-001',
+      name: 'Generator',
+    );
   }
 
   @override
@@ -43,7 +47,8 @@ class _FakeWorkflowsApi implements WorkflowsApi {
   Future<List<AgentWorkflow>> getWorkflows() => throw UnimplementedError();
 
   @override
-  Future<AgentWorkflow> getWorkflowById(String id) => throw UnimplementedError();
+  Future<AgentWorkflow> getWorkflowById(String id) =>
+      throw UnimplementedError();
 }
 
 Widget _harness(_FakeWorkflowsApi api) {
@@ -68,21 +73,22 @@ Widget _harness(_FakeWorkflowsApi api) {
 }
 
 void main() {
-  testWidgets('finds the asset by code before asking for an objective (FR-067)', (
-    tester,
-  ) async {
-    final api = _FakeWorkflowsApi();
-    await tester.pumpWidget(_harness(api));
+  testWidgets(
+    'finds the asset by code before asking for an objective (FR-067)',
+    (tester) async {
+      final api = _FakeWorkflowsApi();
+      await tester.pumpWidget(_harness(api));
 
-    expect(find.text('Objective'), findsNothing);
+      expect(find.text('Objective'), findsNothing);
 
-    await tester.enterText(find.byType(TextFormField).first, 'AST-001');
-    await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'AST-001');
+      await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('AST-001: Generator'), findsOneWidget);
-    expect(find.text('Objective'), findsOneWidget);
-  });
+      expect(find.textContaining('AST-001: Generator'), findsOneWidget);
+      expect(find.text('Objective'), findsOneWidget);
+    },
+  );
 
   testWidgets('shows a message when the asset code doesn\'t resolve', (
     tester,
@@ -114,24 +120,25 @@ void main() {
     expect(api.lastObjective, isNull);
   });
 
-  testWidgets('submits the objective and navigates to the workflow status screen', (
-    tester,
-  ) async {
-    final api = _FakeWorkflowsApi();
-    await tester.pumpWidget(_harness(api));
+  testWidgets(
+    'submits the objective and navigates to the workflow status screen',
+    (tester) async {
+      final api = _FakeWorkflowsApi();
+      await tester.pumpWidget(_harness(api));
 
-    await tester.enterText(find.byType(TextFormField).first, 'AST-001');
-    await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'AST-001');
+      await tester.tap(find.widgetWithText(FilledButton, 'Find asset'));
+      await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Objective'),
-      'Recommend repair or replace.',
-    );
-    await tester.tap(find.widgetWithText(FilledButton, 'Request Evaluation'));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Objective'),
+        'Recommend repair or replace.',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Request Evaluation'));
+      await tester.pumpAndSettle();
 
-    expect(api.lastObjective, 'Recommend repair or replace.');
-    expect(find.text('workflow w1'), findsOneWidget);
-  });
+      expect(api.lastObjective, 'Recommend repair or replace.');
+      expect(find.text('workflow w1'), findsOneWidget);
+    },
+  );
 }

@@ -20,26 +20,10 @@ import '../auth/auth_state.dart';
 /// in §3.4. Until `AuthController` exposes a refresh, a 401 surfaces as an
 /// [ApiException] with `isUnauthorized == true` and the calling screen shows
 /// the "session expired" error state.
-/// Normalises whatever came in via `--dart-define=API_BASE_URL`. The convention
-/// is a bare origin (`http://localhost:5083`) — every call in the app prefixes
-/// `/api/...` itself. A trailing `/` or an accidentally-appended `/api` is a
-/// common run-command slip (it produces a silent `/api/api/...` → 404), so
-/// strip both here rather than let every request 404.
-String _normalizeBaseUrl(String raw) {
-  var url = raw.trim();
-  while (url.endsWith('/')) {
-    url = url.substring(0, url.length - 1);
-  }
-  if (url.endsWith('/api')) {
-    url = url.substring(0, url.length - '/api'.length);
-  }
-  return url;
-}
-
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: _normalizeBaseUrl(AuthConfig.apiBaseUrl),
+      baseUrl: AuthConfig.apiOrigin,
       connectTimeout: const Duration(seconds: 5),
       // IF-06/FR-024 hold the scan→record path to 3s; give the request itself
       // a little more headroom before we call it a timeout.

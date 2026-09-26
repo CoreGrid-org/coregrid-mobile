@@ -6,45 +6,54 @@ import 'assets_api.dart';
 import 'models/asset/asset_condition.dart';
 import 'models/asset/asset_detail.dart';
 import 'models/asset/asset_history_entry.dart';
+import 'models/asset/asset_maintenance_history.dart';
 import 'models/asset/asset_search.dart';
 
 /// The asset shown on the detail screen, keyed by asset id (§3.2 — one
 /// provider per feature-level concern, screens just `watch` it). `autoDispose`
-/// so leaving the screen drops the cached record — a field user re-scanning
-/// should always get a fresh read, never a stale one (FR-024 A4).
-final assetDetailProvider =
-    FutureProvider.autoDispose.family<AssetDetail, String>((ref, assetId) {
+/// Detail provider for an asset.
+final assetDetailProvider = FutureProvider.autoDispose
+    .family<AssetDetail, String>((ref, assetId) {
       return ref.watch(assetsApiProvider).getById(assetId);
+    });
+
+final assetFilterOptionsProvider = FutureProvider.autoDispose
+    .family<List<String>, String>((ref, resourcePath) {
+      return ref.watch(assetsApiProvider).getFilterOptions(resourcePath);
     });
 
 final assetSearchProvider = FutureProvider.autoDispose
     .family<AssetSearchResult, AssetSearchQuery>((ref, query) {
-      final api = ref.watch(assetsApiProvider);
-      if (api is! SearchableAssetsApi) {
-        throw StateError('The configured assets API does not support search.');
-      }
-      return (api as SearchableAssetsApi).search(query);
+      return ref.watch(assetsApiProvider).search(query);
     });
 
-/// The asset's lifecycle history, loaded lazily when the user expands the
-/// History section (FR-027).
-final assetHistoryProvider =
-    FutureProvider.autoDispose.family<List<AssetHistoryEntry>, String>((
-      ref,
-      assetId,
-    ) {
+/// The asset's lifecycle history.
+final assetHistoryProvider = FutureProvider.autoDispose
+    .family<List<AssetHistoryEntry>, String>((ref, assetId) {
       return ref.watch(assetsApiProvider).getHistory(assetId);
     });
 
-/// Whether the current user may perform a physical verification (FR-031 /
-/// FR-024 AC4). Officer only — Staff never see the Verify action, and a direct
+final assetMaintenanceHistoryProvider = FutureProvider.autoDispose
+    .family<AssetMaintenanceHistory, String>((ref, assetId) {
+      return ref.watch(assetsApiProvider).getMaintenanceHistory(assetId);
+    });
+
+/// Whether the current user may perform a physical verification.
 /// API call by Staff is rejected 403 server-side regardless.
 final canVerifyAssetsProvider = Provider<bool>((ref) {
   final auth = ref.watch(authControllerProvider);
   return auth is AuthAuthenticated && auth.role == 'InventoryOfficer';
 });
 
-/// Drives the "record condition" action (FR-029). Holds only the in-flight
+/// Whether the current user may record an asset condition.
+/// backend's `CanManageAssets` policy rejects Staff with 403, so hide the
+/// action for that role rather than offering an operation that cannot succeed.
+final canUpdateAssetConditionProvider = Provider<bool>((ref) {
+  final auth = ref.watch(authControllerProvider);
+  return auth is AuthAuthenticated && auth.role == 'InventoryOfficer';
+});
+
+/// Drives the "record condition" action.
 /// state of the mutation — the asset itself lives in [assetDetailProvider],
 /// which this invalidates on success so the screen re-reads the authoritative
 /// value rather than trusting a local guess.
@@ -77,7 +86,7 @@ final conditionUpdateControllerProvider =
       ConditionUpdateController.new,
     );
 
-/// Resolves a manually-typed asset code to its record (FR-025). Holds only the
+/// Resolves a manually-typed asset code to its record.
 /// in-flight lookup — the resolved asset is handed to the detail screen via
 /// navigation, which re-reads it by id (AC3: same record either way).
 class AssetLookupController extends AsyncNotifier<AssetDetail?> {

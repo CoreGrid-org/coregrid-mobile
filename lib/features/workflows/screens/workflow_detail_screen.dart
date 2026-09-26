@@ -5,9 +5,7 @@ import '../../../shared/api/api_exception.dart';
 import '../models/agent_workflow.dart';
 import '../workflows_providers.dart';
 
-/// FR-069 (status) / FR-076 (outcome) — polls the workflow every 5s
-/// ([agentWorkflowProvider]) until it resolves or fails. No approval action
-/// here — approval is React-only (main SRS §3.4). Route: `/workflows/:id`.
+/// Workflow detail screen — polls status until complete. Route: `/workflows/:id`.
 class WorkflowDetailScreen extends ConsumerWidget {
   const WorkflowDetailScreen({super.key, required this.workflowId});
 
@@ -59,9 +57,8 @@ class _WorkflowStatus extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Started ${_formatDateTime(workflow.createdAt)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
           Card(
@@ -102,7 +99,8 @@ class _WorkflowStatus extends StatelessWidget {
               icon: Icons.check_circle_outline,
               color: colors.primary,
               title: 'Recommendation',
-              body: workflow.recommendation ?? 'No recommendation was recorded.',
+              body:
+                  workflow.recommendation ?? 'No recommendation was recorded.',
             ),
             const SizedBox(height: 8),
             Card(

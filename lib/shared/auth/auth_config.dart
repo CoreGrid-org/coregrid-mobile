@@ -2,11 +2,23 @@
 /// `--dart-define` (or `--dart-define-from-file`) — never hardcoded, never
 /// committed (`doc/MOBILE-SPECIFICATION.md` §5.1).
 abstract final class AuthConfig {
-  /// Enables the local asset demo API for emulator-only feature checks.
-  static const bool useMockData = bool.fromEnvironment('MOCK_DATA');
-
   /// CoreGrid backend base URL, e.g. `http://localhost:5083`.
   static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+  /// [apiBaseUrl] as a bare origin. Every call in the app prefixes `/api/...`
+  /// itself, so a trailing `/` or an accidentally-appended `/api` (a common
+  /// run-command slip that silently produces `/api/api/...` → 404) is
+  /// stripped here.
+  static String get apiOrigin {
+    var url = apiBaseUrl.trim();
+    while (url.endsWith('/')) {
+      url = url.substring(0, url.length - 1);
+    }
+    if (url.endsWith('/api')) {
+      url = url.substring(0, url.length - '/api'.length);
+    }
+    return url;
+  }
 
   /// ThunderID's bare issuer URL (no path) — OIDC discovery is resolved from
   /// this automatically. e.g. `https://localhost:8090`.

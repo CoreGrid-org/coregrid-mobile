@@ -5,7 +5,7 @@ import 'models/verification_location.dart';
 import 'models/verification_task.dart';
 import 'verification_api.dart';
 
-/// The signed-in officer's outstanding verification tasks (FR-058),
+/// The signed-in officer's outstanding verification tasks,
 /// `autoDispose` so returning to the list after completing/raising a
 /// discrepancy against a task always re-reads the authoritative state
 /// rather than a stale cache.
@@ -32,10 +32,9 @@ final verificationLocationsProvider =
       return ref.watch(verificationApiProvider).getLocations();
     });
 
-/// Drives "complete task" (FR-059). Holds only the in-flight mutation state
+/// Drives "complete task". Holds only the in-flight mutation state
 /// — the task list is invalidated on success so the list screen re-reads the
-/// authoritative record (which now carries the auto-raised-discrepancy
-/// side effect from FR-060, if any).
+/// authoritative record.
 class CompleteVerificationTaskController extends AsyncNotifier<void> {
   @override
   void build() {}
@@ -57,7 +56,9 @@ class CompleteVerificationTaskController extends AsyncNotifier<void> {
             assertedCondition: assertedCondition,
           ),
     );
-    state = result.hasError ? AsyncError(result.error!, result.stackTrace!) : const AsyncData(null);
+    state = result.hasError
+        ? AsyncError(result.error!, result.stackTrace!)
+        : const AsyncData(null);
     if (result.hasError) return null;
     ref.invalidate(myVerificationTasksProvider);
     return result.value;
@@ -69,9 +70,7 @@ final completeVerificationTaskControllerProvider =
       CompleteVerificationTaskController.new,
     );
 
-/// Drives "raise discrepancy manually" (FR-061), including the optional
-/// photo upload (IF-11 — compression happens before this controller is
-/// invoked, in the screen).
+/// Drives "raise discrepancy manually", including optional photo upload.
 class RaiseDiscrepancyController extends AsyncNotifier<void> {
   @override
   void build() {}
@@ -100,7 +99,9 @@ class RaiseDiscrepancyController extends AsyncNotifier<void> {
         photoUrl: photoUrl,
       );
     });
-    state = result.hasError ? AsyncError(result.error!, result.stackTrace!) : const AsyncData(null);
+    state = result.hasError
+        ? AsyncError(result.error!, result.stackTrace!)
+        : const AsyncData(null);
     return !result.hasError;
   }
 }

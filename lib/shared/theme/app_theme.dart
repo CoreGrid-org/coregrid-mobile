@@ -20,10 +20,9 @@ abstract final class CoreGridBrand {
 /// differentiate without that risk.
 abstract final class RoleAccent {
   static const Color officer = CoreGridBrand.orange;
-  static const Color staff = CoreGridBrand.magenta;
+  static const Color staff = CoreGridBrand.orange;
 
-  static Color forRole(String? role) =>
-      role == 'InventoryOfficer' ? officer : staff;
+  static Color forRole(String? role) => officer;
 }
 
 /// Shared corner-radius scale — one source for "rounded" across every
@@ -86,9 +85,7 @@ abstract final class AppTheme {
         margin: EdgeInsets.zero,
       ),
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         side: BorderSide.none,
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -120,7 +117,9 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isLight ? scheme.surfaceContainerLow : scheme.surfaceContainer,
+        fillColor: isLight
+            ? scheme.surfaceContainerLow
+            : scheme.surfaceContainer,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
           borderSide: BorderSide.none,

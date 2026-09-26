@@ -1,10 +1,7 @@
 /// One custom-attribute value on an asset, as returned inside
 /// `GET /api/assets/{id}` → `attributes[]` (`AssetAttributeValueDto`).
 ///
-/// FR-020: the client renders these with **no domain-specific knowledge** —
-/// it only knows the generic [dataType]s the platform supports, never what any
-/// particular attribute means. Adding an asset type with new attributes is a
-/// config change on the backend, never a change here.
+/// The client renders these with generic data types supported by the platform.
 class AssetAttribute {
   const AssetAttribute({
     required this.definitionId,

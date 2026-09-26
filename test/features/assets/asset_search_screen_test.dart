@@ -2,6 +2,7 @@ import 'package:coregrid_mobile/features/assets/assets_api.dart';
 import 'package:coregrid_mobile/features/assets/models/asset/asset_condition.dart';
 import 'package:coregrid_mobile/features/assets/models/asset/asset_detail.dart';
 import 'package:coregrid_mobile/features/assets/models/asset/asset_history_entry.dart';
+import 'package:coregrid_mobile/features/assets/models/asset/asset_maintenance_history.dart';
 import 'package:coregrid_mobile/features/assets/models/asset/asset_search.dart';
 import 'package:coregrid_mobile/features/assets/screens/asset/asset_detail_screen.dart';
 import 'package:coregrid_mobile/features/assets/screens/asset/asset_search_screen.dart';
@@ -10,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-class _SearchApi implements AssetsApi, SearchableAssetsApi {
+class _SearchApi extends Fake implements AssetsApi {
   AssetDetail get asset => AssetDetail.fromJson({
     'id': 'asset-12345',
     'asset_code': 'asset-12345',
@@ -46,10 +47,19 @@ class _SearchApi implements AssetsApi, SearchableAssetsApi {
     int page = 1,
     int pageSize = 50,
   }) async => const [];
+
+  @override
+  Future<List<String>> getFilterOptions(String resourcePath) async => const [];
+
+  @override
+  Future<AssetMaintenanceHistory> getMaintenanceHistory(String assetId) async =>
+      AssetMaintenanceHistory(assetId: assetId, records: const []);
 }
 
 void main() {
-  testWidgets('tapping a searched asset opens its detail screen', (tester) async {
+  testWidgets('tapping a searched asset opens its detail screen', (
+    tester,
+  ) async {
     final router = GoRouter(
       initialLocation: '/assets/search',
       routes: [

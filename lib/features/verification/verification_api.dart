@@ -16,29 +16,56 @@ class VerificationApi {
 
   final Dio _dio;
 
-  /// `GET /api/verification-tasks?mine=&onlyPending=` (FR-058) — ordered by
+  /// `GET /api/verification-tasks?mine=&onlyPending=` — ordered by
   /// due date server-side.
   Future<List<VerificationTask>> getTasks({
     bool mine = true,
     bool onlyPending = false,
   }) async {
     try {
-      final response = await _dio.get<List<dynamic>>(
-        '/api/verification-tasks',
-        queryParameters: {'mine': mine, 'onlyPending': onlyPending},
-      );
-      return (response.data ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(VerificationTask.fromJson)
-          .toList();
+      const pageSize = 100;
+      final tasks = <VerificationTask>[];
+      var page = 1;
+      var totalPages = 1;
+
+      do {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/verification-tasks',
+          queryParameters: {
+            'mine': mine,
+            'onlyPending': onlyPending,
+            'page': page,
+            'pageSize': pageSize,
+          },
+        );
+        final data = response.data;
+        if (data == null) return tasks;
+
+        final items = data['items'];
+        if (items is! List) {
+          throw ApiException(
+            statusCode: response.statusCode ?? 0,
+            message: 'CoreGrid returned an invalid verification task list.',
+          );
+        }
+        tasks.addAll(
+          items.whereType<Map<String, dynamic>>().map(
+            VerificationTask.fromJson,
+          ),
+        );
+        totalPages = (data['total_pages'] as num?)?.toInt() ?? page;
+        page++;
+      } while (page <= totalPages);
+
+      return tasks;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
   }
 
-  /// `PATCH /api/verification-tasks/{id}/complete` (FR-059) — asserts
+  /// `PATCH /api/verification-tasks/{id}/complete` — asserts
   /// presence/location/condition; the backend auto-raises a discrepancy
-  /// (FR-060) as a side effect when the assertion differs from the register.
+  /// as a side effect when the assertion differs from the register.
   Future<VerificationTask> completeTask({
     required String taskId,
     required bool assertedPresent,
@@ -67,22 +94,63 @@ class VerificationApi {
     }
   }
 
-  /// `GET /api/locations` — options for the "asserted location" picker.
-  Future<List<VerificationLocation>> getLocations() async {
+  /// Returns open discrepancies for the campaign so completion can surface
+  /// the automatic discrepancy created by the backend comparison.
+  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async {
     try {
-      final response = await _dio.get<List<dynamic>>('/api/locations');
+      final response = await _dio.get<List<dynamic>>(
+        '/api/discrepancies',
+        queryParameters: {'campaignId': campaignId, 'onlyOpen': true},
+      );
       return (response.data ?? const [])
           .whereType<Map<String, dynamic>>()
-          .map(VerificationLocation.fromJson)
+          .map(Discrepancy.fromJson)
           .toList();
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
   }
 
+  /// `GET /api/locations` — options for the "asserted location" picker.
+  Future<List<VerificationLocation>> getLocations() async {
+    try {
+      const pageSize = 100;
+      final locations = <VerificationLocation>[];
+      var page = 1;
+      var totalPages = 1;
+
+      do {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/locations',
+          queryParameters: {'page': page, 'pageSize': pageSize},
+        );
+        final data = response.data;
+        if (data == null) return locations;
+
+        final items = data['items'];
+        if (items is! List) {
+          throw ApiException(
+            statusCode: response.statusCode ?? 0,
+            message: 'CoreGrid returned an invalid location list.',
+          );
+        }
+        locations.addAll(
+          items.whereType<Map<String, dynamic>>().map(
+            VerificationLocation.fromJson,
+          ),
+        );
+        totalPages = (data['total_pages'] as num?)?.toInt() ?? page;
+        page++;
+      } while (page <= totalPages);
+
+      return locations;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   /// `POST /api/verification-tasks/photos` — uploads a discrepancy photo
-  /// (already compressed client-side to ≤1MB, IF-11) and returns the URL to
-  /// pass as `photoUrl` to [raiseDiscrepancy].
+  /// and returns the URL to pass as `photoUrl` to [raiseDiscrepancy].
   Future<String> uploadPhoto({
     required List<int> bytes,
     required String fileName,
@@ -107,7 +175,7 @@ class VerificationApi {
     }
   }
 
-  /// `POST /api/verification-tasks/{taskId}/discrepancies` (FR-061) — raises
+  /// `POST /api/verification-tasks/{taskId}/discrepancies` — raises
   /// a discrepancy the automatic comparison can't catch (e.g. Surplus, or
   /// anything needing a photo/description).
   Future<Discrepancy> raiseDiscrepancy({

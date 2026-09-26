@@ -5,13 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/auth/auth_controller.dart';
 import '../../../shared/auth/auth_state.dart';
 
-/// Splash / sign-in screen — SRS §4.1 (FR-001, FR-008, SEC-ID-06).
-///
-/// "Sign In" launches the ThunderID Authorization Code + PKCE flow via
-/// Chrome Custom Tabs (RFC 8252 external user agent — never an embedded
-/// WebView), not a native username/password form: ThunderID itself doesn't
-/// support a password grant, and collecting credentials in-app would defeat
-/// SSO/MFA and train users to enter passwords into arbitrary apps.
+/// Sign-in screen — authenticates via OAuth2 PKCE.
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
 
@@ -23,9 +17,8 @@ class SignInScreen extends ConsumerWidget {
       } else if (next is AuthRoleNotSupported) {
         context.go('/access-restricted', extra: next.role);
       } else if (next is AuthError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(next.message)));
       }
     });
 
@@ -51,16 +44,14 @@ class SignInScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               Text(
                 'CoreGrid',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(context).textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Text(
                 'Field Operations',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: colors.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(color: colors.onSurfaceVariant),
               ),
               const Spacer(flex: 4),
               SizedBox(
@@ -69,7 +60,8 @@ class SignInScreen extends ConsumerWidget {
                 child: FilledButton.icon(
                   onPressed: isAuthenticating
                       ? null
-                      : () => ref.read(authControllerProvider.notifier).signIn(),
+                      : () =>
+                            ref.read(authControllerProvider.notifier).signIn(),
                   icon: isAuthenticating
                       ? const SizedBox(
                           width: 18,
@@ -83,9 +75,8 @@ class SignInScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(
                 'Sign-in opens ThunderID in your browser',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
               const Spacer(),

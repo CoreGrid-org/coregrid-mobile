@@ -6,6 +6,11 @@ import '../../../../shared/api/api_exception.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_search.dart';
 
+const _orange = Color(0xFFFF5A00);
+const _darkText = Color(0xFF202625);
+const _secondaryText = Color(0xFF59635F);
+const _fieldFill = Color(0xFFF8F9F8);
+
 class AssetSearchScreen extends ConsumerStatefulWidget {
   const AssetSearchScreen({super.key});
 
@@ -49,55 +54,88 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
         : ref.watch(assetSearchProvider(_query!));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Search Assets')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text(
+          'Search Assets',
+          style: TextStyle(
+            color: _darkText,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: _darkText),
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
           children: [
             Text(
               'Find assets by code, name, or custom attribute value.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              style: const TextStyle(
+                fontSize: 16,
+                color: _secondaryText,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             TextField(
               textInputAction: TextInputAction.search,
               onChanged: (value) => _search = value,
               onSubmitted: (_) => _submit(),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Code, name, or attribute value',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.search, color: _orange, size: 28),
+                filled: true,
+                fillColor: _fieldFill,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                  borderSide: BorderSide(color: _orange, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 18,
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Department',
               value: _department,
-              options: const ['', 'Operations'],
-              onChanged: (value) => setState(() => _department = value!),
+              resourcePath: '/api/departments',
+              onChanged: (value) => setState(() => _department = value ?? ''),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Location',
               value: _location,
-              options: const ['', 'Plant A - Section 3'],
-              onChanged: (value) => setState(() => _location = value!),
+              resourcePath: '/api/locations',
+              onChanged: (value) => setState(() => _location = value ?? ''),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Asset type',
               value: _assetType,
-              options: const ['', 'Equipment'],
-              onChanged: (value) => setState(() => _assetType = value!),
+              resourcePath: '/api/asset-types',
+              onChanged: (value) => setState(() => _assetType = value ?? ''),
             ),
             const SizedBox(height: 12),
-            _selectionRow(
+            _databaseSelection(
               label: 'Category',
               value: _category,
-              options: const ['', 'Equipment'],
-              onChanged: (value) => setState(() => _category = value!),
+              resourcePath: '/api/asset-categories',
+              onChanged: (value) => setState(() => _category = value ?? ''),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -107,19 +145,37 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
                 _selection(
                   label: 'Status',
                   value: _status,
-                  options: const ['', 'ACTIVE', 'UNDER_MAINTENANCE', 'DISPOSED'],
+                  options: const [
+                    '',
+                    'ACTIVE',
+                    'UNDER_MAINTENANCE',
+                    'DISPOSED',
+                  ],
                   onChanged: (value) => setState(() => _status = value!),
                 ),
                 _selection(
                   label: 'Condition',
                   value: _condition,
-                  options: const ['', 'NEW', 'GOOD', 'FAIR', 'POOR', 'UNSERVICEABLE'],
+                  options: const [
+                    '',
+                    'NEW',
+                    'GOOD',
+                    'FAIR',
+                    'POOR',
+                    'UNSERVICEABLE',
+                  ],
                   onChanged: (value) => setState(() => _condition = value!),
                 ),
                 _selection(
                   label: 'Sort by',
                   value: _sortBy,
-                  options: const ['name', 'asset_code', 'status', 'condition', 'location'],
+                  options: const [
+                    'name',
+                    'asset_code',
+                    'status',
+                    'condition',
+                    'location',
+                  ],
                   onChanged: (value) => setState(() => _sortBy = value!),
                 ),
                 _selection(
@@ -133,17 +189,28 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _submit,
-              icon: const Icon(Icons.manage_search),
-              label: const Text('Search'),
+              style: FilledButton.styleFrom(
+                backgroundColor: _orange,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                minimumSize: const Size.fromHeight(54),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              icon: const Icon(Icons.manage_search, size: 22),
+              label: const Text(
+                'Search',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
             ),
             if (results != null) ...[
               const SizedBox(height: 20),
               _SearchResults(
                 state: results,
                 query: _query!,
-                onPageChanged: (page) => setState(
-                  () => _query = _query!.copyWith(page: page),
-                ),
+                onPageChanged: (page) =>
+                    setState(() => _query = _query!.copyWith(page: page)),
               ),
             ],
           ],
@@ -152,20 +219,65 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
     );
   }
 
-  Widget _selectionRow({
+  Widget _databaseSelection({
     required String label,
     required String value,
-    required List<String> options,
+    required String resourcePath,
     required ValueChanged<String?> onChanged,
   }) {
-    return _selection(
-      label: label,
-      value: value,
-      options: options,
-      onChanged: onChanged,
-      fullWidth: true,
+    final options = ref.watch(assetFilterOptionsProvider(resourcePath));
+    return options.when(
+      loading: () => InputDecorator(
+        decoration: _filterDecoration(label),
+        child: const Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+      error: (error, _) => InputDecorator(
+        decoration: _filterDecoration(label),
+        child: Text(
+          'Could not load options',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+      data: (values) => DropdownButtonFormField<String>(
+        initialValue: value.isEmpty || !values.contains(value) ? null : value,
+        isExpanded: true,
+        decoration: _filterDecoration(label),
+        hint: const Text('Any'),
+        items: [
+          const DropdownMenuItem<String>(value: '', child: Text('Any')),
+          for (final option in values)
+            DropdownMenuItem(value: option, child: Text(option)),
+        ],
+        onChanged: onChanged,
+      ),
     );
   }
+
+  InputDecoration _filterDecoration(String label) => InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: _fieldFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide.none,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: const BorderSide(color: _orange, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+  );
 
   Widget _selection({
     required String label,
@@ -181,7 +293,24 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: _fieldFill,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: const BorderSide(color: _orange, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 17,
+          ),
         ),
         items: [
           for (final option in options)
@@ -217,18 +346,47 @@ class _SearchResults extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('${result.totalCount} asset(s) found'),
+            Text(
+              '${result.totalCount} asset(s) found',
+              style: const TextStyle(
+                color: _secondaryText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             for (final asset in result.items)
               Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                elevation: 0,
+                color: _fieldFill,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
                 child: ListTile(
-                  title: Text(asset.name),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 6,
+                  ),
+                  title: Text(
+                    asset.name,
+                    style: const TextStyle(
+                      color: _darkText,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   subtitle: Text(
                     '${asset.assetCode} · ${asset.assetTypeName}\n'
                     '${asset.departmentName} · ${asset.locationName}',
+                    style: const TextStyle(color: _secondaryText),
                   ),
                   isThreeLine: true,
-                  trailing: Text(conditionLabel(asset.conditionRaw)),
+                  trailing: Text(
+                    conditionLabel(asset.conditionRaw),
+                    style: const TextStyle(
+                      color: _orange,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   onTap: () => context.push('/assets/${asset.id}'),
                 ),
               ),

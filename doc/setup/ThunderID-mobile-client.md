@@ -33,6 +33,12 @@ Register CoreGrid Mobile in ThunderID as a **mobile / native application** (publ
   App Links/Universal Links instead
 - **Allowed user type:** `CoreGridUser` only (same type as the React SPA — see
   `CoreGrid/doc/setup/ThunderID.md` step 1). Leave "Allow all user types" off.
+- **Access token attributes:** `email`, `given_name`, `family_name`, `roles` — the same set as the React SPA
+  (`CoreGrid/docs/setup/thunderid.md` step 4). **Scopes:** `openid`, `profile`, `email`, `roles` (the app
+  requests all four). The backend's `RoleEnrichmentMiddleware` resolves each bearer token to a CoreGrid user
+  by `sub`, and first-time-provisions one only when all four claims are present; otherwise every call —
+  `GET /api/me` included — returns 401, and the dashboard reports "CoreGrid rejected your sign-in (401)".
+  The signed-in user must also have a CoreGrid role (`Staff` or `InventoryOfficer`) assigned in ThunderID.
 - **Token lifetimes:** inherited from the deployment-wide configuration (access token 15 min, refresh token
   rotation enabled) — nothing mobile-specific to set here
 
@@ -57,3 +63,13 @@ Record the following in your local, **untracked** environment config — never c
 
 Refresh tokens go in `flutter_secure_storage` (Android Keystore-backed). Access tokens stay in memory only.
 Never write either to shared preferences, plain files, or application logs (SEC-ID-05, SEC-ID-06, SRS §4.8).
+
+## Troubleshooting: browser signs in but the app never comes back
+
+Symptom: ThunderID's login completes in Custom Tabs, the redirect fires, but the app stays on "Signing In…"
+(or opens a blank instance) and logcat shows `W/AppAuth: No stored state - unable to handle response`.
+
+Cause: `android:taskAffinity=""` on `MainActivity` (the Flutter template default). It puts the app in a
+different task from AppAuth's `AuthorizationManagementActivity`, so the redirect is delivered to a fresh
+instance that has no record of the pending request. `android/app/src/main/AndroidManifest.xml` deliberately
+omits the attribute — don't re-add it. (flutter_appauth README, "No Redirect to app after login".)

@@ -1,6 +1,4 @@
-/// FR-058/FR-059 — a task within a verification campaign, assigned to an
-/// officer. Matches `VerificationTaskDto`
-/// (`CoreGrid/backend/Features/Verification/DTOs/VerificationTaskDto.cs`).
+/// A task within a verification campaign, assigned to an officer.
 enum VerificationTaskStatus {
   pending('Pending'),
   completed('Completed');
@@ -74,9 +72,7 @@ class VerificationTask {
 
   bool get isPending => status == VerificationTaskStatus.pending;
 
-  /// Due-date-passed, still-pending — drives the task list's overdue styling
-  /// (FR-058 orders by due date; the SRS doesn't otherwise define
-  /// "overdue", so this is the plain calendar-date interpretation).
+  /// Due-date-passed, still-pending — drives the task list's overdue styling.
   bool get isOverdue {
     if (!isPending) return false;
     final today = DateTime.now();

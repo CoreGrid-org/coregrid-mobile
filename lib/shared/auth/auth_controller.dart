@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/api_exception.dart';
 import 'auth_config.dart';
 import 'auth_state.dart';
 import 'token_storage.dart';
@@ -26,6 +27,17 @@ class AuthController extends Notifier<AuthState> {
   final _appAuth = const FlutterAppAuth();
   final _tokenStorage = TokenStorage();
 
+  /// For the two calls made outside the authenticated [apiClientProvider]
+  /// (`/api/me` with a just-issued token, and token revocation). Bounded
+  /// timeouts so an unreachable backend or ThunderID can't leave sign-in or
+  /// sign-out spinning indefinitely.
+  final _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 8),
+    ),
+  );
+
   @override
   AuthState build() => const AuthUnauthenticated();
 
@@ -45,7 +57,11 @@ class AuthController extends Notifier<AuthState> {
           AuthConfig.thunderIdClientId,
           AuthConfig.redirectUrl,
           issuer: AuthConfig.thunderIdIssuer,
-          scopes: const ['openid', 'profile', 'email'],
+          // `roles` plus the profile/email claims are what the backend needs
+          // to recognise (or first-time provision) the CoreGrid user behind
+          // this token — without them every API call, `/api/me` included,
+          // is rejected 401 (RoleEnrichmentMiddleware.cs).
+          scopes: const ['openid', 'profile', 'email', 'roles'],
         ),
       );
 
@@ -55,7 +71,7 @@ class AuthController extends Notifier<AuthState> {
         return;
       }
 
-      final profile = await _fetchProfile(accessToken);
+      final (:profile, :error) = await _fetchProfile(accessToken);
 
       if (profile != null && !kMobileSupportedRoles.contains(profile.role)) {
         await _tokenStorage.clear();
@@ -72,6 +88,7 @@ class AuthController extends Notifier<AuthState> {
         accessToken: accessToken,
         displayName: profile?.displayName,
         role: profile?.role,
+        profileError: error,
       );
     } on FlutterAppAuthUserCancelledException {
       state = const AuthUnauthenticated();
@@ -91,7 +108,7 @@ class AuthController extends Notifier<AuthState> {
     final refreshToken = await _tokenStorage.readRefreshToken();
     if (refreshToken != null && AuthConfig.thunderIdIssuer.isNotEmpty) {
       try {
-        await Dio().post<void>(
+        await _dio.post<void>(
           '${AuthConfig.thunderIdIssuer}/oauth2/revoke',
           data: {
             'token': refreshToken,
@@ -114,27 +131,43 @@ class AuthController extends Notifier<AuthState> {
 
   /// Best-effort `GET /api/me` — a failure here (e.g. the backend isn't
   /// running) doesn't undo a successful ThunderID sign-in; role-gating simply
-  /// doesn't apply until the role is known. `role` is CoreGrid's own
+  /// doesn't apply until the role is known, and the reason is returned as
+  /// `error` so the dashboard can say why instead of guessing. `role` is CoreGrid's own
   /// `Users.Role` column, not a ThunderID token claim (see `MeController.cs`
   /// — deliberately decoupled from ThunderID's claim wiring, same as React).
-  Future<({String? displayName, String role})?> _fetchProfile(
-    String accessToken,
-  ) async {
-    if (AuthConfig.apiBaseUrl.isEmpty) return null;
+  Future<({({String? displayName, String role})? profile, String? error})>
+  _fetchProfile(String accessToken) async {
+    if (AuthConfig.apiBaseUrl.isEmpty) {
+      return (profile: null, error: 'API_BASE_URL is not configured.');
+    }
     try {
-      final response = await Dio().get<Map<String, dynamic>>(
-        '${AuthConfig.apiBaseUrl}/api/me',
+      final response = await _dio.get<Map<String, dynamic>>(
+        '${AuthConfig.apiOrigin}/api/me',
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
       final data = response.data;
       final role = data?['role']?.toString();
-      if (data == null || role == null) return null;
+      if (data == null || role == null) {
+        return (profile: null, error: 'CoreGrid returned no role for you.');
+      }
       return (
-        displayName: (data['given_name'] ?? data['email'])?.toString(),
-        role: role,
+        profile: (
+          displayName: (data['given_name'] ?? data['email'])?.toString(),
+          role: role,
+        ),
+        error: null,
       );
-    } catch (_) {
-      return null;
+    } on DioException catch (e) {
+      final apiError = ApiException.fromDio(e);
+      return (
+        profile: null,
+        error: apiError.isUnauthorized
+            ? 'CoreGrid rejected your sign-in (401): no active CoreGrid user '
+                  'matches this ThunderID account. Check the account has a '
+                  'CoreGrid role assigned and that the mobile app\'s access '
+                  'token includes email, given_name, family_name and roles.'
+            : apiError.message,
+      );
     }
   }
 }
