@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 
 /// Typed error surfaced by every feature's API layer (`MOBILE-SPECIFICATION.md`
@@ -59,6 +61,9 @@ class ApiException implements Exception {
       case DioExceptionType.cancel:
         return ApiException(statusCode: 0, message: 'Request cancelled.');
       case DioExceptionType.badCertificate:
+      // dio reports a failed TLS handshake (e.g. an untrusted self-signed
+      // cert) as `unknown` unless a validateCertificate hook is set.
+      case DioExceptionType.unknown when e.error is HandshakeException:
         return ApiException(
           statusCode: 0,
           message: 'The server\'s security certificate could not be verified.',

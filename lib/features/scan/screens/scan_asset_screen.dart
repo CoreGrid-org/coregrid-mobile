@@ -7,10 +7,21 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../assets/assets_api.dart';
 import '../../assets/models/asset/asset_detail.dart';
 import '../../../shared/api/api_exception.dart';
+import '../../../shared/widgets/ui.dart';
 
-/// QR code scanner screen — resolves scanned codes against the API before navigating.
+/// Opens the scanner in identify mode and returns the resolved asset, or
+/// null if the user backs out. Used where a scan *proves* the user is at a
+/// specific asset (FR-059 verification) rather than to browse it.
+Future<AssetDetail?> identifyAssetByScan(BuildContext context) =>
+    context.push<AssetDetail>('/scan?purpose=identify');
+
+/// QR code scanner screen — resolves scanned codes against the API before
+/// navigating. In [identify] mode it pops with the resolved [AssetDetail]
+/// instead of opening the asset record.
 class ScanAssetScreen extends ConsumerStatefulWidget {
-  const ScanAssetScreen({super.key});
+  const ScanAssetScreen({super.key, this.identify = false});
+
+  final bool identify;
 
   @override
   ConsumerState<ScanAssetScreen> createState() => _ScanAssetScreenState();
@@ -44,11 +55,17 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
         .firstOrNull;
     if (code == null) return;
 
+    await _scannerController.stop();
+    await _resolve(code);
+  }
+
+  /// Resolves a scanned or typed code, then opens the asset or — in
+  /// identify mode — returns it to the caller.
+  Future<void> _resolve(String code) async {
     setState(() {
       _isResolving = true;
       _lookupError = null;
     });
-    await _scannerController.stop();
 
     final result = await AsyncValue.guard<AssetDetail>(
       () => ref.read(assetsApiProvider).getByCode(code),
@@ -57,9 +74,13 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
 
     final asset = result.asData?.value;
     if (asset != null) {
-      // The QR endpoint returns the authoritative AssetDetailDto. Passing it
-      // renders details immediately; AssetDetailScreen also refreshes by id.
-      context.pushReplacement('/assets/${asset.id}', extra: asset);
+      if (widget.identify) {
+        context.pop(asset);
+      } else {
+        // The QR endpoint returns the authoritative AssetDetailDto. Passing
+        // it renders details immediately; AssetDetailScreen also refreshes.
+        context.pushReplacement('/assets/${asset.id}', extra: asset);
+      }
       return;
     }
 
@@ -82,10 +103,12 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: const Text('Scan Asset'),
+        titleTextStyle: context.text.titleLarge?.copyWith(color: Colors.white),
+        title: Text(widget.identify ? 'Scan to confirm' : 'Scan asset'),
         actions: [
           ValueListenableBuilder<MobileScannerState>(
             valueListenable: _scannerController,
@@ -125,8 +148,8 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
                   // rather than displaying a guide that has no scan behaviour.
                   scanWindow: Rect.fromCenter(
                     center: constraints.biggest.center(Offset.zero),
-                    width: 248,
-                    height: 248,
+                    width: _ScanGuide.size,
+                    height: _ScanGuide.size,
                   ),
                   tapToFocus: true,
                   onDetect: _onDetect,
@@ -160,27 +183,109 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
     );
   }
 
-  void _enterCode() => context.pushReplacement('/assets');
+  /// IF-10 fallback. Browsing hands off to the manual-entry screen; identify
+  /// mode asks for the code in place so the result still returns here.
+  Future<void> _enterCode() async {
+    if (!widget.identify) {
+      context.pushReplacement('/assets');
+      return;
+    }
+    final code = await showDialog<String>(
+      context: context,
+      builder: (context) => const _EnterCodeDialog(),
+    );
+    if (code != null && code.isNotEmpty && mounted) await _resolve(code);
+  }
 }
 
+/// Dims everything outside the live scan window and draws corner brackets
+/// around it, so the recognition area is unmistakable.
 class _ScanGuide extends StatelessWidget {
   const _ScanGuide();
+
+  static const size = 248.0;
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Center(
-        child: Container(
-          width: 248,
-          height: 248,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white, width: 3),
-            borderRadius: BorderRadius.circular(24),
+      child: CustomPaint(
+        size: Size.infinite,
+        painter: _ScanOverlayPainter(
+          window: size,
+          accent: context.colors.primaryContainer,
+        ),
+        child: Align(
+          alignment: const Alignment(0, 0.42),
+          child: Padding(
+            padding: const EdgeInsets.only(top: size / 2 + 48),
+            child: Text(
+              'Align the QR label inside the frame',
+              style: context.text.bodyMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+class _ScanOverlayPainter extends CustomPainter {
+  _ScanOverlayPainter({required this.window, required this.accent});
+
+  final double window;
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromCenter(
+      center: size.center(Offset.zero),
+      width: window,
+      height: window,
+    );
+    final hole = RRect.fromRectAndRadius(rect, const Radius.circular(20));
+    canvas.drawPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(Offset.zero & size),
+        Path()..addRRect(hole),
+      ),
+      Paint()..color = Colors.black.withValues(alpha: 0.55),
+    );
+
+    const len = 34.0;
+    final paint = Paint()
+      ..color = accent
+      ..strokeWidth = 5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    for (final (corner, dx, dy) in [
+      (rect.topLeft, 1.0, 1.0),
+      (rect.topRight, -1.0, 1.0),
+      (rect.bottomLeft, 1.0, -1.0),
+      (rect.bottomRight, -1.0, -1.0),
+    ]) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(corner.dx, corner.dy + dy * len)
+          ..lineTo(corner.dx, corner.dy + dy * 12)
+          ..quadraticBezierTo(
+            corner.dx,
+            corner.dy,
+            corner.dx + dx * 12,
+            corner.dy,
+          )
+          ..lineTo(corner.dx + dx * len, corner.dy),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ScanOverlayPainter old) =>
+      old.window != window || old.accent != accent;
 }
 
 class _ScanStatus extends StatelessWidget {
@@ -205,42 +310,64 @@ class _ScanStatus extends StatelessWidget {
       ApiException(isNetworkError: true) =>
         'You\'re offline. Connect to a network and scan again.',
       ApiException(:final message) => message,
-      _ => 'Camera ready. Align the asset QR code inside the frame.',
+      _ => 'Hold steady — the asset opens as soon as the code is read.',
     };
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: const Color(0xE6202625),
-        borderRadius: BorderRadius.circular(18),
+        color: CoreGridBrand.ink.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (isResolving) ...[
-            const CircularProgressIndicator(color: Color(0xFFFF5A00)),
-            const SizedBox(height: 12),
-            const Text(
-              'Looking up asset…',
-              style: TextStyle(color: Colors.white),
+          if (isResolving)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: context.colors.primaryContainer,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                const Text(
+                  'Looking up asset…',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            )
+          else ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  error == null ? Icons.qr_code_2 : Icons.error_outline,
+                  color: error == null ? Colors.white70 : AppColors.dark.danger,
+                  size: 20,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(color: Colors.white, height: 1.35),
+                  ),
+                ),
+              ],
             ),
-          ] else ...[
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, height: 1.35),
-            ),
-            const SizedBox(height: 12),
-            TextButton.icon(
+            const SizedBox(height: AppSpacing.md),
+            FilledButton.tonalIcon(
               onPressed: error == null ? onEnterCode : onScanAgain,
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFFFB48A),
-              ),
               icon: Icon(
                 error == null
                     ? Icons.keyboard_outlined
                     : Icons.qr_code_scanner_rounded,
+                size: 20,
               ),
               label: Text(error == null ? 'Enter code instead' : 'Scan again'),
             ),
@@ -279,14 +406,15 @@ class _CameraUnavailable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Icon(
               Icons.no_photography_outlined,
               color: Colors.white,
-              size: 48,
+              size: 56,
             ),
             const SizedBox(height: 16),
             Text(
@@ -303,13 +431,57 @@ class _CameraUnavailable extends StatelessWidget {
             if (showSettings) const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: onEnterCode,
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white54),
+              ),
               icon: const Icon(Icons.keyboard_outlined),
               label: const Text('Enter asset code'),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EnterCodeDialog extends StatefulWidget {
+  const _EnterCodeDialog();
+
+  @override
+  State<_EnterCodeDialog> createState() => _EnterCodeDialogState();
+}
+
+class _EnterCodeDialogState extends State<_EnterCodeDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _done() => Navigator.pop(context, _controller.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Enter asset code'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.characters,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _done(),
+        decoration: const InputDecoration(hintText: 'e.g. AST-00042'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _done, child: const Text('Confirm')),
+      ],
     );
   }
 }

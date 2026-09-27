@@ -36,8 +36,14 @@ Both ThunderID and the backend serve self-signed certs locally. Two separate tru
 
 ### 3a. The app's own HTTP calls (dio, `flutter_appauth`'s discovery/token requests)
 
-Governed by `android/app/src/debug/res/xml/network_security_config.xml` (debug builds only — never merged
-into release). It already trusts:
+**dio** (every `/api/...` call, including `GET /api/me` at sign-in) runs on Dart's own `HttpClient`, which
+does **not** read Android's network security config. In debug builds `lib/shared/api/dev_tls.dart` makes
+dio accept the self-signed certs on host `localhost` only; release builds compile that out and validate
+normally. Without it, sign-in succeeds but the dashboard says the CoreGrid role couldn't be loaded.
+
+**`flutter_appauth`** (native Android networking) is governed by
+`android/app/src/debug/res/xml/network_security_config.xml` (debug builds only — never merged into
+release). It already trusts:
 
 - `android/app/src/debug/res/raw/thunderid_dev_cert.pem` — ThunderID's cert, committed to the repo (fine to
   share — dev-only, not a secret), valid to 2027-08-09. Re-export it (see `CoreGrid/doc/setup/ThunderID.md`)

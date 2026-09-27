@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/assets/assets_api.dart';
 import '../../features/assets/models/asset/asset_detail.dart';
 import '../../features/assets/models/asset/asset_search.dart';
-import '../../shared/api/api_client.dart';
 import 'maintenance_api.dart';
 import 'models/fault_report.dart';
 
@@ -21,10 +20,9 @@ final myFaultReportsProvider = FutureProvider.autoDispose<List<FaultReport>>((
 /// user's department automatically.
 final faultAssetSearchProvider = FutureProvider.autoDispose
     .family<List<AssetDetail>, String>((ref, search) async {
-      final api = SearchableAssetsApiClient(ref.watch(apiClientProvider));
-      final result = await api.search(
-        AssetSearchQuery(search: search, pageSize: 30),
-      );
+      final result = await ref
+          .watch(assetsApiProvider)
+          .search(AssetSearchQuery(search: search, pageSize: 30));
       return result.items;
     });
 

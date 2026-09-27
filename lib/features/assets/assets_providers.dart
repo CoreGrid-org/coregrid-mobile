@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../shared/api/api_client.dart';
 import '../../shared/auth/auth_controller.dart';
 import '../../shared/auth/auth_state.dart';
 import 'assets_api.dart';
@@ -18,25 +17,14 @@ final assetDetailProvider = FutureProvider.autoDispose
       return ref.watch(assetsApiProvider).getById(assetId);
     });
 
-/// Search always uses the backend API.
-final realAssetsSearchApiProvider = Provider<SearchableAssetsApi>((ref) {
-  return SearchableAssetsApiClient(ref.watch(apiClientProvider));
-});
-
-final realAssetsCatalogApiProvider = Provider<AssetsApi>((ref) {
-  return SearchableAssetsApiClient(ref.watch(apiClientProvider));
-});
-
 final assetFilterOptionsProvider = FutureProvider.autoDispose
     .family<List<String>, String>((ref, resourcePath) {
-      return ref
-          .watch(realAssetsCatalogApiProvider)
-          .getFilterOptions(resourcePath);
+      return ref.watch(assetsApiProvider).getFilterOptions(resourcePath);
     });
 
 final assetSearchProvider = FutureProvider.autoDispose
     .family<AssetSearchResult, AssetSearchQuery>((ref, query) {
-      return ref.watch(realAssetsSearchApiProvider).search(query);
+      return ref.watch(assetsApiProvider).search(query);
     });
 
 /// The asset's lifecycle history.

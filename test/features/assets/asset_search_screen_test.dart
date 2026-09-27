@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-class _SearchApi implements AssetsApi, SearchableAssetsApi {
+class _SearchApi extends Fake implements AssetsApi {
   AssetDetail get asset => AssetDetail.fromJson({
     'id': 'asset-12345',
     'asset_code': 'asset-12345',
@@ -53,14 +53,13 @@ class _SearchApi implements AssetsApi, SearchableAssetsApi {
 
   @override
   Future<AssetMaintenanceHistory> getMaintenanceHistory(String assetId) async =>
-      AssetMaintenanceHistory(
-        assetId: assetId,
-        records: const [],
-      );
+      AssetMaintenanceHistory(assetId: assetId, records: const []);
 }
 
 void main() {
-  testWidgets('tapping a searched asset opens its detail screen', (tester) async {
+  testWidgets('tapping a searched asset opens its detail screen', (
+    tester,
+  ) async {
     final router = GoRouter(
       initialLocation: '/assets/search',
       routes: [

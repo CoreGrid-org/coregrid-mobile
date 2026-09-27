@@ -1,53 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../shared/theme/app_theme.dart';
+import '../../../shared/widgets/ui.dart';
+import '../../maintenance/maintenance_providers.dart';
+import '../../maintenance/widgets/fault_tile.dart';
 import '../widgets/dashboard_section.dart';
-import '../widgets/my_fault_reports_section.dart';
+import '../widgets/find_asset_card.dart';
 
-/// Staff dashboard — fault reports and quick actions.
-class StaffDashboardBody extends StatelessWidget {
+/// Staff home: find an asset, report a fault, and track reported faults.
+class StaffDashboardBody extends ConsumerWidget {
   const StaffDashboardBody({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const accent = RoleAccent.officer;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final faults = ref.watch(myFaultReportsProvider);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const FindAssetCard(),
+        const SectionHeader('Quick actions'),
         QuickActionsGrid(
           actions: [
             QuickAction(
-              primary: true,
-              accent: accent,
-              icon: Icons.qr_code_scanner,
-              label: 'Scan Asset',
-              onTap: () => context.push('/scan'),
-            ),
-            // Manual code entry
-            QuickAction(
-              accent: accent,
-              icon: Icons.keyboard_outlined,
-              label: 'Enter Code',
-              onTap: () => context.push('/assets'),
-            ),
-            QuickAction(
-              accent: accent,
-              icon: Icons.manage_search,
-              label: 'Search Assets',
-              onTap: () => context.push('/assets/search'),
-            ),
-            // Report fault
-            QuickAction(
-              accent: accent,
-              icon: Icons.report_problem_outlined,
-              label: 'Report Fault',
+              icon: Icons.build_circle_outlined,
+              label: 'Report a fault',
+              caption: 'Photo + description',
               onTap: () => context.push('/maintenance/report'),
+            ),
+            QuickAction(
+              icon: Icons.manage_search,
+              label: 'Search assets',
+              caption: 'Filters & sorting',
+              onTap: () => context.push('/assets/search'),
             ),
           ],
         ),
-        const SizedBox(height: 28),
-        const MyFaultReportsSection(accent: accent),
+        DashboardPreview(
+          title: 'My fault reports',
+          data: faults,
+          emptyLabel: 'You haven\'t reported any faults.',
+          onSeeAll: () => context.go('/faults'),
+          itemBuilder: FaultTile.new,
+        ),
       ],
     );
   }

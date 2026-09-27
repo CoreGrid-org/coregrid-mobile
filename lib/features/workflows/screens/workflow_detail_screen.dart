@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../shared/api/api_exception.dart';
+import '../../../shared/widgets/ui.dart';
 import '../models/agent_workflow.dart';
 import '../workflows_providers.dart';
+import 'workflow_list_screen.dart';
 
-/// Workflow detail screen — polls status until complete. Route: `/workflows/:id`.
+/// Workflow status and recommendation summary (SRS §3.4: mobile shows the
+/// summary, not the full execution trace). Polls until resolved.
+/// Route: `/workflows/:id`.
 class WorkflowDetailScreen extends ConsumerWidget {
   const WorkflowDetailScreen({super.key, required this.workflowId});
 
@@ -16,22 +20,13 @@ class WorkflowDetailScreen extends ConsumerWidget {
     final workflowState = ref.watch(agentWorkflowProvider(workflowId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Agent Workflow')),
-      body: switch (workflowState) {
-        AsyncData(:final value) => _WorkflowStatus(workflow: value),
-        AsyncError(:final error) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              error is ApiException
-                  ? error.message
-                  : 'Couldn\'t load this workflow.',
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
+      appBar: AppBar(title: const Text('Evaluation')),
+      body: AsyncView(
+        value: workflowState,
+        errorTitle: 'Couldn\'t load this evaluation',
+        onRetry: () => ref.invalidate(agentWorkflowProvider(workflowId)),
+        data: (value) => _WorkflowStatus(workflow: value),
+      ),
     );
   }
 }
@@ -43,128 +38,96 @@ class _WorkflowStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final (icon, tone) = workflowVisual(workflow);
+    final running = !workflow.isResolved && !workflow.isFailed;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '${workflow.assetCode}: ${workflow.objective}',
-            style: Theme.of(context).textTheme.headlineSmall,
+    return ListView(
+      padding: AppSpacing.pageInsets,
+      children: [
+        Text(workflow.objective, style: context.text.headlineSmall),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Asset ${workflow.assetCode}',
+          style: context.text.bodyMedium?.copyWith(
+            color: context.colors.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Started ${_formatDateTime(workflow.createdAt)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(_statusIcon(), color: _statusColor(colors)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          workflow.status,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        if (!workflow.isResolved && !workflow.isFailed)
-                          const Text('In progress. Updates automatically.'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (workflow.isFailed) ...[
-            const SizedBox(height: 12),
-            _OutcomeCard(
-              icon: Icons.error_outline,
-              color: colors.error,
-              title: 'Evaluation failed',
-              body: workflow.failureReason ?? 'No reason was recorded.',
-            ),
-          ] else if (workflow.isResolved) ...[
-            const SizedBox(height: 12),
-            _OutcomeCard(
-              icon: Icons.check_circle_outline,
-              color: colors.primary,
-              title: 'Recommendation',
-              body: workflow.recommendation ?? 'No recommendation was recorded.',
-            ),
-            const SizedBox(height: 8),
-            Card(
-              child: ListTile(
-                leading: Icon(
-                  workflow.awaitingApproval
-                      ? Icons.hourglass_top_outlined
-                      : Icons.verified_outlined,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: EntityHeader(
+                  icon: icon,
+                  iconTone: tone,
+                  title: humanizeStatus(workflow.status),
+                  subtitle: running
+                      ? 'The agent is working — this page updates '
+                            'automatically.'
+                      : 'Evaluation finished.',
                 ),
-                title: const Text('Approval status'),
-                subtitle: Text(workflow.approvalStatus),
-                trailing: workflow.isHighImpact
-                    ? const Chip(
-                        label: Text('High impact'),
-                        visualDensity: VisualDensity.compact,
-                      )
-                    : null,
               ),
+              if (running) const LinearProgressIndicator(minHeight: 3),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (workflow.isFailed)
+          Notice(
+            tone: StatusTone.danger,
+            title: 'Evaluation failed',
+            message: workflow.failureReason ?? 'No reason was recorded.',
+          )
+        else if (workflow.isResolved)
+          Notice(
+            tone: StatusTone.success,
+            icon: Icons.lightbulb_outline,
+            title: 'Recommendation',
+            message:
+                workflow.recommendation ?? 'No recommendation was recorded.',
+          ),
+        const SectionHeader('Details'),
+        ListCard(
+          children: [
+            InfoRow(
+              label: 'Approval',
+              value: humanizeStatus(workflow.approvalStatus),
             ),
+            InfoRow(
+              label: 'Impact',
+              value: workflow.isHighImpact ? 'High' : 'Standard',
+            ),
+            InfoRow(
+              label: 'Requested',
+              value: formatDateTime(workflow.createdAt),
+            ),
+            if (workflow.completedAt != null)
+              InfoRow(
+                label: 'Finished',
+                value: formatDateTime(workflow.completedAt!),
+              ),
+            if (workflow.initiatedByEmail != null)
+              InfoRow(label: 'Requested by', value: workflow.initiatedByEmail!),
           ],
+        ),
+        if (workflow.awaitingApproval) ...[
+          const SizedBox(height: AppSpacing.md),
+          const Notice(
+            message:
+                'High-impact recommendations are approved by an '
+                'administrator in the CoreGrid web console.',
+          ),
         ],
-      ),
-    );
-  }
-
-  IconData _statusIcon() {
-    if (workflow.isFailed) return Icons.error_outline;
-    if (workflow.isResolved) return Icons.task_alt;
-    return Icons.hourglass_top_outlined;
-  }
-
-  Color _statusColor(ColorScheme colors) {
-    if (workflow.isFailed) return colors.error;
-    if (workflow.isResolved) return colors.primary;
-    return colors.onSurfaceVariant;
-  }
-
-  String _formatDateTime(DateTime dt) =>
-      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-}
-
-class _OutcomeCard extends StatelessWidget {
-  const _OutcomeCard({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: color.withValues(alpha: 0.08),
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(title),
-        subtitle: Text(body),
-      ),
+        const SizedBox(height: AppSpacing.md),
+        OutlinedButton.icon(
+          onPressed: () => context.push('/assets/${workflow.assetId}'),
+          icon: const Icon(Icons.description_outlined, size: 20),
+          label: const Text('Open asset record'),
+        ),
+      ],
     );
   }
 }

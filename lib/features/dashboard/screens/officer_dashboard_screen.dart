@@ -4,82 +4,106 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/theme/app_theme.dart';
 import '../../transfers/transfers_providers.dart';
+import '../../../shared/widgets/ui.dart';
+import '../../maintenance/maintenance_providers.dart';
+import '../../maintenance/widgets/fault_tile.dart';
+import '../../verification/models/verification_task.dart';
+import '../../verification/screens/verification_task_list_screen.dart';
 import '../../verification/verification_providers.dart';
+import '../../verification/verify_flow.dart';
+import '../../workflows/screens/workflow_list_screen.dart';
+import '../../workflows/workflows_providers.dart';
 import '../widgets/dashboard_section.dart';
-import '../widgets/my_fault_reports_section.dart';
+import '../widgets/find_asset_card.dart';
 
+/// Inventory Officer home: find an asset, today's numbers, shortcuts, and
+/// previews of verification tasks, evaluations and fault reports.
 class OfficerDashboardBody extends ConsumerWidget {
   const OfficerDashboardBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const accent = RoleAccent.officer;
+    final tasks = ref.watch(myVerificationTasksProvider);
+    final faults = ref.watch(myFaultReportsProvider);
+    final workflows = ref.watch(agentWorkflowsProvider);
+
+    final pending = tasks.whenData(
+      (list) =>
+          list.where((t) => t.isPending).toList()
+            ..sort((a, b) => a.dueDate.compareTo(b.dueDate)),
+    );
+    final pendingList = pending.asData?.value;
+    final overdue = pendingList?.where((t) => t.isOverdue).length;
+    final openFaults = faults.asData?.value
+        .where((r) => r.isOpen || r.isInProgress)
+        .length;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const FindAssetCard(),
+        const SectionHeader('At a glance'),
+        StatRow(
+          cards: [
+            StatCard(
+              value: overdue,
+              label: 'Overdue\ntasks',
+              tone: StatusTone.danger,
+              onTap: () => context.go('/verification'),
+            ),
+            StatCard(
+              value: pendingList?.length,
+              label: 'Tasks to\nverify',
+              tone: StatusTone.warning,
+              onTap: () => context.go('/verification'),
+            ),
+            StatCard(
+              value: openFaults,
+              label: 'Open fault\nreports',
+              tone: StatusTone.info,
+              onTap: () => context.go('/faults'),
+            ),
+          ],
+        ),
+        const SectionHeader('Quick actions'),
         QuickActionsGrid(
           actions: [
             QuickAction(
-              primary: true,
-              accent: accent,
-              icon: Icons.qr_code_scanner,
-              label: 'Scan Asset',
-              onTap: () => context.push('/scan'),
-            ),
-            // Manual code entry (routes to features/assets/ Asset Detail).
-            QuickAction(
-              accent: accent,
-              icon: Icons.keyboard_outlined,
-              label: 'Enter Code',
-              onTap: () => context.push('/assets'),
+              icon: Icons.build_circle_outlined,
+              label: 'Report a fault',
+              caption: 'Photo + description',
+              onTap: () => context.push('/maintenance/report'),
             ),
             QuickAction(
-              accent: accent,
-              icon: Icons.manage_search,
-              label: 'Search Assets',
-              onTap: () => context.push('/assets/search'),
-            ),
-            QuickAction(
-              accent: accent,
-              icon: Icons.fact_check_outlined,
-              label: 'Verification',
-              onTap: () => context.push('/verification'),
-            ),
-            QuickAction(
-              accent: accent,
-              icon: Icons.smart_toy_outlined,
-              label: 'Workflows',
-              onTap: () => context.push('/workflows'),
+              icon: Icons.auto_awesome_outlined,
+              label: 'Request evaluation',
+              caption: 'Ask the agent',
+              onTap: () => context.push('/workflows/new'),
             ),
             QuickAction(
               accent: accent,
               icon: Icons.local_shipping_outlined,
               label: 'Transfer',
               onTap: () => context.push('/transfers'),
+              icon: Icons.flag_outlined,
+              label: 'Campaigns',
+              caption: 'Progress & scope',
+              onTap: () => context.go('/verification?view=campaigns'),
             ),
-            // Fault reporting.
             QuickAction(
-              accent: accent,
-              icon: Icons.report_problem_outlined,
-              label: 'Report Fault',
-              onTap: () => context.push('/maintenance/report'),
+              icon: Icons.qr_code_scanner,
+              label: 'Scan to verify',
+              caption: 'Campaign task check',
+              onTap: () => scanToVerify(context, ref),
             ),
           ],
         ),
-        const SizedBox(height: 28),
-        _VerificationTasksDueSection(accent: accent),
-        MyFaultReportsSection(accent: accent),
-        DashboardSection(
-          title: 'Maintenance Assigned to Me',
-          icon: Icons.build_outlined,
-          accent: accent,
-          rows: const [
-            DashboardRow(
-              label: 'AST-00147: Air Compressor',
-              detail: 'Corrective, priority high',
-              status: 'In Progress',
-            ),
-          ],
+        DashboardPreview<VerificationTask>(
+          title: 'Verification due',
+          data: pending,
+          emptyLabel: 'No verification tasks assigned to you.',
+          onSeeAll: () => context.go('/verification'),
+          itemBuilder: (t) => TaskTile(task: t),
         ),
         _TransfersAwaitingConfirmationSection(accent: accent),
       ],

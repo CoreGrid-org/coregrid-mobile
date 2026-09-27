@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../shared/widgets/ui.dart';
 import '../../models/asset/asset_attribute.dart';
 
 /// Renders an asset's custom attributes purely from [AssetAttributeType].
@@ -8,64 +9,16 @@ import '../../models/asset/asset_attribute.dart';
 /// The widget is completely data-driven. New asset types and attributes
 /// require no changes here.
 class AssetAttributeList extends StatelessWidget {
-  const AssetAttributeList({
-    super.key,
-    required this.attributes,
-  });
+  const AssetAttributeList({super.key, required this.attributes});
 
   final List<AssetAttribute> attributes;
 
-  static const orange = Color(0xFFFF5A00);
-  static const lightOrange = Color(0xFFFFF0E8);
-  static const darkText = Color(0xFF202625);
-  static const secondaryText = Color(0xFF59635F);
-
   @override
   Widget build(BuildContext context) {
-    // ================================================================
-    // NO ATTRIBUTES
-    // ================================================================
-
     if (attributes.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F9F8),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: const Row(
-          children: [
-            Icon(
-              Icons.info_outline_rounded,
-              size: 20,
-              color: orange,
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'This asset type has no custom attributes.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: secondaryText,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+      return const Notice(message: 'This asset type has no custom attributes.');
     }
-
-    // ================================================================
-    // ATTRIBUTE LIST
-    // ================================================================
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ListCard(
       children: [
         for (final attribute in attributes)
           _AttributeRow(
@@ -77,62 +30,31 @@ class AssetAttributeList extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// ATTRIBUTE ROW
-// ============================================================================
-
 class _AttributeRow extends StatelessWidget {
-  const _AttributeRow({
-    super.key,
-    required this.attribute,
-  });
+  const _AttributeRow({super.key, required this.attribute});
 
   final AssetAttribute attribute;
 
-  static const secondaryText = Color(0xFF59635F);
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
+    return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 13,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9F8),
-        borderRadius: BorderRadius.circular(14),
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ------------------------------------------------------------
-          // ATTRIBUTE NAME
-          // ------------------------------------------------------------
-
           Expanded(
             flex: 2,
-            child: Text(
-              attribute.name,
-              style: const TextStyle(
-                fontSize: 14,
-                color: secondaryText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(attribute.name, style: context.mutedBody),
           ),
-
-          const SizedBox(width: 16),
-
-          // ------------------------------------------------------------
-          // ATTRIBUTE VALUE
-          // ------------------------------------------------------------
-
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             flex: 3,
-            child: _AttributeValue(
-              attribute: attribute,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _AttributeValue(attribute: attribute),
             ),
           ),
         ],
@@ -141,141 +63,77 @@ class _AttributeRow extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// ATTRIBUTE VALUE
-// ============================================================================
-
 class _AttributeValue extends StatelessWidget {
-  const _AttributeValue({
-    required this.attribute,
-  });
+  const _AttributeValue({required this.attribute});
 
   final AssetAttribute attribute;
 
-  static const orange = Color(0xFFFF5A00);
-
-  // FIX:
-  // lightOrange is defined here because this class uses it.
-  static const lightOrange = Color(0xFFFFF0E8);
-
-  static const darkText = Color(0xFF202625);
-  static const secondaryText = Color(0xFF59635F);
-
   @override
   Widget build(BuildContext context) {
-    const valueStyle = TextStyle(
-      fontSize: 14,
-      color: darkText,
+    final valueStyle = context.text.bodyMedium?.copyWith(
       fontWeight: FontWeight.w600,
     );
-
-    // ================================================================
-    // EMPTY VALUE
-    // ================================================================
 
     if (attribute.isEmpty) {
       return Text(
         attribute.isRequired ? 'Not set' : '—',
-        style: const TextStyle(
-          fontSize: 14,
-          color: secondaryText,
+        style: context.text.bodyMedium?.copyWith(
+          color: context.colors.onSurfaceVariant,
           fontStyle: FontStyle.italic,
-          fontWeight: FontWeight.w400,
         ),
       );
     }
 
-    // ================================================================
-    // ATTRIBUTE TYPE
-    // ================================================================
-
     switch (attribute.type) {
-      // --------------------------------------------------------------
-      // BOOLEAN
-      // --------------------------------------------------------------
-
       case AssetAttributeType.boolean:
         final value = attribute.valueBoolean ?? false;
-
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: lightOrange,
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Icon(
-                value
-                    ? Icons.check_rounded
-                    : Icons.close_rounded,
-                size: 18,
-                color: orange,
-              ),
+            Icon(
+              value ? Icons.check_circle_rounded : Icons.cancel_outlined,
+              size: 18,
+              color: value
+                  ? StatusTone.success.foreground(context)
+                  : context.colors.onSurfaceVariant,
             ),
-
-            const SizedBox(width: 8),
-
-            Text(
-              value ? 'Yes' : 'No',
-              style: valueStyle,
-            ),
+            const SizedBox(width: AppSpacing.xs + 2),
+            Text(value ? 'Yes' : 'No', style: valueStyle),
           ],
         );
 
-      // --------------------------------------------------------------
-      // DATE
-      // --------------------------------------------------------------
-
       case AssetAttributeType.date:
         final date = attribute.valueDate;
-
         return Text(
-          date == null
-              ? '—'
-              : DateFormat.yMMMMd().format(date),
+          date == null ? '—' : formatDate(date),
+          textAlign: TextAlign.end,
           style: valueStyle,
         );
-
-      // --------------------------------------------------------------
-      // NUMBER
-      // --------------------------------------------------------------
 
       case AssetAttributeType.number:
         final number = attribute.valueNumber;
-
         return Text(
-          number == null
-              ? '—'
-              : NumberFormat.decimalPattern().format(number),
+          number == null ? '—' : NumberFormat.decimalPattern().format(number),
+          textAlign: TextAlign.end,
           style: valueStyle,
         );
-
-      // --------------------------------------------------------------
-      // TEXT
-      // --------------------------------------------------------------
 
       case AssetAttributeType.text:
         return Text(
           attribute.valueText ?? '—',
+          textAlign: TextAlign.end,
           style: valueStyle,
         );
 
-      // --------------------------------------------------------------
-      // UNKNOWN
-      // --------------------------------------------------------------
-
       case AssetAttributeType.unknown:
-        // Forward compatibility:
-        // Display whichever scalar value the API returned.
+        // Forward compatibility: show whichever scalar the API returned.
         return Text(
           attribute.valueText ??
               attribute.valueNumber?.toString() ??
               attribute.valueBoolean?.toString() ??
               attribute.valueDate?.toIso8601String() ??
               '—',
+          textAlign: TextAlign.end,
           style: valueStyle,
         );
     }

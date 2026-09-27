@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'models/discrepancy.dart';
+import 'models/verification_campaign.dart';
 import 'models/verification_location.dart';
 import 'models/verification_task.dart';
 import 'verification_api.dart';
@@ -23,6 +24,17 @@ final verificationTaskProvider = Provider.autoDispose
       return tasks.whenData(
         (list) => list.where((t) => t.id == taskId).firstOrNull,
       );
+    });
+
+/// Campaigns visible to the officer (read-only context for their tasks).
+final verificationCampaignsProvider =
+    FutureProvider.autoDispose<List<VerificationCampaign>>((ref) {
+      return ref.watch(verificationApiProvider).getCampaigns();
+    });
+
+final verificationCampaignProvider = FutureProvider.autoDispose
+    .family<VerificationCampaign, String>((ref, id) {
+      return ref.watch(verificationApiProvider).getCampaign(id);
     });
 
 /// Locations for the "asserted location" picker — org-wide, changes rarely,
@@ -56,7 +68,9 @@ class CompleteVerificationTaskController extends AsyncNotifier<void> {
             assertedCondition: assertedCondition,
           ),
     );
-    state = result.hasError ? AsyncError(result.error!, result.stackTrace!) : const AsyncData(null);
+    state = result.hasError
+        ? AsyncError(result.error!, result.stackTrace!)
+        : const AsyncData(null);
     if (result.hasError) return null;
     ref.invalidate(myVerificationTasksProvider);
     return result.value;
@@ -97,7 +111,9 @@ class RaiseDiscrepancyController extends AsyncNotifier<void> {
         photoUrl: photoUrl,
       );
     });
-    state = result.hasError ? AsyncError(result.error!, result.stackTrace!) : const AsyncData(null);
+    state = result.hasError
+        ? AsyncError(result.error!, result.stackTrace!)
+        : const AsyncData(null);
     return !result.hasError;
   }
 }

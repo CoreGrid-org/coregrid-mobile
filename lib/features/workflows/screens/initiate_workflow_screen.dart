@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../shared/api/api_exception.dart';
+import '../../../shared/widgets/ui.dart';
 import '../models/workflow_asset_ref.dart';
 import '../workflows_providers.dart';
 
@@ -56,118 +56,161 @@ class _InitiateWorkflowScreenState
 
     return Scaffold(
       appBar: AppBar(title: const Text('Request Evaluation')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: AppSpacing.pageInsets,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Enter the asset code, then state what you\'d like the agent '
-                'to evaluate (e.g. "recommend repair, replace or dispose").',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                'The CoreGrid agent reviews the asset\'s history and recommends '
+                'what to do next — for example repair, replace or dispose.',
+                style: context.mutedBody,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _codeController,
-                enabled: asset == null,
-                textInputAction: TextInputAction.search,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Asset code',
-                  hintText: 'e.g. AST-00042',
-                  border: OutlineInputBorder(),
-                ),
-                onFieldSubmitted: (_) => _lookupAsset(),
-              ),
-              const SizedBox(height: 8),
-              if (asset == null)
-                FilledButton.icon(
-                  onPressed: assetLookup.isLoading ? null : _lookupAsset,
-                  icon: assetLookup.isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+              const SizedBox(height: AppSpacing.xl),
+              const _Step(number: 1, title: 'Choose the asset'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: asset == null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: _codeController,
+                              textInputAction: TextInputAction.search,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: const InputDecoration(
+                                labelText: 'Asset code',
+                                hintText: 'e.g. AST-00042',
+                                prefixIcon: Icon(Icons.qr_code_2),
+                              ),
+                              onFieldSubmitted: (_) => _lookupAsset(),
+                            ),
+                            if (assetLookup.hasError) ...[
+                              const SizedBox(height: AppSpacing.md),
+                              Notice(
+                                tone: StatusTone.danger,
+                                message: errorMessageFor(
+                                  assetLookup.error!,
+                                  fallback: 'Couldn\'t find that asset.',
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: AppSpacing.md),
+                            SubmitButton(
+                              label: 'Find asset',
+                              busyLabel: 'Looking up…',
+                              icon: Icons.search,
+                              busy: assetLookup.isLoading,
+                              onPressed: _lookupAsset,
+                            ),
+                          ],
                         )
-                      : const Icon(Icons.search),
-                  label: Text(assetLookup.isLoading ? 'Looking up…' : 'Find asset'),
-                )
-              else
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.check_circle_outline),
-                    title: Text('${asset.assetCode}: ${asset.name}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Change asset',
-                      onPressed: () {
-                        ref
-                            .read(workflowAssetLookupControllerProvider.notifier)
-                            .reset();
-                        _codeController.clear();
-                      },
-                    ),
-                  ),
+                      : EntityHeader(
+                          icon: Icons.check_rounded,
+                          iconTone: StatusTone.success,
+                          title: asset.name,
+                          subtitle: asset.assetCode,
+                          trailing: TextButton(
+                            onPressed: submitState.isLoading
+                                ? null
+                                : () {
+                                    ref
+                                        .read(
+                                          workflowAssetLookupControllerProvider
+                                              .notifier,
+                                        )
+                                        .reset();
+                                    _codeController.clear();
+                                  },
+                            child: const Text('Change'),
+                          ),
+                        ),
                 ),
-              if (assetLookup.hasError) ...[
-                const SizedBox(height: 8),
-                Text(
-                  assetLookup.error is ApiException
-                      ? (assetLookup.error as ApiException).message
-                      : 'Couldn\'t find that asset.',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
+              ),
               if (asset != null) ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _objectiveController,
-                  enabled: !submitState.isLoading,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Objective',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
-                      ? 'State what the agent should evaluate'
-                      : null,
+                const SizedBox(height: AppSpacing.xl),
+                const _Step(
+                  number: 2,
+                  title: 'What should the agent evaluate?',
                 ),
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: submitState.isLoading
-                      ? null
-                      : () => _submit(asset),
-                  icon: submitState.isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.smart_toy_outlined),
-                  label: Text(
-                    submitState.isLoading ? 'Starting…' : 'Request Evaluation',
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: TextFormField(
+                      controller: _objectiveController,
+                      enabled: !submitState.isLoading,
+                      minLines: 3,
+                      maxLines: 5,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Objective',
+                        hintText: 'e.g. Recommend repair, replace or dispose.',
+                        alignLabelWithHint: true,
+                      ),
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
+                          ? 'State what the agent should evaluate'
+                          : null,
+                    ),
                   ),
                 ),
                 if (submitState.hasError) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    submitState.error is ApiException
-                        ? (submitState.error as ApiException).message
-                        : 'Couldn\'t start this evaluation. Try again.',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+                  const SizedBox(height: AppSpacing.md),
+                  Notice(
+                    tone: StatusTone.danger,
+                    message: errorMessageFor(
+                      submitState.error!,
+                      fallback: 'Couldn\'t start this evaluation. Try again.',
                     ),
                   ),
                 ],
+                const SizedBox(height: AppSpacing.xl),
+                SubmitButton(
+                  label: 'Request Evaluation',
+                  busyLabel: 'Starting…',
+                  icon: Icons.auto_awesome_outlined,
+                  busy: submitState.isLoading,
+                  onPressed: () => _submit(asset),
+                ),
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Step extends StatelessWidget {
+  const _Step({required this.number, required this.title});
+
+  final int number;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: scheme.primary,
+            child: Text(
+              '$number',
+              style: context.text.labelSmall?.copyWith(
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text(title, style: context.text.titleSmall),
+        ],
       ),
     );
   }

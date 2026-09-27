@@ -1,4 +1,5 @@
 import 'package:coregrid_mobile/features/verification/models/discrepancy.dart';
+import 'package:coregrid_mobile/features/verification/models/verification_campaign.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_location.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_task.dart';
 import 'package:coregrid_mobile/features/verification/screens/verification_task_list_screen.dart';
@@ -49,7 +50,11 @@ class _FakeVerificationApi implements VerificationApi {
   }) => throw UnimplementedError();
 
   @override
-  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async => const [];
+  Future<List<VerificationCampaign>> getCampaigns() async => const [];
+
+  @override
+  Future<VerificationCampaign> getCampaign(String id) =>
+      throw UnimplementedError();
 }
 
 VerificationTask _task({String status = 'Pending', bool overdue = false}) {
@@ -79,18 +84,13 @@ void main() {
     await tester.pumpWidget(_harness(_FakeVerificationApi()));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('No verification tasks assigned to you.'),
-      findsOneWidget,
-    );
+    expect(find.text('No verification tasks assigned to you.'), findsOneWidget);
   });
 
   testWidgets('lists tasks with their campaign and due date (FR-058)', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _harness(_FakeVerificationApi(tasks: [_task()])),
-    );
+    await tester.pumpWidget(_harness(_FakeVerificationApi(tasks: [_task()])));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('AST-001'), findsOneWidget);
@@ -103,7 +103,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('(overdue)'), findsOneWidget);
+    expect(find.textContaining('Overdue by'), findsOneWidget);
   });
 
   testWidgets('shows a retryable error state on failure', (tester) async {
