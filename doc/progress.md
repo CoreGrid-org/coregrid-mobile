@@ -130,6 +130,7 @@ of failing. `flutter analyze`: 0 issues; `flutter test`: 68 passing. Not yet tri
 | FR-042 — Maintenance list/filter | Student 2 (Seneja) | ✅ (`MaintenanceRecordsView` — Officer's Faults tab → *All records*; `GET /api/maintenance` with status/priority/type/department/asset/assignee/date-range filters, four sorts and page-by-page "Load more", all server-side (department scoping stays the API's). Staff keep *My reports* only. Widget- and unit-tested) |
 | FR-043 — Raise transfer request | Student 3 (Bhanuka) | ✅ (`InitiateTransferScreen` at `/transfers/new` — asset by code/scan or pre-filled from asset detail's *Request Transfer* (Officer, ACTIVE assets), destination department → location (cascading, `/api/departments` + `/api/locations?departmentId=`) → `POST /api/transfers` → opens the new transfer. `TransferListScreen` at `/transfers` with status filter. **Gap:** the SRS text includes a *reason*, but the API's `InitiateTransferRequest` has no reason field — needs a backend change first. Repaired 2026-09-27, see that entry) |
 | FR-046 — Scan-to-confirm transfer receipt | Student 3 (Bhanuka) | ✅ (`TransferDetailScreen` at `/transfers/:id` — while APPROVED and heading into the officer's department: *Scan to confirm receipt* → shared scanner (manual code entry still available, IF-10) → scanned asset must be the transfer's asset → `POST /api/transfers/{id}/confirm-receipt`. Dashboard *Transfers to receive* lists these. Tested for URL/params, destination gating and status gating; confirm flow was unusable until 2026-09-27) |
+| FR-049 — Condemn asset from the field | Student 3 (Bhanuka) | ✅ (CondemnAssetSheet reachable from AssetDetailActions, gated to InventoryOfficer and ACTIVE/UNDER_MAINTENANCE assets. Enforces recorded condition of Poor or Unserviceable as a precondition; provides guided path to ConditionUpdateSheet if ineligible. Photo evidence compressed via shared image_compression.dart and uploaded to POST /api/verification-tasks/photos, submits POST /api/assets/{id}/condemn. Widget-tested) |
 | FR-058 — Verification task list, ordered by due date | Student 4 (Hasitha) | ✅ (`features/verification/` — the Verify tab at `/verification`, `GET /api/verification-tasks?mine=true`, grouped Overdue / Upcoming / Completed with counts; loading/empty/error/populated states. A Campaigns segment adds read-only campaign context — progress, scope, the officer's tasks in it — via the two `GET` campaign endpoints only; campaign management stays React-only per SRS §3.4) |
 | FR-059 — Complete verification task via scan | Student 4 (Hasitha) | ✅ (**Scan is now enforced.** Verify tab / Home "Scan to verify" → scanner in identify mode (`/scan?purpose=identify`) → the officer's pending task for that asset opens already confirmed (`/verification/:taskId?scanned=1`); no task → offer ad-hoc (FR-031). Opening a task from the list instead requires "Scan asset" before *Present* can be submitted — a scan of a different asset is rejected with its code; *Not found* needs no scan. IF-10 manual code entry still works inside identify mode. Submits via `PATCH /api/verification-tasks/{id}/complete`; same `VerificationForm` as FR-031) |
 | FR-061 — Raise discrepancy manually with photo | Student 4 (Hasitha) | ✅ (`RaiseDiscrepancyScreen` at `/verification/:taskId/discrepancy` — type/description/optional photo, compressed client-side to ≤1MB via `flutter_image_compress` (IF-11) before `POST /api/verification-tasks/photos` then `POST /api/verification-tasks/{taskId}/discrepancies`; backend role check widened to include InventoryOfficer — it was Auditor/Administrator-only, which would have 403'd every mobile call) |
@@ -141,12 +142,11 @@ of failing. `flutter analyze`: 0 issues; `flutter test`: 68 passing. Not yet tri
 ### Component C (Bhanuka) — Transfers
 
 FR-043 and FR-046 landed in PR #8 and were repaired the same day (see the 2026-09-27 transfers entry above
-for the exact bugs). FR-049 (condemnation from the field) not started.
+for the exact bugs). FR-049 (condemnation from the field) is fully implemented.
 
 ## Next milestone
 
-Every requirement in this table is now built; FR-049 condemnation (Student 3) is the remaining Flutter
-item outside it. Outstanding, in rough priority order:
+Every requirement in this table is now built. Outstanding, in rough priority order:
 
 1. **Device run against the live backend** of the maintenance and transfer flows — they're analyzer-clean
    and widget-tested, not yet exercised end-to-end (photo upload, start work, confirm receipt in
@@ -158,7 +158,6 @@ item outside it. Outstanding, in rough priority order:
    it.
 5. **Enable password recovery for the mobile ThunderID app** and set `THUNDERID_APPLICATION_ID` (see the
    2026-09-27 password-reset entry); recovery emails also need ThunderID SMTP, deferred to deployment.
-6. FR-049 condemnation.
 7. `staging`/`prod` ThunderID client registrations (`mobile-specification.md` §5.1) before a release build;
    the dev client (`doc/setup/thunderid-mobile-client.md`) is registered and in local use.
 
