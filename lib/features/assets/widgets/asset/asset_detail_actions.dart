@@ -5,16 +5,23 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/ui.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_detail.dart';
+import '../../../transfers/screens/condemn_asset_sheet.dart';
+import '../../../transfers/transfers_providers.dart';
 import '../../../verification/verify_flow.dart';
 import 'condition_update_sheet.dart';
 
 /// The role-and-lifecycle-aware entry points on the asset detail screen:
 /// Verify (Officer), Report Fault (everyone), Update Condition (Officer,
-/// non-disposed assets). The backend enforces the same rules (403s).
+/// non-disposed assets), Condemn Asset (Officer, active/under maintenance).
+/// The backend enforces the same rules (403s).
 class AssetDetailActions extends ConsumerWidget {
   const AssetDetailActions({super.key, required this.asset});
 
   final AssetDetail asset;
+
+  static const dangerRed = Color(0xFFDA1E28);
+  static const lightDanger = Color(0xFFFFF1F1);
+  static const dangerBorder = Color(0xFFFFB3B8);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,6 +29,10 @@ class AssetDetailActions extends ConsumerWidget {
     final canUpdateCondition =
         ref.watch(canUpdateAssetConditionProvider) &&
         asset.allowsConditionUpdate;
+    final canCondemn =
+        ref.watch(canCondemnAssetProvider) &&
+        (asset.lifecycleStatus == AssetLifecycleStatus.active ||
+            asset.lifecycleStatus == AssetLifecycleStatus.underMaintenance);
 
     final reportFault = OutlinedButton.icon(
       onPressed: () => context.push(
@@ -35,6 +46,16 @@ class AssetDetailActions extends ConsumerWidget {
       onPressed: () => _updateCondition(context, ref),
       icon: const Icon(Icons.health_and_safety_outlined, size: 20),
       label: const Text('Update Condition'),
+    );
+    final condemnAsset = OutlinedButton.icon(
+      onPressed: () => _condemnAsset(context, ref),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: dangerRed,
+        backgroundColor: lightDanger,
+        side: const BorderSide(color: dangerBorder, width: 1.2),
+      ),
+      icon: const Icon(Icons.gavel_outlined, size: 20),
+      label: const Text('Condemn Asset'),
     );
 
     return Column(
@@ -58,6 +79,10 @@ class AssetDetailActions extends ConsumerWidget {
           )
         else
           reportFault,
+        if (canCondemn) ...[
+          const SizedBox(height: AppSpacing.md),
+          condemnAsset,
+        ],
       ],
     );
   }
@@ -76,6 +101,23 @@ class AssetDetailActions extends ConsumerWidget {
     if (saved == true && context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Condition updated.')));
+    }
+  }
+
+  // ========================================================================
+  // CONDEMN ASSET (FR-049)
+  // ========================================================================
+
+  Future<void> _condemnAsset(BuildContext context, WidgetRef ref) async {
+    final condemned = await CondemnAssetSheet.show(context, asset: asset);
+
+    if (condemned == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Asset ${asset.assetCode} has been condemned.'),
+          backgroundColor: dangerRed,
+        ),
+      );
     }
   }
 }

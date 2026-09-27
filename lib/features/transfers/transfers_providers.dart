@@ -1,5 +1,9 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/auth/auth_controller.dart';
+import '../../shared/auth/auth_state.dart';
+import '../assets/assets_providers.dart';
+import 'models/condemn_asset_request.dart';
 import 'models/initiate_transfer_request.dart';
 import 'models/transfer_response.dart';
 import 'transfers_api.dart';
@@ -91,4 +95,43 @@ class ConfirmReceiptController extends AsyncNotifier<void> {
 final confirmReceiptControllerProvider =
     AsyncNotifierProvider.autoDispose<ConfirmReceiptController, void>(
   ConfirmReceiptController.new,
+);
+
+/// Whether the authenticated user has permission to condemn an asset (FR-049).
+/// Backend's `CanRequestDisposal` policy allows InventoryOfficer & Administrator.
+final canCondemnAssetProvider = Provider<bool>((ref) {
+  final auth = ref.watch(authControllerProvider);
+  return auth is AuthAuthenticated && auth.role == 'InventoryOfficer';
+});
+
+/// Drives the "condemn asset" action (FR-049).
+/// State represents in-flight mutation. On success, invalidates the authoritative
+/// [assetDetailProvider] and [assetHistoryProvider] so the UI automatically
+/// refreshes without trusting local state assumptions.
+class CondemnAssetController extends AsyncNotifier<void> {
+  @override
+  void build() {}
+
+  Future<bool> submit({
+    required String assetId,
+    required CondemnAssetRequest request,
+  }) async {
+    state = const AsyncLoading();
+    final result = await AsyncValue.guard(
+      () => ref.read(transfersApiProvider).condemnAsset(
+            assetId: assetId,
+            request: request,
+          ),
+    );
+    state = result;
+    if (result.hasError) return false;
+    ref.invalidate(assetDetailProvider(assetId));
+    ref.invalidate(assetHistoryProvider(assetId));
+    return true;
+  }
+}
+
+final condemnAssetControllerProvider =
+    AsyncNotifierProvider.autoDispose<CondemnAssetController, void>(
+  CondemnAssetController.new,
 );
