@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../shared/auth/auth_controller.dart';
 import '../shared/auth/auth_state.dart';
+import '../shared/widgets/ui.dart';
 
 /// Branch order of the router's `StatefulShellRoute` — keep in sync with
 /// `router.dart`.
@@ -27,22 +28,22 @@ const _tabs = {
   ShellBranch.home: _Tab(Icons.home_outlined, Icons.home_rounded, 'Home'),
   ShellBranch.verify: _Tab(
     Icons.fact_check_outlined,
-    Icons.fact_check,
+    Icons.fact_check_rounded,
     'Verify',
   ),
   ShellBranch.workflows: _Tab(
-    Icons.smart_toy_outlined,
-    Icons.smart_toy,
+    Icons.auto_awesome_outlined,
+    Icons.auto_awesome_rounded,
     'Workflows',
   ),
   ShellBranch.faults: _Tab(
-    Icons.build_circle_outlined,
-    Icons.build_circle,
+    Icons.handyman_outlined,
+    Icons.handyman_rounded,
     'Faults',
   ),
   ShellBranch.account: _Tab(
-    Icons.person_outline_rounded,
-    Icons.person_rounded,
+    Icons.account_circle_outlined,
+    Icons.account_circle_rounded,
     'Account',
   ),
 };
@@ -83,14 +84,7 @@ class AppShell extends ConsumerWidget {
 
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-          ),
-        ),
+      bottomNavigationBar: _DockedBar(
         child: NavigationBar(
           selectedIndex: selected < 0 ? 0 : selected,
           onDestinationSelected: (i) => navigationShell.goBranch(
@@ -104,10 +98,31 @@ class AppShell extends ConsumerWidget {
                 icon: Icon(_tabs[b]!.icon),
                 selectedIcon: Icon(_tabs[b]!.selectedIcon),
                 label: _tabs[b]!.label,
+                tooltip: '',
               ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The tab bar's surface: full-width, docked to the bottom edge, with a
+/// hairline top border (the theme keeps the bar itself transparent).
+class _DockedBar extends StatelessWidget {
+  const _DockedBar({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = context.theme.brightness == Brightness.light;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isLight ? Colors.white : context.colors.surfaceContainer,
+        border: Border(top: BorderSide(color: context.colors.outlineVariant)),
+      ),
+      child: child,
     );
   }
 }

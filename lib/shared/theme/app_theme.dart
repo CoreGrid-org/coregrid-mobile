@@ -230,7 +230,16 @@ abstract final class AppTheme {
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black.withValues(alpha: 0.12),
-        titleTextStyle: text.titleLarge?.copyWith(color: scheme.onSurface),
+        // Large page titles ("Verification", "My fault reports") — the
+        // title is the page's anchor, so it gets headline weight.
+        toolbarHeight: 72,
+        titleSpacing: AppSpacing.page,
+        titleTextStyle: text.headlineSmall?.copyWith(
+          color: scheme.onSurface,
+          fontSize: 26,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.6,
+        ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -243,26 +252,33 @@ abstract final class AppTheme {
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
       ),
+      // The shell draws the floating container; the bar itself is clear.
       navigationBarTheme: NavigationBarThemeData(
-        height: 68,
+        height: 64,
         elevation: 0,
-        backgroundColor: isLight ? Colors.white : scheme.surfaceContainer,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         indicatorColor: scheme.primaryContainer,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
+        ),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => text.labelMedium?.copyWith(
+          (states) => text.labelSmall?.copyWith(
+            fontSize: 11.5,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
                 : FontWeight.w500,
             color: states.contains(WidgetState.selected)
-                ? scheme.onSurface
+                ? scheme.primary
                 : scheme.onSurfaceVariant,
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
+            size: 22,
             color: states.contains(WidgetState.selected)
-                ? scheme.onPrimaryContainer
+                ? scheme.primary
                 : scheme.onSurfaceVariant,
           ),
         ),
