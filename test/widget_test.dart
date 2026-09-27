@@ -42,4 +42,17 @@ void main() {
     expect(find.text('CoreGrid'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Sign In'), findsOneWidget);
   });
+
+  testWidgets('"Forgot password?" explains the fallback when recovery '
+      'isn\'t configured for this build', (tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_seen': true});
+    await tester.pumpWidget(const ProviderScope(child: CoreGridApp()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(TextButton, 'Forgot password?'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.textContaining('Administrator'), findsOneWidget);
+  });
 }

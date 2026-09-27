@@ -41,3 +41,17 @@ String humanizeStatus(String raw) {
   if (spaced.isEmpty) return raw;
   return spaced[0].toUpperCase() + spaced.substring(1);
 }
+
+/// "Just now", "5 min ago", "3 h ago", "Yesterday", "4 days ago", then the
+/// date — for feeds such as notifications.
+String describeAgo(DateTime time, {DateTime? now}) {
+  final current = now ?? DateTime.now();
+  final diff = current.difference(time);
+  if (diff.inMinutes < 1) return 'Just now';
+  if (diff.inHours < 1) return '${diff.inMinutes} min ago';
+  if (diff.inDays < 1) return '${diff.inHours} h ago';
+  final days = _dateOnly(current).difference(_dateOnly(time.toLocal())).inDays;
+  if (days <= 1) return 'Yesterday';
+  if (days < 7) return '$days days ago';
+  return formatDate(time);
+}

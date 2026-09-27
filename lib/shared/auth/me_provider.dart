@@ -10,6 +10,7 @@ import 'auth_controller.dart';
 /// [AuthController]'s own copy taken at sign-in.
 class MeProfile {
   const MeProfile({
+    this.id = '',
     required this.email,
     required this.givenName,
     required this.familyName,
@@ -18,6 +19,8 @@ class MeProfile {
     this.departmentId,
   });
 
+  /// CoreGrid user id — used to match records assigned to this user.
+  final String id;
   final String email;
   final String givenName;
   final String familyName;
@@ -40,6 +43,7 @@ class MeProfile {
   String get roleName => roleLabel(role);
 
   factory MeProfile.fromJson(Map<String, dynamic> json) => MeProfile(
+    id: json['id']?.toString() ?? '',
     email: json['email'] as String? ?? '',
     givenName: json['given_name'] as String? ?? '',
     familyName: json['family_name'] as String? ?? '',

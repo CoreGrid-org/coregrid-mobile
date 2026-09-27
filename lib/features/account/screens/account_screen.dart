@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/auth/auth_controller.dart';
+import '../../../shared/auth/password_recovery.dart';
 import '../../../shared/auth/me_provider.dart';
 import '../../../shared/widgets/ui.dart';
 
@@ -114,9 +115,9 @@ class AccountScreen extends ConsumerWidget {
               ],
             ],
             const SectionHeader('App & security'),
-            const ListCard(
+            ListCard(
               children: [
-                RecordTile(
+                const RecordTile(
                   icon: Icons.verified_user_outlined,
                   title: 'Signed in with ThunderID',
                   subtitle:
@@ -125,6 +126,14 @@ class AccountScreen extends ConsumerWidget {
                   showChevron: false,
                 ),
                 RecordTile(
+                  icon: Icons.password_rounded,
+                  title: 'Change password',
+                  subtitle:
+                      'Opens ThunderID in your browser and emails you a '
+                      'single-use link. You stay signed in here.',
+                  onTap: () => openPasswordRecovery(context),
+                ),
+                const RecordTile(
                   icon: Icons.desktop_windows_outlined,
                   title: 'CoreGrid web console',
                   subtitle: 'Administration, approvals and reports live there.',

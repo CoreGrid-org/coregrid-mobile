@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../shared/auth/auth_controller.dart';
 import '../../../shared/auth/me_provider.dart';
 import '../../../shared/widgets/ui.dart';
+import '../../notifications/widgets/notification_bell.dart';
 
 /// The Home tab's hero: avatar, time-of-day greeting, name and
 /// organisation, then role / department / date as chips. Profile details
@@ -103,7 +104,9 @@ class GreetingHeader extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: AppSpacing.xs),
+              const NotificationBell(color: onBrand),
+              const SizedBox(width: AppSpacing.xs),
               Tooltip(
                 message: 'Account',
                 child: InkWell(

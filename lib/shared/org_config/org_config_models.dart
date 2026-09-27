@@ -1,4 +1,4 @@
-﻿/// Wire models for `GET /api/departments` and `GET /api/locations`
+/// Wire models for `GET /api/departments` and `GET /api/locations`
 /// (`backend/Features/OrgConfig/DTOs/DepartmentDto.cs`,
 /// `LocationDto.cs`). Both endpoints are readable by InventoryOfficer
 /// (confirmed from `DepartmentsController.cs` / `LocationsController.cs`
@@ -16,16 +16,23 @@ class DepartmentDto {
   final String name;
   final bool isActive;
 
+  // Compared by id so a dropdown's selection survives a list refetch.
+  @override
+  bool operator ==(Object other) => other is DepartmentDto && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
+
   factory DepartmentDto.fromJson(Map<String, dynamic> json) => DepartmentDto(
-        id: json['id']?.toString() ?? '',
-        code: json['code'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        isActive: json['is_active'] as bool? ?? true,
-      );
+    id: json['id']?.toString() ?? '',
+    code: json['code'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    isActive: json['is_active'] as bool? ?? true,
+  );
 }
 
 /// `LocationDto` — locations are always scoped to a department on the
-/// backend (`GET /api/locations?department_id=<guid>`), so the picker
+/// backend (`GET /api/locations?departmentId=<guid>`), so the picker
 /// must cascade: pick department first, then load matching locations.
 class LocationDto {
   const LocationDto({
@@ -44,12 +51,19 @@ class LocationDto {
   final String departmentName;
   final bool isActive;
 
+  // Compared by id so a dropdown's selection survives a list refetch.
+  @override
+  bool operator ==(Object other) => other is LocationDto && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
+
   factory LocationDto.fromJson(Map<String, dynamic> json) => LocationDto(
-        id: json['id']?.toString() ?? '',
-        name: json['name'] as String? ?? '',
-        type: json['type'] as String? ?? '',
-        departmentId: json['department_id']?.toString() ?? '',
-        departmentName: json['department_name'] as String? ?? '',
-        isActive: json['is_active'] as bool? ?? true,
-      );
+    id: json['id']?.toString() ?? '',
+    name: json['name'] as String? ?? '',
+    type: json['type'] as String? ?? '',
+    departmentId: json['department_id']?.toString() ?? '',
+    departmentName: json['department_name'] as String? ?? '',
+    isActive: json['is_active'] as bool? ?? true,
+  );
 }

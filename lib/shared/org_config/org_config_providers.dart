@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
@@ -11,8 +11,9 @@ import 'org_config_models.dart';
 /// [ApiException], never constructs its own Dio.
 ///
 /// Both endpoints are org-scoped server-side; no org filter is needed
-/// on the client. [includeInactive] defaults to `false` so pickers only
-/// show active departments / locations.
+/// on the client. Inactive departments / locations are excluded so pickers
+/// only offer valid destinations. Query parameters are camelCase — ASP.NET
+/// binds `[FromQuery]` by property name, and 100 is the API's page cap.
 class OrgConfigApi {
   OrgConfigApi(this._dio);
 
@@ -24,7 +25,7 @@ class OrgConfigApi {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/departments',
-        queryParameters: {'include_inactive': false, 'page_size': 200},
+        queryParameters: {'includeInactive': false, 'pageSize': 100},
       );
       final items = response.data?['items'];
       if (items is! List) return const [];
@@ -37,7 +38,7 @@ class OrgConfigApi {
     }
   }
 
-  /// `GET /api/locations?department_id=<id>` — returns active locations
+  /// `GET /api/locations?departmentId=<id>` — returns active locations
   /// for the given department. Cascade: call after the user picks a
   /// department.
   Future<List<LocationDto>> getLocationsForDepartment(
@@ -47,9 +48,9 @@ class OrgConfigApi {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/locations',
         queryParameters: {
-          'department_id': departmentId,
-          'include_inactive': false,
-          'page_size': 200,
+          'departmentId': departmentId,
+          'includeInactive': false,
+          'pageSize': 100,
         },
       );
       final items = response.data?['items'];
@@ -76,11 +77,9 @@ final departmentsProvider = FutureProvider<List<DepartmentDto>>((ref) {
 
 /// Locations for a specific department, keyed by department id. autoDispose
 /// so switching departments drops the old list rather than serving stale data.
-final locationsForDepartmentProvider =
-    FutureProvider.autoDispose.family<List<LocationDto>, String>(
-  (ref, departmentId) {
-    return ref
-        .watch(orgConfigApiProvider)
-        .getLocationsForDepartment(departmentId);
-  },
-);
+final locationsForDepartmentProvider = FutureProvider.autoDispose
+    .family<List<LocationDto>, String>((ref, departmentId) {
+      return ref
+          .watch(orgConfigApiProvider)
+          .getLocationsForDepartment(departmentId);
+    });

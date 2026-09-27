@@ -33,5 +33,10 @@ Future<PickedPhoto?> pickCompressedPhoto(ImageSource source) async {
     quality -= 15;
     bytes = await encode(quality) ?? bytes;
   }
-  return (bytes: bytes, fileName: picked.name);
+  // The bytes are JPEG now whatever the source was (HEIC, PNG…), and the
+  // upload's content type is inferred from this name — keep them in step.
+  final base = picked.name.contains('.')
+      ? picked.name.substring(0, picked.name.lastIndexOf('.'))
+      : picked.name;
+  return (bytes: bytes, fileName: '$base.jpg');
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/auth/auth_controller.dart';
 import '../../../shared/auth/auth_state.dart';
+import '../../../shared/auth/password_recovery.dart';
 import '../../../shared/widgets/ui.dart';
 
 /// Sign-in screen — authenticates via OAuth2 PKCE.
@@ -67,7 +68,14 @@ class SignInScreen extends ConsumerWidget {
                 onPressed: () =>
                     ref.read(authControllerProvider.notifier).signIn(),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.xs),
+              TextButton(
+                onPressed: isAuthenticating
+                    ? null
+                    : () => openPasswordRecovery(context),
+                child: const Text('Forgot password?'),
+              ),
+              const SizedBox(height: AppSpacing.xs),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

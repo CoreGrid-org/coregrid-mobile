@@ -32,6 +32,27 @@ abstract final class AuthConfig {
     'THUNDERID_CLIENT_ID',
   );
 
+  /// This app's ThunderID **Application ID** — not the Client ID; ThunderID's
+  /// recovery gate only accepts the former. Optional: without it the
+  /// password-reset entry points explain where else to reset instead
+  /// (doc/setup/ThunderID-mobile-client.md → Password recovery).
+  static const String thunderIdApplicationId = String.fromEnvironment(
+    'THUNDERID_APPLICATION_ID',
+  );
+
+  /// ThunderID's hosted password-recovery page for this app (enter email →
+  /// single-use link → new password), or null when not configured. CoreGrid
+  /// never sees the password.
+  static Uri? get passwordRecoveryUrl {
+    var issuer = thunderIdIssuer.trim();
+    while (issuer.endsWith('/')) {
+      issuer = issuer.substring(0, issuer.length - 1);
+    }
+    if (issuer.isEmpty || thunderIdApplicationId.isEmpty) return null;
+    return Uri.parse('$issuer/gate/recovery')
+        .replace(queryParameters: {'applicationId': thunderIdApplicationId});
+  }
+
   /// Must match the custom scheme registered with ThunderID and the
   /// `appAuthRedirectScheme` manifest placeholder in
   /// android/app/build.gradle.kts.
