@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/api/api_client.dart';
 import '../../shared/api/api_exception.dart';
 import 'models/fault_report.dart';
+import 'models/maintenance_filter.dart';
 
 /// Every `/api/maintenance` call this feature owns
 /// (`MOBILE-SPECIFICATION.md` §3.1). All failures are normalised to
@@ -22,7 +23,7 @@ class MaintenanceApi {
     try {
       final response = await _dio.get<dynamic>(
         '/api/maintenance/my-reports',
-        queryParameters: const {'page': 1, 'pageSize': 20},
+        queryParameters: const {'page': 1, 'pageSize': 50},
       );
 
       final data = response.data;
@@ -59,9 +60,15 @@ class MaintenanceApi {
     required String fileName,
   }) async {
     try {
+      // One `photo` part (the action's parameter name), labelled JPEG —
+      // pickCompressedPhoto always re-encodes to JPEG, and the API rejects
+      // anything but image/jpeg|png|webp.
       final formData = FormData.fromMap({
-        'photo': MultipartFile.fromBytes(bytes, filename: fileName),
-        'file': MultipartFile.fromBytes(bytes, filename: fileName),
+        'photo': MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+          contentType: DioMediaType('image', 'jpeg'),
+        ),
       });
 
       final response = await _dio.post<dynamic>(
@@ -135,6 +142,53 @@ class MaintenanceApi {
         status: 'Open',
         reportedAt: DateTime.now(),
       );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// `GET /api/maintenance` — FR-042 list/filter/sort/paginate. Readable by
+  /// Staff (own department only, server-side), Officer, Auditor, Admin.
+  Future<MaintenancePage> listRecords(
+    MaintenanceFilter filter, {
+    int page = 1,
+    int pageSize = MaintenanceFilter.pageSize,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/maintenance',
+        queryParameters: filter.toQueryParameters(
+          page: page,
+          pageSize: pageSize,
+        ),
+      );
+      return MaintenancePage.fromJson(response.data ?? const {});
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// `GET /api/maintenance/{id}`.
+  Future<FaultReport> getRecord(String id) =>
+      _record(() => _dio.get('/api/maintenance/$id'));
+
+  /// `POST /api/maintenance/{id}/start` — FR-037's mobile transition:
+  /// APPROVED → IN_PROGRESS (asset goes UNDER_MAINTENANCE). The API rejects
+  /// any other starting status with 409 `invalid_status_transition`.
+  Future<FaultReport> startWork(String id) =>
+      _record(() => _dio.post('/api/maintenance/$id/start'));
+
+  Future<FaultReport> _record(Future<Response<dynamic>> Function() call) async {
+    try {
+      final response = await call();
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw ApiException(
+          statusCode: response.statusCode ?? 0,
+          message: 'CoreGrid returned an empty response.',
+        );
+      }
+      return FaultReport.fromJson(data);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

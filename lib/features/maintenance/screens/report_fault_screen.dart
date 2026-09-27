@@ -173,6 +173,8 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
                     enabled: !isLoading,
                     minLines: 4,
                     maxLines: 6,
+                    // ReportFaultRequest.Description is MaxLength(2000).
+                    maxLength: 2000,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
                       labelText: 'Describe the issue or defect…',

@@ -10,7 +10,8 @@ import 'condition_update_sheet.dart';
 
 /// The role-and-lifecycle-aware entry points on the asset detail screen:
 /// Verify (Officer), Report Fault (everyone), Update Condition (Officer,
-/// non-disposed assets). The backend enforces the same rules (403s).
+/// non-disposed assets), Request Transfer (Officer, ACTIVE assets — FR-043).
+/// The backend enforces the same rules (403/422s).
 class AssetDetailActions extends ConsumerWidget {
   const AssetDetailActions({super.key, required this.asset});
 
@@ -19,6 +20,10 @@ class AssetDetailActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canVerify = ref.watch(canVerifyAssetsProvider);
+    // Same role as verification (RequestTransfer: Officer/Admin), and only
+    // an ACTIVE asset can be transferred.
+    final canTransfer =
+        canVerify && asset.lifecycleStatus == AssetLifecycleStatus.active;
     final canUpdateCondition =
         ref.watch(canUpdateAssetConditionProvider) &&
         asset.allowsConditionUpdate;
@@ -45,6 +50,14 @@ class AssetDetailActions extends ConsumerWidget {
             onPressed: () => openVerificationFor(context, ref, asset),
             icon: const Icon(Icons.fact_check_outlined, size: 20),
             label: const Text('Verify'),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        if (canTransfer) ...[
+          OutlinedButton.icon(
+            onPressed: () => context.push('/transfers/new', extra: asset),
+            icon: const Icon(Icons.local_shipping_outlined, size: 20),
+            label: const Text('Request Transfer'),
           ),
           const SizedBox(height: AppSpacing.md),
         ],

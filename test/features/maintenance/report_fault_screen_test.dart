@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeMaintenanceApi implements MaintenanceApi {
+class _FakeMaintenanceApi extends Fake implements MaintenanceApi {
   String? submittedAssetId;
   String? submittedDescription;
   String? submittedCondition;
