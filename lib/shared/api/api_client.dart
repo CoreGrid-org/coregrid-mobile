@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/auth_config.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_state.dart';
+import 'dev_tls.dart';
 
 /// The one shared `dio` instance (`MOBILE-SPECIFICATION.md` §3.4). Every
 /// feature's `*_api.dart` resolves this rather than constructing its own
@@ -31,6 +32,7 @@ final apiClientProvider = Provider<Dio>((ref) {
       contentType: Headers.jsonContentType,
     ),
   );
+  trustLocalDevCerts(dio);
 
   dio.interceptors.add(
     InterceptorsWrapper(

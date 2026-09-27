@@ -3,6 +3,7 @@ import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_exception.dart';
+import '../api/dev_tls.dart';
 import 'auth_config.dart';
 import 'auth_state.dart';
 import 'token_storage.dart';
@@ -37,6 +38,10 @@ class AuthController extends Notifier<AuthState> {
       receiveTimeout: const Duration(seconds: 8),
     ),
   );
+
+  AuthController() {
+    trustLocalDevCerts(_dio);
+  }
 
   @override
   AuthState build() => const AuthUnauthenticated();
