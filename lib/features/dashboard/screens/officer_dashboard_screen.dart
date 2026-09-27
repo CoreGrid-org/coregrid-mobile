@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/theme/app_theme.dart';
+import '../../transfers/transfers_providers.dart';
 import '../../../shared/widgets/ui.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../../maintenance/widgets/fault_tile.dart';
@@ -79,6 +81,10 @@ class OfficerDashboardBody extends ConsumerWidget {
               onTap: () => context.push('/workflows/new'),
             ),
             QuickAction(
+              accent: accent,
+              icon: Icons.local_shipping_outlined,
+              label: 'Transfer',
+              onTap: () => context.push('/transfers'),
               icon: Icons.flag_outlined,
               label: 'Campaigns',
               caption: 'Progress & scope',
@@ -99,22 +105,100 @@ class OfficerDashboardBody extends ConsumerWidget {
           onSeeAll: () => context.go('/verification'),
           itemBuilder: (t) => TaskTile(task: t),
         ),
-        DashboardPreview(
-          title: 'Recent evaluations',
-          data: workflows,
-          maxItems: 2,
-          emptyLabel: 'No agent evaluations yet.',
-          onSeeAll: () => context.go('/workflows'),
-          itemBuilder: WorkflowTile.new,
-        ),
-        DashboardPreview(
-          title: 'My fault reports',
-          data: faults,
-          emptyLabel: 'You haven\'t reported any faults.',
-          onSeeAll: () => context.go('/faults'),
-          itemBuilder: FaultTile.new,
-        ),
+        _TransfersAwaitingConfirmationSection(accent: accent),
       ],
     );
+  }
+}
+
+/// Verification tasks due section.
+class _VerificationTasksDueSection extends ConsumerWidget {
+  const _VerificationTasksDueSection({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref.watch(myVerificationTasksProvider);
+
+    return switch (tasks) {
+      AsyncData(:final value) => DashboardSection(
+        title: 'Verification Tasks Due',
+        icon: Icons.fact_check_outlined,
+        accent: accent,
+        emptyLabel: 'No verification tasks assigned to you',
+        rows: [
+          for (final task in value.where((t) => t.isPending).take(3))
+            DashboardRow(
+              label: ': ',
+              detail: task.isOverdue
+                  ? 'Overdue since --'
+                  : 'Due --',
+              status: task.status.apiValue,
+              onTap: () => context.push('/verification/'),
+            ),
+        ],
+      ),
+      AsyncError() => DashboardSection(
+        title: 'Verification Tasks Due',
+        icon: Icons.fact_check_outlined,
+        accent: accent,
+        emptyLabel: 'Could not load verification tasks',
+        rows: const [],
+      ),
+      _ => DashboardSection(
+        title: 'Verification Tasks Due',
+        icon: Icons.fact_check_outlined,
+        accent: accent,
+        emptyLabel: 'Loading...',
+        rows: const [],
+      ),
+    };
+  }
+}
+
+/// Transfers awaiting confirmation section (FR-046).
+class _TransfersAwaitingConfirmationSection extends ConsumerWidget {
+  const _TransfersAwaitingConfirmationSection({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transfers = ref.watch(pendingConfirmationProvider);
+
+    return switch (transfers) {
+      AsyncData(:final value) => DashboardSection(
+        title: 'Transfers Awaiting My Confirmation',
+        icon: Icons.move_to_inbox_outlined,
+        accent: accent,
+        emptyLabel: 'No transfers awaiting confirmation',
+        rows: [
+          for (final t in value.take(3))
+            DashboardRow(
+              label: ': ',
+              detail: t.fromDepartmentName != null
+                  ? 'From '
+                  : 'Transfer approved',
+              status: t.status.label,
+              onTap: () => context.push('/transfers/'),
+            ),
+        ],
+      ),
+      AsyncError() => DashboardSection(
+        title: 'Transfers Awaiting My Confirmation',
+        icon: Icons.move_to_inbox_outlined,
+        accent: accent,
+        emptyLabel: 'Could not load transfers',
+        rows: const [],
+      ),
+      _ => DashboardSection(
+        title: 'Transfers Awaiting My Confirmation',
+        icon: Icons.move_to_inbox_outlined,
+        accent: accent,
+        emptyLabel: 'Loading...',
+        rows: const [],
+      ),
+    };
   }
 }

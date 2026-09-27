@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/assets/screens/asset/asset_detail_screen.dart';
@@ -20,6 +20,10 @@ import '../features/verification/screens/verification_task_list_screen.dart';
 import '../features/workflows/screens/initiate_workflow_screen.dart';
 import '../features/workflows/screens/workflow_detail_screen.dart';
 import '../features/workflows/screens/workflow_list_screen.dart';
+import '../features/transfers/screens/confirm_receipt_scan_screen.dart';
+import '../features/transfers/screens/initiate_transfer_screen.dart';
+import '../features/transfers/screens/transfer_detail_screen.dart';
+import '../features/transfers/screens/transfer_list_screen.dart';
 import '../features/account/screens/account_screen.dart';
 import '../features/maintenance/screens/my_faults_screen.dart';
 import '../features/verification/screens/campaign_detail_screen.dart';
@@ -38,7 +42,7 @@ bool _isOfficerOnly(String location) =>
     (location.startsWith('/assets/') && location.endsWith('/verify'));
 
 /// Route table mirrors the `lib/features/` layout one-to-one
-/// (`doc/MOBILE-SPECIFICATION.md` §3.1/§3.3) — no route lives outside its
+/// (`doc/MOBILE-SPECIFICATION.md` Â§3.1/Â§3.3) â€” no route lives outside its
 /// feature's folder. Each feature wires its own routes in here as it lands.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -138,7 +142,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialAsset: state.extra as AssetDetail?,
         ),
       ),
-      // Asset detail — reached from manual lookup or scan.
+      // Asset detail â€” reached from manual lookup or scan.
       GoRoute(
         path: '/assets/:id',
         builder: (context, state) => AssetDetailScreen(
@@ -157,7 +161,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      // features/maintenance/ — details for a fault report selected from the
+      // features/maintenance/ â€” details for a fault report selected from the
       // signed-in user's dashboard list.
       GoRoute(
         path: '/maintenance/:id',
@@ -183,7 +187,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             RaiseDiscrepancyScreen(taskId: state.pathParameters['taskId']!),
       ),
-      // Workflow creation / detail. Officer only.
+      // Transfer routes (FR-043/FR-046). Officer only — see _officerOnlyPrefixes.
+      GoRoute(
+        path: '/transfers',
+        builder: (context, state) => const TransferListScreen(),
+      ),
+      GoRoute(
+        path: '/transfers/new',
+        builder: (context, state) => const InitiateTransferScreen(),
+      ),
+      GoRoute(
+        path: '/transfers/:id',
+        builder: (context, state) =>
+            TransferDetailScreen(transferId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/transfers/:id/confirm-scan',
+        builder: (context, state) =>
+            ConfirmReceiptScanScreen(transferId: state.pathParameters['id']!),
+      ),
+            // Workflows routes. Officer only.
+      GoRoute(
+        path: '/workflows',
+        builder: (context, state) => const WorkflowListScreen(),
+      ),
       GoRoute(
         path: '/workflows/new',
         builder: (context, state) => const InitiateWorkflowScreen(),
@@ -196,3 +223,4 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
