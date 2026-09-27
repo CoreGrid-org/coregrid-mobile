@@ -126,10 +126,12 @@ Route table mirrors the feature list in §3.1 one-to-one — no route lives outs
 (`app/app_shell.dart`) with a Material 3 bottom `NavigationBar`; each tab keeps its own stack. Tabs are
 role-filtered (`shellBranchesFor`) — Officer: Home · Verify · Workflows · Faults · Account; Staff: Home ·
 Faults · Account; unresolved role: Home · Account. Branch routes are `/home`, `/verification`
-(`?view=campaigns` opens the Campaigns segment), `/workflows`, `/faults`, `/account`. Detail and form
+(`?view=campaigns` opens the Campaigns segment), `/workflows`, `/faults` (Officer: `?view=all` opens
+*All records*, `?view=assigned` the same filtered to their assignments), `/account`. Detail and form
 routes (`/scan`, `/assets/...`, `/verification/:taskId`, `/campaigns/:id`, `/workflows/new|:id`,
-`/maintenance/...`) are top-level and push full-screen over the shell. The `redirect` still guards
-`/verification`, `/workflows` and `/campaigns` for non-Officers, independent of which tabs are shown.
+`/maintenance/report|:id`, `/transfers`, `/transfers/new|:id`) are top-level and push full-screen over the
+shell. The `redirect` guards `/verification`, `/workflows`, `/campaigns` and `/transfers` for
+non-Officers, independent of which tabs are shown.
 
 **Design system.** Every screen builds from `shared/widgets/ui.dart` and the theme — no screen hard-codes
 colours. Brand deep green (`CoreGridBrand.greenDeep`) is the single interactive primary; status meaning is
@@ -201,7 +203,7 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | Sequence | Role-branched (main SRS §2.3.1): Officer sees verification tasks due, maintenance assigned, transfers awaiting confirmation; Staff sees their own fault reports and status only — narrower, since Staff has no verification/maintenance-management/transfer capability |
 | States | Loading, empty (per section — "No tasks due"), error (per section, independently retryable), populated |
 | API calls | Aggregated from the verification, maintenance and transfer list endpoints (main SRS §9), scoped to the current user |
-| Status | **Live** (`features/dashboard/`) — the Home tab: greeting, "Find an asset" (scan / code-or-name search), then role-specific content. Officer: at-a-glance counts (overdue tasks, tasks to verify, open fault reports), quick actions, and previews of verification due, recent evaluations and my fault reports, each with "See all" to its tab. Staff: quick actions and my fault reports. The former hard-coded "Maintenance Assigned to Me" / "Transfers Awaiting My Confirmation" sample rows were removed rather than shown as fake data; they return as real sections when `features/maintenance` task assignment and `features/transfers` exist. |
+| Status | **Live** (`features/dashboard/`) — the Home tab: greeting, "Find an asset" (scan / code-or-name search), then role-specific content. Officer: at-a-glance counts (overdue tasks, tasks to verify, open fault reports), quick actions (incl. Transfers), and previews of verification due, maintenance assigned to me (`GET /api/maintenance?assigneeId=<me>` for APPROVED + IN_PROGRESS), transfers to receive (APPROVED, into the officer's department), recent evaluations and my fault reports, each with "See all". Staff: quick actions and my fault reports. |
 
 ### 4.3 Scan / Manual Entry — FR-024, FR-025, IF-06, IF-07, IF-10, IF-12
 
@@ -271,8 +273,8 @@ calls to the `CanManageCampaigns` endpoints.
 
 | | |
 |---|---|
-| Trigger | From the dashboard's assigned-maintenance section or a filtered list |
-| Sequence | List (status/priority/date filters) → record detail → legal-transition-only status update (illegal transitions not offered as options, not merely rejected server-side) |
+| Trigger | From the dashboard's "Maintenance assigned to me", or the Officer's Faults tab → *All records* (`MaintenanceRecordsView`) |
+| Sequence | List (status/priority/type/department/asset/assignee/date-range filters, sort, "Load more") → record detail (`/maintenance/:id`, re-read by id) → legal-transition-only update (illegal transitions not offered, not merely rejected server-side) |
 | States | Loading, empty, error, populated; update-in-flight |
 | API calls | `GET /api/maintenance` (filtered — filter to `assignee_id = me` for "my work"), then one of the three transition endpoints below depending on the record's current status |
 
@@ -285,6 +287,14 @@ non-terminal state) — there is no generic `/status` endpoint; each transition 
 | `APPROVED → IN_PROGRESS` | `POST /api/maintenance/{id}/start` | InventoryOfficer/Administrator |
 | `IN_PROGRESS → COMPLETED` | `POST /api/maintenance/{id}/complete` | **InventoryOfficer only** — Administrator is deliberately excluded from this one endpoint (every other transition uses the InventoryOfficer-or-Administrator policy); since Administrator has no mobile access anyway (§4.1's role gate), this asymmetry doesn't affect this app in practice, but don't assume the same role set applies to every transition if extending this screen |
 | any → `CANCELLED` | `POST /api/maintenance/{id}/cancel` | InventoryOfficer/Administrator, optional reason |
+
+**What mobile actually offers (as built, 2026-09-27).** SRS §3.4's responsibility table is normative and
+reads "Maintenance assignment, costing, completion — React: Yes / Flutter: Progress update only". So the app
+offers exactly one transition: **Start work** (`APPROVED → IN_PROGRESS`), shown only to the record's
+assignee (matched on `assignee_id` / email from `GET /api/me`). Approve, complete and cancel are not built
+here; the detail screen tells the user what the record is waiting for instead. The table above and the
+completion-form note below describe the API, not a mobile to-do list — building completion on mobile would
+need a §3.4 scope change first.
 
 **How "Assigned to" gets set — there is no separate assign action.** Assignment happens exclusively as part
 of Approve: `POST /api/maintenance/{id}/approve` takes both `assignee_id` and `estimated_cost` in the same
@@ -301,9 +311,9 @@ requires `estimated_cost`/`actual_cost`, ≥10-character `work_performed`, a `co
 
 | | |
 |---|---|
-| Trigger | "Raise Transfer" from asset detail, or "Confirm Receipt" from the dashboard's awaiting-confirmation section |
-| Sequence (raise) | Destination department → destination location → reason → submit |
-| Sequence (confirm) | Scan the incoming asset (reuses §4.3) → confirm receipt → asset returns to ACTIVE at the new department/location |
+| Trigger | "Request Transfer" on asset detail (ACTIVE assets), the Transfers quick action / list (`/transfers`), or the dashboard's "Transfers to receive" |
+| Sequence (raise) | Asset (code, scan, or pre-filled) → destination department → destination location → submit → the new transfer's detail. *Reason* is in the SRS text but not in the API's `InitiateTransferRequest` yet |
+| Sequence (confirm) | Transfer detail (APPROVED, into the officer's own department) → "Scan to confirm receipt" → shared identify-mode scanner (`identifyAssetByScan`, manual code entry still available) → scanned asset must equal the transfer's → `POST …/confirm-receipt` → asset ACTIVE at the new department/location |
 | States | Both flows: draft, submitting, submitted, error |
 | API calls | Raise: `POST /api/transfers`, InventoryOfficer/Administrator only (`CanRequestTransfer`). Confirm: `POST /api/transfers/{id}/confirm-receipt`, InventoryOfficer/Administrator only (`CanConfirmReceipt`) — both policies exclude Staff and Auditor, so on this Officer-only-mobile app there's no extra role gating to add beyond §4.1's. Approve/reject (`POST /api/transfers/{id}/approve`, `/reject`) are Administrator-only and out of scope for this app entirely. |
 

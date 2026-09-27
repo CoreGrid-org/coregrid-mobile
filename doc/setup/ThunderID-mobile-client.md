@@ -73,3 +73,34 @@ Cause: `android:taskAffinity=""` on `MainActivity` (the Flutter template default
 different task from AppAuth's `AuthorizationManagementActivity`, so the redirect is delivered to a fresh
 instance that has no record of the pending request. `android/app/src/main/AndroidManifest.xml` deliberately
 omits the attribute — don't re-add it. (flutter_appauth README, "No Redirect to app after login".)
+
+## Password recovery
+
+The app's *Forgot password?* (sign-in screen) and *Change password* (Account tab) open ThunderID's hosted
+recovery page — `<THUNDERID_ISSUER>/gate/recovery?applicationId=<THUNDERID_APPLICATION_ID>` — in the
+external browser. The user enters their sign-in email, gets a single-use link, and sets a new password;
+CoreGrid never sees it. Two things are needed, once per ThunderID instance:
+
+1. **Enable recovery on the mobile application.** The backend's script only targets the web app by
+   default, but takes the application name as a variable — from the `CoreGrid` repo:
+
+   ```bash
+   FRONTEND_APP_NAME="<mobile app's name in the ThunderID console>" \
+     scripts/thunderid/enable-password-recovery.sh
+   ```
+
+   It's idempotent. It reuses the existing *CoreGrid Recovery Flow*, whose "Back to sign in" link returns
+   to the **web** sign-in flow — harmless on mobile (the user just switches back to the app and taps Sign
+   In), but worth knowing. Until this runs, ThunderID answers `FES-1009 Recovery not allowed`.
+2. **Add the Application ID it prints** (the console's application id — *not* the OAuth Client ID; the
+   recovery gate only accepts the former) to your untracked `.env.json`:
+
+   ```json
+   "THUNDERID_APPLICATION_ID": "<mobile Application ID>"
+   ```
+
+Without `THUNDERID_APPLICATION_ID` the app still builds; both buttons then explain the alternatives
+(ThunderID's own *Forgot password?* link, or an Administrator reset from the web console's Users & Roles).
+Recovery emails are only delivered once ThunderID's SMTP is configured — deferred to deployment
+(`CoreGrid/docs/setup/thunderid.md` step 8); until then use the Administrator reset.
+

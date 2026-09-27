@@ -1,4 +1,6 @@
-/// FaultReport DTO, mirrors maintenance API responses.
+/// A maintenance record (`MaintenanceRecordDto`) — what a fault report
+/// becomes once raised (FR-033), and what the maintenance list (FR-042) and
+/// progress update (FR-037) work on.
 class FaultReport {
   const FaultReport({
     required this.id,
@@ -13,6 +15,16 @@ class FaultReport {
     this.reportedByName,
     this.createdById,
     this.type,
+    this.assetName,
+    this.priority,
+    this.assigneeId,
+    this.assigneeEmail,
+    this.estimatedCost,
+    this.actualCost,
+    this.workPerformed,
+    this.completionDate,
+    this.resultingCondition,
+    this.cancellationReason,
   });
 
   final String id;
@@ -27,6 +39,18 @@ class FaultReport {
   final String? reportedByName;
   final String? createdById;
   final String? type;
+  final String? assetName;
+
+  /// LOW / MEDIUM / HIGH / CRITICAL.
+  final String? priority;
+  final String? assigneeId;
+  final String? assigneeEmail;
+  final num? estimatedCost;
+  final num? actualCost;
+  final String? workPerformed;
+  final DateTime? completionDate;
+  final String? resultingCondition;
+  final String? cancellationReason;
 
   /// Whether this record is an automated/system scheduled preventive maintenance task.
   bool get isPreventive {
@@ -38,26 +62,50 @@ class FaultReport {
         d.contains('preventive maintenance (interval:');
   }
 
-  bool get isOpen =>
-      status.toLowerCase() == 'open' ||
-      status.toLowerCase() == 'reported' ||
-      status.toLowerCase() == 'requested' ||
-      status.toLowerCase() == 'pending';
+  /// `IN_PROGRESS`, `in progress`, `InProgress` → `IN_PROGRESS`-ish key.
+  String get _statusKey =>
+      status.trim().toUpperCase().replaceAll(' ', '_').replaceAll('-', '_');
 
-  bool get isInProgress =>
-      status.toLowerCase() == 'inprogress' ||
-      status.toLowerCase() == 'in progress' ||
-      status.toLowerCase() == 'assigned' ||
-      status.toLowerCase() == 'under_maintenance' ||
-      status.toLowerCase() == 'approved';
+  bool get isOpen => const {
+    'OPEN',
+    'REPORTED',
+    'REQUESTED',
+    'PENDING',
+    'NEW',
+  }.contains(_statusKey);
+
+  /// Approved or being worked on — still active, past the request stage.
+  bool get isInProgress => isApproved || isUnderWay;
+
+  /// APPROVED: assigned and costed, work not yet started.
+  bool get isApproved => const {'APPROVED', 'ACCEPTED'}.contains(_statusKey);
+
+  /// IN_PROGRESS: work started, asset UNDER_MAINTENANCE.
+  bool get isUnderWay => const {
+    'IN_PROGRESS',
+    'INPROGRESS',
+    'ASSIGNED',
+    'UNDER_MAINTENANCE',
+    'MAINTENANCE',
+    'ONGOING',
+    'ON_HOLD',
+    'ONHOLD',
+    'HOLD',
+  }.contains(_statusKey);
+
+  bool get isCancelled => const {
+    'CANCELLED',
+    'CANCELED',
+    'REJECTED',
+    'DECLINED',
+  }.contains(_statusKey);
+
+  /// `AST-0042 · Forklift`, or whichever half is known.
+  String get assetLabel =>
+      [assetCode, ?assetName].where((s) => s.isNotEmpty).toSet().join(' · ');
 
   String get statusLabel {
-    final s = status
-        .trim()
-        .toUpperCase()
-        .replaceAll(' ', '_')
-        .replaceAll('-', '_');
-    switch (s) {
+    switch (_statusKey) {
       case 'OPEN':
       case 'REPORTED':
       case 'PENDING':
@@ -282,6 +330,31 @@ class FaultReport {
                   json['maintenanceType'] ??
                   json['MaintenanceType'])
               ?.toString(),
+      assetName: _str(
+        json['asset_name'] ?? json['assetName'] ?? assetObj?['name'],
+      ),
+      priority: _str(json['priority'] ?? json['Priority']),
+      assigneeId: _str(json['assignee_id'] ?? json['assigneeId']),
+      assigneeEmail: _str(json['assignee_email'] ?? json['assigneeEmail']),
+      estimatedCost: _num(json['estimated_cost'] ?? json['estimatedCost']),
+      actualCost: _num(json['actual_cost'] ?? json['actualCost']),
+      workPerformed: _str(json['work_performed'] ?? json['workPerformed']),
+      completionDate: DateTime.tryParse(
+        _str(json['completion_date'] ?? json['completionDate']) ?? '',
+      ),
+      resultingCondition: _str(
+        json['resulting_condition'] ?? json['resultingCondition'],
+      ),
+      cancellationReason: _str(
+        json['cancellation_reason'] ?? json['cancellationReason'],
+      ),
     );
   }
+
+  static String? _str(Object? v) {
+    final s = v?.toString();
+    return s == null || s.isEmpty ? null : s;
+  }
+
+  static num? _num(Object? v) => v is num ? v : num.tryParse('${v ?? ''}');
 }

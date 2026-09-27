@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/assets/screens/asset/asset_detail_screen.dart';
@@ -20,21 +20,26 @@ import '../features/verification/screens/verification_task_list_screen.dart';
 import '../features/workflows/screens/initiate_workflow_screen.dart';
 import '../features/workflows/screens/workflow_detail_screen.dart';
 import '../features/workflows/screens/workflow_list_screen.dart';
-import '../features/transfers/screens/confirm_receipt_scan_screen.dart';
 import '../features/transfers/screens/initiate_transfer_screen.dart';
 import '../features/transfers/screens/transfer_detail_screen.dart';
 import '../features/transfers/screens/transfer_list_screen.dart';
 import '../features/account/screens/account_screen.dart';
+import '../features/notifications/screens/notifications_screen.dart';
 import '../features/maintenance/screens/my_faults_screen.dart';
 import '../features/verification/screens/campaign_detail_screen.dart';
 import '../shared/auth/auth_controller.dart';
 import '../shared/auth/auth_state.dart';
 import 'app_shell.dart';
 
-/// `features/verification/` and `features/workflows/` are Inventory Officer
-/// only on mobile. The shell never shows these tabs to a Staff session, but
-/// a direct navigation is still guarded here.
-const _officerOnlyPrefixes = ['/verification', '/workflows', '/campaigns'];
+/// `features/verification/`, `features/workflows/` and `features/transfers/`
+/// are Inventory Officer only on mobile. The shell never shows these to a
+/// Staff session, but a direct navigation is still guarded here.
+const _officerOnlyPrefixes = [
+  '/verification',
+  '/workflows',
+  '/campaigns',
+  '/transfers',
+];
 
 bool _isOfficerOnly(String location) =>
     _officerOnlyPrefixes.any(location.startsWith) ||
@@ -42,7 +47,7 @@ bool _isOfficerOnly(String location) =>
     (location.startsWith('/assets/') && location.endsWith('/verify'));
 
 /// Route table mirrors the `lib/features/` layout one-to-one
-/// (`doc/MOBILE-SPECIFICATION.md` Â§3.1/Â§3.3) â€” no route lives outside its
+/// (`doc/MOBILE-SPECIFICATION.md` §3.1/§3.3) — no route lives outside its
 /// feature's folder. Each feature wires its own routes in here as it lands.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -98,7 +103,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/faults',
-                builder: (context, state) => const MyFaultsScreen(),
+                builder: (context, state) =>
+                    MyFaultsScreen(view: state.uri.queryParameters['view']),
               ),
             ],
           ),
@@ -116,6 +122,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/access-restricted',
         builder: (context, state) =>
             AccessRestrictedScreen(role: state.extra as String? ?? ''),
+      ),
+      // FR-080 — the user's own notifications (every role).
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
       // Manual asset-code entry fallback.
       GoRoute(
@@ -142,7 +153,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialAsset: state.extra as AssetDetail?,
         ),
       ),
-      // Asset detail â€” reached from manual lookup or scan.
+      // Asset detail — reached from manual lookup or scan.
       GoRoute(
         path: '/assets/:id',
         builder: (context, state) => AssetDetailScreen(
@@ -161,12 +172,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      // features/maintenance/ â€” details for a fault report selected from the
-      // signed-in user's dashboard list.
+      // features/maintenance/ — one maintenance record (FR-033 report,
+      // FR-037 progress update). The list's copy rides along as extra so it
+      // renders at once; the screen re-reads it by id.
       GoRoute(
         path: '/maintenance/:id',
-        builder: (context, state) =>
-            FaultDetailScreen(report: state.extra as FaultReport),
+        builder: (context, state) => FaultDetailScreen(
+          id: state.pathParameters['id']!,
+          report: state.extra as FaultReport?,
+        ),
       ),
       // Verification task detail / discrepancy and read-only campaign detail
       // push full-screen over the tabs. Officer only.
@@ -194,23 +208,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/transfers/new',
-        builder: (context, state) => const InitiateTransferScreen(),
+        builder: (context, state) =>
+            InitiateTransferScreen(initialAsset: state.extra as AssetDetail?),
       ),
+      // Transfer detail; FR-046 receipt confirmation is its scan action.
       GoRoute(
         path: '/transfers/:id',
         builder: (context, state) =>
             TransferDetailScreen(transferId: state.pathParameters['id']!),
       ),
-      GoRoute(
-        path: '/transfers/:id/confirm-scan',
-        builder: (context, state) =>
-            ConfirmReceiptScanScreen(transferId: state.pathParameters['id']!),
-      ),
-            // Workflows routes. Officer only.
-      GoRoute(
-        path: '/workflows',
-        builder: (context, state) => const WorkflowListScreen(),
-      ),
+      // Workflow creation / detail. Officer only.
       GoRoute(
         path: '/workflows/new',
         builder: (context, state) => const InitiateWorkflowScreen(),
@@ -223,4 +230,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
