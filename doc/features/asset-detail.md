@@ -21,7 +21,10 @@ Spec reference: [`MOBILE-SPECIFICATION.md` §4.4](../MOBILE-SPECIFICATION.md).
 /assets/:id   →   AssetDetailScreen(assetId)   the attribute-driven detail view (FR-020)
 ```
 
-All routes are registered in `lib/app/router.dart`. **Scan Asset** on either dashboard opens the camera,
+All routes are registered in `lib/app/router.dart`. Both dashboards reach them through one **Find an asset**
+card (`features/dashboard/widgets/find_asset_card.dart`): a single token typed there is tried as an exact code
+and opens the detail screen; anything else, or an unknown code, opens `/assets/search?q=…` pre-filled.
+Its **Scan QR code** button opens the camera,
 accepts QR codes only, resolves their value through `GET /api/assets/qr/{code}`, and immediately opens the
 returned authoritative record. Camera access refused, an unknown code, and offline lookup all provide a
 safe recovery path; manual code entry remains available throughout.

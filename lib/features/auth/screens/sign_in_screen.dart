@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/auth/auth_controller.dart';
 import '../../../shared/auth/auth_state.dart';
+import '../../../shared/widgets/ui.dart';
 
 /// Sign-in screen — authenticates via OAuth2 PKCE.
 class SignInScreen extends ConsumerWidget {
@@ -24,62 +25,68 @@ class SignInScreen extends ConsumerWidget {
 
     final state = ref.watch(authControllerProvider);
     final isAuthenticating = state is AuthAuthenticating;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = context.mutedBody;
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(flex: 3),
-              Image.asset(
-                isDark
-                    ? 'assets/branding/w-coregrid.webp'
-                    : 'assets/branding/coregrid.webp',
-                width: 140,
-                height: 140,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'CoreGrid',
-                style: Theme.of(context).textTheme.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Field Operations',
-                style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(color: colors.onSurfaceVariant),
-              ),
-              const Spacer(flex: 4),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton.icon(
-                  onPressed: isAuthenticating
-                      ? null
-                      : () =>
-                            ref.read(authControllerProvider.notifier).signIn(),
-                  icon: isAuthenticating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.login),
-                  label: Text(isAuthenticating ? 'Signing In…' : 'Sign In'),
+              Center(
+                child: Image.asset(
+                  isDark
+                      ? 'assets/branding/w-coregrid.webp'
+                      : 'assets/branding/coregrid.webp',
+                  width: 120,
+                  height: 120,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.xl),
               Text(
-                'Sign-in opens ThunderID in your browser',
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: colors.onSurfaceVariant),
+                'CoreGrid',
                 textAlign: TextAlign.center,
+                style: context.text.headlineMedium,
               ),
-              const Spacer(),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Asset field operations',
+                textAlign: TextAlign.center,
+                style: muted,
+              ),
+              const Spacer(flex: 4),
+              SubmitButton(
+                label: 'Sign In',
+                busyLabel: 'Signing In…',
+                icon: Icons.login_rounded,
+                busy: isAuthenticating,
+                onPressed: () =>
+                    ref.read(authControllerProvider.notifier).signIn(),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 14,
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Flexible(
+                    child: Text(
+                      'Secure sign-in with ThunderID opens in your browser',
+                      textAlign: TextAlign.center,
+                      style: context.mutedSmall,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),

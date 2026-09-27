@@ -1,4 +1,5 @@
 import 'package:coregrid_mobile/features/verification/models/discrepancy.dart';
+import 'package:coregrid_mobile/features/verification/models/verification_campaign.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_location.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_task.dart';
 import 'package:coregrid_mobile/features/verification/screens/verification_task_list_screen.dart';
@@ -49,8 +50,11 @@ class _FakeVerificationApi implements VerificationApi {
   }) => throw UnimplementedError();
 
   @override
-  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async =>
-      const [];
+  Future<List<VerificationCampaign>> getCampaigns() async => const [];
+
+  @override
+  Future<VerificationCampaign> getCampaign(String id) =>
+      throw UnimplementedError();
 }
 
 VerificationTask _task({String status = 'Pending', bool overdue = false}) {
@@ -99,7 +103,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('(overdue)'), findsOneWidget);
+    expect(find.textContaining('Overdue by'), findsOneWidget);
   });
 
   testWidgets('shows a retryable error state on failure', (tester) async {

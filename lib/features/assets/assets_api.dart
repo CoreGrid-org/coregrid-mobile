@@ -36,7 +36,12 @@ class AssetsApi {
   /// may return either a plain list or a paged `{items: [...]}` envelope.
   Future<List<String>> getFilterOptions(String resourcePath) async {
     try {
-      final response = await _dio.get<Object>(resourcePath);
+      // Org-config lists are paged (default 20) — ask for the maximum so a
+      // filter never silently drops options.
+      final response = await _dio.get<Object>(
+        resourcePath,
+        queryParameters: {'pageSize': 100},
+      );
       final data = response.data;
       final rawItems = data is List
           ? data

@@ -2,17 +2,75 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../shared/api/api_exception.dart';
+import '../../../../shared/auth/auth_controller.dart';
+import '../../../../shared/auth/auth_state.dart';
+import '../../../../shared/auth/me_provider.dart';
+import '../../../../shared/widgets/ui.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_search.dart';
 
-const _orange = Color(0xFFFF5A00);
-const _darkText = Color(0xFF202625);
-const _secondaryText = Color(0xFF59635F);
-const _fieldFill = Color(0xFFF8F9F8);
+/// Filter state edited in the filter sheet — everything in
+/// [AssetSearchQuery] except the free-text search and paging.
+class _Filters {
+  const _Filters({
+    this.department = '',
+    this.location = '',
+    this.category = '',
+    this.assetType = '',
+    this.status = '',
+    this.condition = '',
+    this.sortBy = 'name',
+    this.sortOrder = 'asc',
+  });
 
+  final String department;
+  final String location;
+  final String category;
+  final String assetType;
+  final String status;
+  final String condition;
+  final String sortBy;
+  final String sortOrder;
+
+  int get activeCount => [
+    department,
+    location,
+    category,
+    assetType,
+    status,
+    condition,
+  ].where((v) => v.isNotEmpty).length;
+
+  _Filters copyWith({
+    String? department,
+    String? location,
+    String? category,
+    String? assetType,
+    String? status,
+    String? condition,
+    String? sortBy,
+    String? sortOrder,
+  }) => _Filters(
+    department: department ?? this.department,
+    location: location ?? this.location,
+    category: category ?? this.category,
+    assetType: assetType ?? this.assetType,
+    status: status ?? this.status,
+    condition: condition ?? this.condition,
+    sortBy: sortBy ?? this.sortBy,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+}
+
+/// Asset search (FR-028): free text across code, name and custom attribute
+/// values, with department / location / type / category / status /
+/// condition filters and sorting tucked into a bottom sheet.
 class AssetSearchScreen extends ConsumerStatefulWidget {
-  const AssetSearchScreen({super.key});
+  const AssetSearchScreen({super.key, this.initialQuery = ''});
+
+  /// Pre-fills the search box and runs the search on open — set when the
+  /// dashboard's "Find an asset" bar hands off a name / partial code.
+  final String initialQuery;
 
   @override
   ConsumerState<AssetSearchScreen> createState() => _AssetSearchScreenState();
@@ -20,31 +78,50 @@ class AssetSearchScreen extends ConsumerStatefulWidget {
 
 class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
   AssetSearchQuery? _query;
-  String _search = '';
-  String _department = '';
-  String _location = '';
-  String _category = '';
-  String _assetType = '';
-  String _status = '';
-  String _condition = '';
-  String _sortBy = 'name';
-  String _sortOrder = 'asc';
+  _Filters _filters = const _Filters();
+  late final _searchController = TextEditingController(
+    text: widget.initialQuery,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialQuery.trim();
+    if (initial.isNotEmpty) _query = AssetSearchQuery(search: initial);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _submit() {
     FocusScope.of(context).unfocus();
     setState(() {
       _query = AssetSearchQuery(
-        search: _search,
-        department: _department,
-        location: _location,
-        category: _category,
-        assetType: _assetType,
-        status: _status,
-        condition: _condition,
-        sortBy: _sortBy,
-        sortOrder: _sortOrder,
+        search: _searchController.text,
+        department: _filters.department,
+        location: _filters.location,
+        category: _filters.category,
+        assetType: _filters.assetType,
+        status: _filters.status,
+        condition: _filters.condition,
+        sortBy: _filters.sortBy,
+        sortOrder: _filters.sortOrder,
       );
     });
+  }
+
+  Future<void> _openFilters() async {
+    final result = await showModalBottomSheet<_Filters>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _FiltersSheet(initial: _filters),
+    );
+    if (result == null) return;
+    setState(() => _filters = result);
+    _submit();
   }
 
   @override
@@ -52,277 +129,260 @@ class _AssetSearchScreenState extends ConsumerState<AssetSearchScreen> {
     final results = _query == null
         ? null
         : ref.watch(assetSearchProvider(_query!));
+    final active = _filters.activeCount;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: const Text(
-          'Search Assets',
-          style: TextStyle(
-            color: _darkText,
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
+      appBar: AppBar(title: const Text('Search assets')),
+      body: ListView(
+        padding: AppSpacing.pageInsets,
+        children: [
+          TextField(
+            controller: _searchController,
+            autofocus: widget.initialQuery.isEmpty,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _submit(),
+            decoration: const InputDecoration(
+              hintText: 'Code, name, or attribute value',
+              prefixIcon: Icon(Icons.search),
+            ),
           ),
-        ),
-        iconTheme: const IconThemeData(color: _darkText),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
-          children: [
-            Text(
-              'Find assets by code, name, or custom attribute value.',
-              style: const TextStyle(
-                fontSize: 16,
-                color: _secondaryText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 18),
-            TextField(
-              textInputAction: TextInputAction.search,
-              onChanged: (value) => _search = value,
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                labelText: 'Code, name, or attribute value',
-                prefixIcon: const Icon(Icons.search, color: _orange, size: 28),
-                filled: true,
-                fillColor: _fieldFill,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  borderSide: BorderSide(color: _orange, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 18,
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _openFilters,
+                  icon: Badge(
+                    isLabelVisible: active > 0,
+                    label: Text('$active'),
+                    child: const Icon(Icons.tune, size: 20),
+                  ),
+                  label: Text(active > 0 ? 'Filters ($active)' : 'Filters'),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            _databaseSelection(
-              label: 'Department',
-              value: _department,
-              resourcePath: '/api/departments',
-              onChanged: (value) => setState(() => _department = value ?? ''),
-            ),
-            const SizedBox(height: 12),
-            _databaseSelection(
-              label: 'Location',
-              value: _location,
-              resourcePath: '/api/locations',
-              onChanged: (value) => setState(() => _location = value ?? ''),
-            ),
-            const SizedBox(height: 12),
-            _databaseSelection(
-              label: 'Asset type',
-              value: _assetType,
-              resourcePath: '/api/asset-types',
-              onChanged: (value) => setState(() => _assetType = value ?? ''),
-            ),
-            const SizedBox(height: 12),
-            _databaseSelection(
-              label: 'Category',
-              value: _category,
-              resourcePath: '/api/asset-categories',
-              onChanged: (value) => setState(() => _category = value ?? ''),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _selection(
-                  label: 'Status',
-                  value: _status,
-                  options: const [
-                    '',
-                    'ACTIVE',
-                    'UNDER_MAINTENANCE',
-                    'DISPOSED',
-                  ],
-                  onChanged: (value) => setState(() => _status = value!),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _submit,
+                  icon: const Icon(Icons.manage_search, size: 20),
+                  label: const Text('Search'),
                 ),
-                _selection(
-                  label: 'Condition',
-                  value: _condition,
-                  options: const [
-                    '',
-                    'NEW',
-                    'GOOD',
-                    'FAIR',
-                    'POOR',
-                    'UNSERVICEABLE',
-                  ],
-                  onChanged: (value) => setState(() => _condition = value!),
-                ),
-                _selection(
-                  label: 'Sort by',
-                  value: _sortBy,
-                  options: const [
-                    'name',
-                    'asset_code',
-                    'status',
-                    'condition',
-                    'location',
-                  ],
-                  onChanged: (value) => setState(() => _sortBy = value!),
-                ),
-                _selection(
-                  label: 'Order',
-                  value: _sortOrder,
-                  options: const ['asc', 'desc'],
-                  onChanged: (value) => setState(() => _sortOrder = value!),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _submit,
-              style: FilledButton.styleFrom(
-                backgroundColor: _orange,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                minimumSize: const Size.fromHeight(54),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
-              icon: const Icon(Icons.manage_search, size: 22),
-              label: const Text(
-                'Search',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-            ),
-            if (results != null) ...[
-              const SizedBox(height: 20),
-              _SearchResults(
-                state: results,
-                query: _query!,
-                onPageChanged: (page) =>
-                    setState(() => _query = _query!.copyWith(page: page)),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _databaseSelection({
-    required String label,
-    required String value,
-    required String resourcePath,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final options = ref.watch(assetFilterOptionsProvider(resourcePath));
-    return options.when(
-      loading: () => InputDecorator(
-        decoration: _filterDecoration(label),
-        child: const Align(
-          alignment: Alignment.centerLeft,
-          child: SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-        ),
-      ),
-      error: (error, _) => InputDecorator(
-        decoration: _filterDecoration(label),
-        child: Text(
-          'Could not load options',
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-      ),
-      data: (values) => DropdownButtonFormField<String>(
-        initialValue: value.isEmpty || !values.contains(value) ? null : value,
-        isExpanded: true,
-        decoration: _filterDecoration(label),
-        hint: const Text('Any'),
-        items: [
-          const DropdownMenuItem<String>(value: '', child: Text('Any')),
-          for (final option in values)
-            DropdownMenuItem(value: option, child: Text(option)),
-        ],
-        onChanged: onChanged,
-      ),
-    );
-  }
-
-  InputDecoration _filterDecoration(String label) => InputDecoration(
-    labelText: label,
-    filled: true,
-    fillColor: _fieldFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
-      borderSide: BorderSide.none,
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
-      borderSide: BorderSide.none,
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
-      borderSide: const BorderSide(color: _orange, width: 1.5),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
-  );
-
-  Widget _selection({
-    required String label,
-    required String value,
-    required List<String> options,
-    required ValueChanged<String?> onChanged,
-    bool fullWidth = false,
-  }) {
-    return SizedBox(
-      width: fullWidth ? double.infinity : 165,
-      child: DropdownButtonFormField<String>(
-        initialValue: value,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: label,
-          filled: true,
-          fillColor: _fieldFill,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: const BorderSide(color: _orange, width: 1.5),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 17,
-          ),
-        ),
-        items: [
-          for (final option in options)
-            DropdownMenuItem(
-              value: option,
-              child: Text(option.isEmpty ? 'Any' : option),
+          const SizedBox(height: AppSpacing.xl),
+          if (results == null)
+            const Notice(
+              message:
+                  'Search by asset code, name or any custom attribute value. '
+                  'Leave it blank to list everything you can see.',
+            )
+          else
+            _SearchResults(
+              state: results,
+              query: _query!,
+              onPageChanged: (page) =>
+                  setState(() => _query = _query!.copyWith(page: page)),
             ),
         ],
-        onChanged: onChanged,
       ),
     );
   }
+}
+
+class _FiltersSheet extends ConsumerStatefulWidget {
+  const _FiltersSheet({required this.initial});
+
+  final _Filters initial;
+
+  @override
+  ConsumerState<_FiltersSheet> createState() => _FiltersSheetState();
+}
+
+class _FiltersSheetState extends ConsumerState<_FiltersSheet> {
+  late _Filters _f = widget.initial;
+
+  static const _statuses = ['', 'ACTIVE', 'UNDER_MAINTENANCE', 'DISPOSED'];
+  static const _conditions = [
+    '',
+    'NEW',
+    'GOOD',
+    'FAIR',
+    'POOR',
+    'UNSERVICEABLE',
+  ];
+  static const _sorts = {
+    'name': 'Name',
+    'asset_code': 'Asset code',
+    'status': 'Status',
+    'condition': 'Condition',
+    'location': 'Location',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authControllerProvider);
+    final isStaff = auth is AuthAuthenticated && auth.role == 'Staff';
+    final staffDepartment = isStaff
+        ? ref.watch(myWorkplaceProvider).asData?.value?.departmentId
+        : null;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.page,
+          0,
+          AppSpacing.page,
+          MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Filters', style: context.text.titleLarge),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _f = const _Filters()),
+                    child: const Text('Reset'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Staff only ever see their own department's assets (the API
+              // enforces it), so a department filter would be noise and the
+              // location list is narrowed to that department.
+              if (!isStaff)
+                _optionsField(
+                  'Department',
+                  '/api/departments',
+                  (v) => _f = _f.copyWith(department: v),
+                ),
+              _optionsField(
+                'Location',
+                staffDepartment == null
+                    ? '/api/locations'
+                    : '/api/locations?departmentId=$staffDepartment',
+                (v) => _f = _f.copyWith(location: v),
+              ),
+              _optionsField(
+                'Asset type',
+                '/api/asset-types',
+                (v) => _f = _f.copyWith(assetType: v),
+              ),
+              _optionsField(
+                'Category',
+                '/api/asset-categories',
+                (v) => _f = _f.copyWith(category: v),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _dropdown('Status', _f.status, {
+                      for (final s in _statuses)
+                        s: s.isEmpty ? 'Any' : humanizeStatus(s),
+                    }, (v) => _f = _f.copyWith(status: v)),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: _dropdown('Condition', _f.condition, {
+                      for (final c in _conditions)
+                        c: c.isEmpty ? 'Any' : humanizeStatus(c),
+                    }, (v) => _f = _f.copyWith(condition: v)),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _dropdown(
+                      'Sort by',
+                      _f.sortBy,
+                      _sorts,
+                      (v) => _f = _f.copyWith(sortBy: v),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: _dropdown('Order', _f.sortOrder, const {
+                      'asc': 'Ascending',
+                      'desc': 'Descending',
+                    }, (v) => _f = _f.copyWith(sortOrder: v)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, _f),
+                child: const Text('Apply filters'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dropdown(
+    String label,
+    String value,
+    Map<String, String> options,
+    void Function(String) apply,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: DropdownButtonFormField<String>(
+        initialValue: options.containsKey(value) ? value : null,
+        isExpanded: true,
+        decoration: InputDecoration(labelText: label),
+        items: [
+          for (final e in options.entries)
+            DropdownMenuItem(value: e.key, child: Text(e.value)),
+        ],
+        onChanged: (v) => setState(() => apply(v ?? '')),
+      ),
+    );
+  }
+
+  /// A dropdown whose options come from an org-config endpoint.
+  Widget _optionsField(
+    String label,
+    String resourcePath,
+    void Function(String) apply,
+  ) {
+    final options = ref.watch(assetFilterOptionsProvider(resourcePath));
+    return switch (options) {
+      AsyncData(:final value) => _dropdown(label, _current(label), {
+        '': 'Any',
+        for (final o in value) o: o,
+      }, apply),
+      AsyncError() => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        child: InputDecorator(
+          decoration: InputDecoration(labelText: label),
+          child: Text(
+            'Could not load options',
+            style: TextStyle(color: context.colors.error),
+          ),
+        ),
+      ),
+      _ => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        child: InputDecorator(
+          decoration: InputDecoration(labelText: label),
+          child: const LinearProgressIndicator(),
+        ),
+      ),
+    };
+  }
+
+  String _current(String label) => switch (label) {
+    'Department' => _f.department,
+    'Location' => _f.location,
+    'Asset type' => _f.assetType,
+    _ => _f.category,
+  };
 }
 
 class _SearchResults extends StatelessWidget {
@@ -338,71 +398,74 @@ class _SearchResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _SearchError(error: error),
-      data: (result) {
-        if (result.items.isEmpty) return const Text('No assets found.');
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              '${result.totalCount} asset(s) found',
-              style: const TextStyle(
-                color: _secondaryText,
-                fontWeight: FontWeight.w600,
-              ),
+    return switch (state) {
+      AsyncData(value: final result) when result.items.isEmpty => const Notice(
+        icon: Icons.search_off,
+        title: 'No assets found',
+        message: 'Try a different code or name, or clear some filters.',
+      ),
+      AsyncData(value: final result) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '${result.totalCount} '
+            '${result.totalCount == 1 ? 'asset' : 'assets'} found',
+            style: context.text.titleSmall?.copyWith(
+              color: context.colors.onSurfaceVariant,
             ),
-            const SizedBox(height: 8),
-            for (final asset in result.items)
-              Card(
-                margin: const EdgeInsets.only(bottom: 10),
-                elevation: 0,
-                color: _fieldFill,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 6,
-                  ),
-                  title: Text(
-                    asset.name,
-                    style: const TextStyle(
-                      color: _darkText,
-                      fontWeight: FontWeight.w700,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Card(
+            child: Column(
+              children: [
+                for (var i = 0; i < result.items.length; i++) ...[
+                  if (i > 0) const Divider(indent: AppSpacing.lg),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.xs,
                     ),
-                  ),
-                  subtitle: Text(
-                    '${asset.assetCode} · ${asset.assetTypeName}\n'
-                    '${asset.departmentName} · ${asset.locationName}',
-                    style: const TextStyle(color: _secondaryText),
-                  ),
-                  isThreeLine: true,
-                  trailing: Text(
-                    conditionLabel(asset.conditionRaw),
-                    style: const TextStyle(
-                      color: _orange,
-                      fontWeight: FontWeight.w700,
+                    leading: const IconTile(Icons.inventory_2_outlined),
+                    title: Text(
+                      result.items[i].name,
+                      style: context.text.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
+                    subtitle: Text(
+                      '${result.items[i].assetCode} · '
+                      '${result.items[i].assetTypeName}\n'
+                      '${result.items[i].departmentName} · '
+                      '${result.items[i].locationName}',
+                    ),
+                    isThreeLine: true,
+                    trailing: StatusPill(
+                      conditionLabel(result.items[i].conditionRaw),
+                    ),
+                    onTap: () => context.push('/assets/${result.items[i].id}'),
                   ),
-                  onTap: () => context.push('/assets/${asset.id}'),
-                ),
-              ),
-            if (result.pageCount > 1)
-              Row(
+                ],
+              ],
+            ),
+          ),
+          if (result.pageCount > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
+                  IconButton.outlined(
                     onPressed: query.page > 1
                         ? () => onPageChanged(query.page - 1)
                         : null,
                     icon: const Icon(Icons.chevron_left),
                     tooltip: 'Previous page',
                   ),
-                  Text('Page ${query.page} of ${result.pageCount}'),
-                  IconButton(
+                  Text(
+                    'Page ${query.page} of ${result.pageCount}',
+                    style: context.text.bodyMedium,
+                  ),
+                  IconButton.outlined(
                     onPressed: query.page < result.pageCount
                         ? () => onPageChanged(query.page + 1)
                         : null,
@@ -411,27 +474,17 @@ class _SearchResults extends StatelessWidget {
                   ),
                 ],
               ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _SearchError extends StatelessWidget {
-  const _SearchError({required this.error});
-
-  final Object error;
-
-  @override
-  Widget build(BuildContext context) {
-    final api = error is ApiException ? error as ApiException : null;
-    final message = api?.isNetworkError == true
-        ? 'You\'re offline. Connect to a network and try again.'
-        : api?.message ?? 'Something went wrong. Try again.';
-    return Text(
-      message,
-      style: TextStyle(color: Theme.of(context).colorScheme.error),
-    );
+            ),
+        ],
+      ),
+      AsyncError(:final error) => Notice(
+        tone: StatusTone.danger,
+        message: errorMessageFor(error),
+      ),
+      _ => const Padding(
+        padding: EdgeInsets.all(AppSpacing.xl),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    };
   }
 }

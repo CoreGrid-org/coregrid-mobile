@@ -2,23 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../shared/api/api_exception.dart';
-import '../models/verification_location.dart';
+import '../../../shared/widgets/ui.dart';
+import '../../scan/screens/scan_asset_screen.dart';
 import '../models/verification_task.dart';
 import '../verification_providers.dart';
+import '../widgets/verification_form.dart';
 
-/// Screen for completing a verification task — asserts presence, location and condition.
+/// Complete one verification task (FR-059): **scan the asset** to prove the
+/// officer is physically at it, then assert presence, location and
+/// condition. The backend compares the assertion with the register and
+/// raises any discrepancy itself (FR-060).
+///
+/// A scan is required only to assert "Present" — a missing asset can't be
+/// scanned. [scanned] is set when the officer arrived from "Scan to verify",
+/// where the identifying scan already happened.
 class VerificationTaskDetailScreen extends ConsumerStatefulWidget {
-  const VerificationTaskDetailScreen({super.key, required this.taskId});
+  const VerificationTaskDetailScreen({
+    super.key,
+    required this.taskId,
+    this.scanned = false,
+  });
 
   final String taskId;
-
-  static const Color orange = Color(0xFFFF5A00);
-  static const Color lightOrange = Color(0xFFFFF0E8);
-  static const Color cardFill = Color(0xFFFFFBF9);
-  static const Color cardBorder = Color(0xFFFFE2D3);
-  static const Color darkText = Color(0xFF202625);
-  static const Color secondaryText = Color(0xFF59635F);
+  final bool scanned;
 
   @override
   ConsumerState<VerificationTaskDetailScreen> createState() =>
@@ -31,123 +37,30 @@ class _VerificationTaskDetailScreenState
   bool _present = true;
   String? _locationId;
   ObservedCondition? _condition;
+  late bool _identityConfirmed = widget.scanned;
+  String? _scanMismatch;
   bool _initializedFromTask = false;
 
-  @override
-  Widget build(BuildContext context) {
-    final taskState = ref.watch(verificationTaskProvider(widget.taskId));
-    final locationsState = ref.watch(verificationLocationsProvider);
-    final submitState = ref.watch(completeVerificationTaskControllerProvider);
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: const Text(
-          'Verify Asset',
-          style: TextStyle(
-            color: VerificationTaskDetailScreen.darkText,
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        iconTheme: const IconThemeData(
-          color: VerificationTaskDetailScreen.darkText,
-        ),
-      ),
-      body: switch (taskState) {
-        AsyncData(value: final task?) => _buildBody(
-          context,
-          task,
-          locationsState,
-          submitState,
-        ),
-        AsyncData() => const Center(
-          child: Text(
-            'Task not found.',
-            style: TextStyle(color: VerificationTaskDetailScreen.secondaryText),
-          ),
-        ),
-        AsyncError(:final error) => Center(
-          child: Text(
-            error is ApiException ? error.message : 'Couldn\'t load this task.',
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ),
-        _ => const Center(
-          child: CircularProgressIndicator(
-            color: VerificationTaskDetailScreen.orange,
-          ),
-        ),
-      },
-    );
-  }
-
-  Widget _buildBody(
-    BuildContext context,
-    VerificationTask task,
-    AsyncValue<List<VerificationLocation>> locationsState,
-    AsyncValue<void> submitState,
-  ) {
-    if (!_initializedFromTask) {
-      _locationId = task.assertedLocationId;
-      _condition = ObservedCondition.tryParse(task.assertedCondition);
-      _present = task.assertedPresent ?? true;
-      _initializedFromTask = true;
-    }
-
-    final alreadyCompleted = task.status == VerificationTaskStatus.completed;
-
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 32),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _TaskDetailHeader(task: task),
-            const SizedBox(height: 24),
-            if (alreadyCompleted)
-              const _AlreadyCompletedCard()
-            else
-              _FormSectionCard(
-                present: _present,
-                onPresentChanged: submitState.isLoading
-                    ? null
-                    : (val) => setState(() => _present = val),
-                locationId: _locationId,
-                onLocationChanged: submitState.isLoading
-                    ? null
-                    : (val) => setState(() => _locationId = val),
-                locationsState: locationsState,
-                condition: _condition,
-                onConditionChanged: submitState.isLoading
-                    ? null
-                    : (val) => setState(() => _condition = val),
-                onSubmit: submitState.isLoading ? null : _submit,
-                isSubmitting: submitState.isLoading,
-                errorMessage: submitState.hasError
-                    ? (submitState.error is ApiException
-                          ? (submitState.error as ApiException).message
-                          : 'Couldn\'t submit this verification. Try again.')
-                    : null,
-              ),
-            const SizedBox(height: 20),
-            _RaiseDiscrepancyButton(
-              onPressed: () =>
-                  context.push('/verification/${task.id}/discrepancy'),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _scanToConfirm(VerificationTask task) async {
+    final asset = await identifyAssetByScan(context);
+    if (asset == null || !mounted) return;
+    setState(() {
+      _identityConfirmed = asset.id == task.assetId;
+      _scanMismatch = _identityConfirmed
+          ? null
+          : 'That label is ${asset.assetCode} (${asset.name}), not '
+                '${task.assetCode}. Find the right asset and scan again.';
+    });
   }
 
   Future<void> _submit() async {
+    if (_present && !_identityConfirmed) {
+      setState(
+        () => _scanMismatch =
+            'Scan the asset\'s QR label before marking it present.',
+      );
+      return;
+    }
     if (_present && !(_formKey.currentState?.validate() ?? false)) return;
 
     final result = await ref
@@ -160,394 +73,236 @@ class _VerificationTaskDetailScreenState
         );
 
     if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification submitted.'),
-          duration: Duration(seconds: 5),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Verification submitted.')));
       context.pop();
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Verify asset')),
+      body: switch (ref.watch(verificationTaskProvider(widget.taskId))) {
+        AsyncData(value: final task?) => _body(task),
+        AsyncData() => const MessageView(
+          icon: Icons.search_off_rounded,
+          title: 'Task not found',
+          message: 'It may have been reassigned or the campaign closed.',
+        ),
+        AsyncError(:final error) => ErrorView(
+          error: error,
+          title: 'Couldn\'t load this task',
+          onRetry: () => ref.invalidate(myVerificationTasksProvider),
+        ),
+        _ => const LoadingView(),
+      },
+    );
+  }
+
+  Widget _body(VerificationTask task) {
+    if (!_initializedFromTask) {
+      _locationId = task.assertedLocationId;
+      _condition = ObservedCondition.tryParse(task.assertedCondition);
+      _present = task.assertedPresent ?? true;
+      _initializedFromTask = true;
+    }
+
+    final submitState = ref.watch(completeVerificationTaskControllerProvider);
+    final busy = submitState.isLoading;
+
+    return SingleChildScrollView(
+      padding: AppSpacing.pageInsets,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _TaskHeader(task: task),
+          if (!task.isPending)
+            _CompletedSummary(task: task)
+          else
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SectionHeader('Your observation'),
+                  VerificationForm(
+                    enabled: !busy,
+                    present: _present,
+                    onPresentChanged: (v) => setState(() => _present = v),
+                    locationId: _locationId,
+                    onLocationChanged: (v) => setState(() => _locationId = v),
+                    condition: _condition,
+                    onConditionChanged: (v) => setState(() => _condition = v),
+                    header: _present
+                        ? _ScanConfirmation(
+                            confirmed: _identityConfirmed,
+                            assetCode: task.assetCode,
+                            mismatch: _scanMismatch,
+                            onScan: busy ? null : () => _scanToConfirm(task),
+                          )
+                        : null,
+                  ),
+                  if (submitState.hasError) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Notice(
+                      tone: StatusTone.danger,
+                      message: errorMessageFor(
+                        submitState.error!,
+                        fallback:
+                            'Couldn\'t submit this verification. Try again.',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.xl),
+                  SubmitButton(
+                    label: 'Submit verification',
+                    busyLabel: 'Submitting…',
+                    icon: Icons.fact_check_outlined,
+                    busy: busy,
+                    onPressed: _submit,
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: () =>
+                context.push('/verification/${task.id}/discrepancy'),
+            icon: const Icon(Icons.report_gmailerrorred_outlined, size: 20),
+            label: const Text('Raise a discrepancy'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _TaskDetailHeader extends StatelessWidget {
-  const _TaskDetailHeader({required this.task});
+/// Step one of FR-059: prove presence by scanning the asset's own label.
+class _ScanConfirmation extends StatelessWidget {
+  const _ScanConfirmation({
+    required this.confirmed,
+    required this.assetCode,
+    required this.mismatch,
+    required this.onScan,
+  });
+
+  final bool confirmed;
+  final String assetCode;
+  final String? mismatch;
+  final VoidCallback? onScan;
+
+  @override
+  Widget build(BuildContext context) {
+    if (confirmed) {
+      return Notice(
+        tone: StatusTone.success,
+        icon: Icons.qr_code_2,
+        message: 'Identity confirmed — you scanned $assetCode.',
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Notice(
+          tone: mismatch == null ? StatusTone.info : StatusTone.danger,
+          icon: Icons.qr_code_scanner,
+          title: 'Scan to confirm',
+          message:
+              mismatch ??
+              'Scan the QR label on $assetCode to confirm you\'re at the '
+                  'right asset.',
+        ),
+        const SizedBox(height: AppSpacing.md),
+        FilledButton.tonalIcon(
+          onPressed: onScan,
+          icon: const Icon(Icons.qr_code_scanner, size: 20),
+          label: Text(mismatch == null ? 'Scan asset' : 'Scan again'),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaskHeader extends StatelessWidget {
+  const _TaskHeader({required this.task});
 
   final VerificationTask task;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: VerificationTaskDetailScreen.lightOrange,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.fact_check_rounded,
-                size: 32,
-                color: VerificationTaskDetailScreen.orange,
-              ),
-            ),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.assetName,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: VerificationTaskDetailScreen.darkText,
-                      letterSpacing: -0.5,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    task.assetCode,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: VerificationTaskDetailScreen.secondaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Campaign: ${task.campaignName} · Due ${_formatDate(task.dueDate)}',
-          style: const TextStyle(
-            fontSize: 14,
-            height: 1.4,
-            color: Color(0xFF7A827F),
-          ),
-        ),
-      ],
-    );
-  }
-
-  static String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-}
-
-class _AlreadyCompletedCard extends StatelessWidget {
-  const _AlreadyCompletedCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: VerificationTaskDetailScreen.lightOrange,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.check_circle_rounded, color: Color(0xFF00897B), size: 24),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'This task has already been completed.',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: VerificationTaskDetailScreen.darkText,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FormSectionCard extends StatelessWidget {
-  const _FormSectionCard({
-    required this.present,
-    required this.onPresentChanged,
-    required this.locationId,
-    required this.onLocationChanged,
-    required this.locationsState,
-    required this.condition,
-    required this.onConditionChanged,
-    required this.onSubmit,
-    required this.isSubmitting,
-    this.errorMessage,
-  });
-
-  final bool present;
-  final ValueChanged<bool>? onPresentChanged;
-  final String? locationId;
-  final ValueChanged<String?>? onLocationChanged;
-  final AsyncValue<List<VerificationLocation>> locationsState;
-  final ObservedCondition? condition;
-  final ValueChanged<ObservedCondition?>? onConditionChanged;
-  final VoidCallback? onSubmit;
-  final bool isSubmitting;
-  final String? errorMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: VerificationTaskDetailScreen.cardFill,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: VerificationTaskDetailScreen.cardBorder),
-      ),
+    return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _PresenceSwitchTile(present: present, onChanged: onPresentChanged),
-          if (present) ...[
-            const SizedBox(height: 16),
-            _LocationDropdown(
-              locationId: locationId,
-              locationsState: locationsState,
-              onChanged: onLocationChanged,
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: EntityHeader(
+              large: true,
+              icon: Icons.inventory_2_outlined,
+              title: task.assetName,
+              subtitle: task.assetCode,
             ),
-            const SizedBox(height: 14),
-            _ConditionDropdown(
-              condition: condition,
-              onChanged: onConditionChanged,
-            ),
-          ],
-          const SizedBox(height: 20),
-          _SubmitButton(onSubmit: onSubmit, isSubmitting: isSubmitting),
-          if (errorMessage != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              errorMessage!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 14,
-              ),
-            ),
-          ],
+          ),
+          const Divider(),
+          InfoRow(
+            icon: Icons.flag_outlined,
+            label: 'Campaign',
+            value: task.campaignName,
+          ),
+          InfoRow(
+            icon: Icons.event_outlined,
+            label: task.isPending ? describeDue(task.dueDate) : 'Due',
+            value: formatDate(task.dueDate),
+          ),
+          const Divider(),
+          RecordTile(
+            icon: Icons.description_outlined,
+            title: 'Open asset record',
+            onTap: () => context.push('/assets/${task.assetId}'),
+          ),
         ],
       ),
     );
   }
 }
 
-class _PresenceSwitchTile extends StatelessWidget {
-  const _PresenceSwitchTile({required this.present, required this.onChanged});
+class _CompletedSummary extends StatelessWidget {
+  const _CompletedSummary({required this.task});
 
-  final bool present;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7E6)),
-      ),
-      child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        activeTrackColor: VerificationTaskDetailScreen.orange,
-        title: const Text(
-          'Asset is present',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: VerificationTaskDetailScreen.darkText,
-          ),
-        ),
-        subtitle: const Text(
-          'Confirm the physical asset is here.',
-          style: TextStyle(
-            fontSize: 13.5,
-            color: VerificationTaskDetailScreen.secondaryText,
-          ),
-        ),
-        value: present,
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-class _LocationDropdown extends StatelessWidget {
-  const _LocationDropdown({
-    required this.locationId,
-    required this.locationsState,
-    required this.onChanged,
-  });
-
-  final String? locationId;
-  final AsyncValue<List<VerificationLocation>> locationsState;
-  final ValueChanged<String?>? onChanged;
+  final VerificationTask task;
 
   @override
   Widget build(BuildContext context) {
-    return locationsState.when(
-      data: (locations) => DropdownButtonFormField<String>(
-        initialValue: locationId,
-        isExpanded: true,
-        style: const TextStyle(
-          fontSize: 15,
-          color: VerificationTaskDetailScreen.darkText,
+    final condition = ObservedCondition.tryParse(task.assertedCondition);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        Notice(
+          tone: StatusTone.success,
+          title: 'Verified',
+          message: task.completedAt == null
+              ? 'This task has already been completed.'
+              : 'Completed ${formatDateTime(task.completedAt!)}.',
         ),
-        decoration: _inputDecoration('Observed location'),
-        items: [
-          for (final location in locations)
-            DropdownMenuItem(
-              value: location.id,
-              child: Text('${location.name} (${location.departmentName})'),
+        const SizedBox(height: AppSpacing.md),
+        ListCard(
+          children: [
+            InfoRow(
+              label: 'Asset present',
+              value: switch (task.assertedPresent) {
+                true => 'Yes',
+                false => 'No',
+                null => '—',
+              },
             ),
-        ],
-        onChanged: onChanged,
-        validator: (value) =>
-            value == null ? 'Select the observed location' : null,
-      ),
-      loading: () => const LinearProgressIndicator(
-        color: VerificationTaskDetailScreen.orange,
-      ),
-      error: (error, _) => const Text(
-        'Couldn\'t load locations.',
-        style: TextStyle(color: VerificationTaskDetailScreen.secondaryText),
-      ),
-    );
-  }
-}
-
-class _ConditionDropdown extends StatelessWidget {
-  const _ConditionDropdown({required this.condition, required this.onChanged});
-
-  final ObservedCondition? condition;
-  final ValueChanged<ObservedCondition?>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<ObservedCondition>(
-      initialValue: condition,
-      isExpanded: true,
-      style: const TextStyle(
-        fontSize: 15,
-        color: VerificationTaskDetailScreen.darkText,
-      ),
-      decoration: _inputDecoration('Observed condition'),
-      items: [
-        for (final item in ObservedCondition.values)
-          DropdownMenuItem(value: item, child: Text(item.label)),
+            if (condition != null)
+              InfoRow(label: 'Condition', value: condition.label),
+          ],
+        ),
       ],
-      onChanged: onChanged,
-      validator: (value) =>
-          value == null ? 'Select the observed condition' : null,
-    );
-  }
-}
-
-InputDecoration _inputDecoration(String label) {
-  return InputDecoration(
-    labelText: label,
-    labelStyle: const TextStyle(
-      color: VerificationTaskDetailScreen.secondaryText,
-      fontSize: 14,
-    ),
-    filled: true,
-    fillColor: Colors.white,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFFE5E7E6)),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFFE5E7E6)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(
-        color: VerificationTaskDetailScreen.orange,
-        width: 1.5,
-      ),
-    ),
-  );
-}
-
-class _SubmitButton extends StatelessWidget {
-  const _SubmitButton({required this.onSubmit, required this.isSubmitting});
-
-  final VoidCallback? onSubmit;
-  final bool isSubmitting;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 54,
-      child: FilledButton.icon(
-        onPressed: onSubmit,
-        style: FilledButton.styleFrom(
-          backgroundColor: VerificationTaskDetailScreen.orange,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-        icon: isSubmitting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.fact_check_outlined, size: 22),
-        label: Text(
-          isSubmitting ? 'Submitting…' : 'Submit verification',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
-class _RaiseDiscrepancyButton extends StatelessWidget {
-  const _RaiseDiscrepancyButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 54,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: VerificationTaskDetailScreen.orange,
-          backgroundColor: Colors.white,
-          side: const BorderSide(
-            color: VerificationTaskDetailScreen.orange,
-            width: 1.4,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-        icon: const Icon(Icons.report_gmailerrorred_outlined, size: 22),
-        label: const Text(
-          'Raise Discrepancy Manually',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-      ),
     );
   }
 }

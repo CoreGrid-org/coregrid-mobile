@@ -21,7 +21,7 @@ void main() {
       MaterialApp(home: FaultDetailScreen(report: report)),
     );
 
-    expect(find.text('Fault Details'), findsOneWidget);
+    expect(find.text('Fault report'), findsOneWidget);
     expect(find.text('AST-001'), findsOneWidget);
     expect(find.text('In Progress'), findsOneWidget);
     expect(
@@ -29,7 +29,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Poor'), findsOneWidget);
-    expect(find.text('September 25, 2026'), findsOneWidget);
+    expect(find.text('25 Sep 2026'), findsOneWidget);
     expect(find.text('Alex Officer'), findsOneWidget);
     expect(find.text('alex@example.com'), findsOneWidget);
   });

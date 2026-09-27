@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../shared/api/api_exception.dart';
+import '../../../../shared/widgets/ui.dart';
+import '../../../verification/models/verification_task.dart';
+import '../../../verification/verification_providers.dart';
+import '../../../verification/widgets/verification_form.dart';
 import '../../assets_api.dart';
+import '../../assets_providers.dart';
 import '../../models/asset/asset_condition.dart';
 import '../../models/asset/asset_detail.dart';
 import '../../models/asset/asset_verification.dart';
-import '../../../verification/models/verification_location.dart';
-import '../../../verification/verification_providers.dart';
 
+/// Ad-hoc physical verification (FR-031) — for an asset the officer is at
+/// but has no campaign task for. Same assertion form as task-bound
+/// verification ([VerificationForm]); submits to
+/// `POST /api/assets/{id}/verify`, which runs the same FR-060 comparison.
+/// Route: `/assets/:id/verify` (Officer only).
 class AssetVerificationScreen extends ConsumerStatefulWidget {
-  const AssetVerificationScreen({super.key, required this.asset});
+  const AssetVerificationScreen({
+    super.key,
+    required this.assetId,
+    this.initialAsset,
+  });
 
-  final AssetDetail asset;
+  final String assetId;
+  final AssetDetail? initialAsset;
 
   @override
   ConsumerState<AssetVerificationScreen> createState() =>
@@ -21,52 +33,42 @@ class AssetVerificationScreen extends ConsumerStatefulWidget {
 
 class _AssetVerificationScreenState
     extends ConsumerState<AssetVerificationScreen> {
-  static const orange = Color(0xFFFF5A00);
-  static const lightOrange = Color(0xFFFFF0E8);
-  static const darkText = Color(0xFF202625);
-  static const secondaryText = Color(0xFF59635F);
-  static const fieldFill = Color(0xFFF8F9F8);
-
   final _formKey = GlobalKey<FormState>();
-  String? _locationId;
-  late AssetCondition _condition;
   bool _present = true;
+  String? _locationId;
+  ObservedCondition? _condition;
   bool _submitting = false;
   AssetVerificationResult? _result;
   Object? _error;
 
-  @override
-  void initState() {
-    super.initState();
-    _condition = widget.asset.condition ?? AssetCondition.good;
-  }
-
-  Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  Future<void> _submit(AssetDetail asset) async {
+    if (_present && !(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
       _submitting = true;
       _error = null;
       _result = null;
     });
     try {
+      // The ad-hoc endpoint always wants a location; for "not found" send
+      // the registered one (the server stops at Missing anyway).
       final locations = await ref.read(verificationLocationsProvider.future);
       final locationId =
-          _locationId ??
-          locations
-              .where((location) => location.name == widget.asset.locationName)
-              .firstOrNull
-              ?.id;
+          (_present ? _locationId : null) ??
+          locations.where((l) => l.name == asset.locationName).firstOrNull?.id;
       if (locationId == null) {
         throw StateError('Select a valid observed location.');
       }
       final result = await ref
           .read(assetsApiProvider)
           .verifyAsset(
-            assetId: widget.asset.id,
+            assetId: asset.id,
             request: AssetVerificationRequest(
               present: _present,
               locationId: locationId,
-              condition: _condition,
+              condition:
+                  AssetCondition.tryParse(_condition?.apiValue) ??
+                  asset.condition ??
+                  AssetCondition.good,
             ),
           );
       if (mounted) setState(() => _result = result);
@@ -77,243 +79,81 @@ class _AssetVerificationScreenState
     }
   }
 
-  InputDecoration _fieldDecoration(String label) => InputDecoration(
-    labelText: label,
-    filled: true,
-    fillColor: fieldFill,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(color: orange, width: 1.5),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
-  );
-
   @override
   Widget build(BuildContext context) {
-    final result = _result;
-    final locations = ref.watch(verificationLocationsProvider);
+    final asset = widget.initialAsset != null
+        ? AsyncData<AssetDetail>(widget.initialAsset!)
+        : ref.watch(assetDetailProvider(widget.assetId));
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: const Text(
-          'Verify Asset',
-          style: TextStyle(
-            color: darkText,
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: darkText),
+      appBar: AppBar(title: const Text('Verify asset')),
+      body: AsyncView(
+        value: asset,
+        errorTitle: 'Couldn\'t load this asset',
+        onRetry: () => ref.invalidate(assetDetailProvider(widget.assetId)),
+        data: _body,
       ),
-      body: Form(
+    );
+  }
+
+  Widget _body(AssetDetail asset) {
+    // Pre-select what the register says, so a match is two taps.
+    _condition ??= ObservedCondition.tryParse(asset.conditionRaw);
+    final result = _result;
+
+    return SingleChildScrollView(
+      padding: AppSpacing.pageInsets,
+      child: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: lightOrange,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(
-                      Icons.fact_check_outlined,
-                      color: orange,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.asset.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: darkText,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.asset.assetCode,
-                          style: const TextStyle(
-                            color: secondaryText,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
             Card(
-              elevation: 0,
-              color: fieldFill,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: SwitchListTile(
-                title: const Text('Asset is present'),
-                subtitle: const Text(
-                  'Confirm the physical asset is here.',
-                  style: TextStyle(color: secondaryText),
-                ),
-                value: _present,
-                onChanged: _submitting
-                    ? null
-                    : (value) => setState(() => _present = value),
-                activeTrackColor: orange,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: EntityHeader(
+                  large: true,
+                  icon: Icons.inventory_2_outlined,
+                  title: asset.name,
+                  subtitle: '${asset.assetCode} · ${asset.locationName}',
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            locations.when(
-              loading: () => InputDecorator(
-                decoration: _fieldDecoration('Observed location'),
-                child: const SizedBox(
-                  height: 20,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                ),
-              ),
-              error: (error, _) => InputDecorator(
-                decoration: _fieldDecoration('Observed location'),
-                child: Text(
-                  'Could not load locations',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-              data: (values) {
-                final currentLocation = values
-                    .where(
-                      (location) => location.name == widget.asset.locationName,
-                    )
-                    .firstOrNull;
-                final selectedId = _locationId ?? currentLocation?.id;
-                return DropdownButtonFormField<String>(
-                  initialValue: selectedId,
-                  isExpanded: true,
-                  decoration: _fieldDecoration('Observed location'),
-                  hint: const Text('Select observed location'),
-                  items: [
-                    for (final VerificationLocation location in values)
-                      DropdownMenuItem(
-                        value: location.id,
-                        child: Text(
-                          location.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Select the observed location'
-                      : null,
-                  onChanged: _submitting
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            setState(() => _locationId = value);
-                          }
-                        },
-                );
-              },
+            const SizedBox(height: AppSpacing.md),
+            const Notice(
+              message:
+                  'No campaign task covers this asset, so this is recorded as '
+                  'an ad-hoc verification.',
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<AssetCondition>(
-              initialValue: _condition,
-              isExpanded: true,
-              decoration: _fieldDecoration('Observed condition'),
-              items: [
-                for (final condition in AssetCondition.values)
-                  DropdownMenuItem(
-                    value: condition,
-                    child: Text(condition.label),
-                  ),
-              ],
-              onChanged: _submitting
-                  ? null
-                  : (value) {
-                      if (value != null) setState(() => _condition = value);
-                    },
+            const SectionHeader('Your observation'),
+            VerificationForm(
+              enabled: !_submitting && result == null,
+              present: _present,
+              onPresentChanged: (v) => setState(() => _present = v),
+              locationId: _locationId,
+              onLocationChanged: (v) => setState(() => _locationId = v),
+              condition: _condition,
+              onConditionChanged: (v) => setState(() => _condition = v),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 54,
-              child: FilledButton.icon(
-                onPressed: _submitting ? null : _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: orange,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                icon: _submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.fact_check_outlined),
-                label: Text(
-                  _submitting ? 'Submitting…' : 'Submit verification',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              _VerificationMessage(
+            if (_error case final error?) ...[
+              const SizedBox(height: AppSpacing.md),
+              Notice(
+                tone: StatusTone.danger,
                 title: 'Verification failed',
-                message: _error is ApiException
-                    ? (_error as ApiException).message
-                    : 'Couldn\'t submit verification. Try again.',
-                color: Theme.of(context).colorScheme.error,
+                message: error is StateError
+                    ? error.message
+                    : errorMessageFor(
+                        error,
+                        fallback: 'Couldn\'t submit verification. Try again.',
+                      ),
               ),
             ],
             if (result != null) ...[
-              const SizedBox(height: 16),
-              _VerificationMessage(
+              const SizedBox(height: AppSpacing.md),
+              Notice(
+                tone: result.discrepancyRaised
+                    ? StatusTone.warning
+                    : StatusTone.success,
                 title: result.discrepancyRaised
                     ? 'Discrepancy raised'
                     : 'Asset verified',
@@ -322,37 +162,19 @@ class _AssetVerificationScreenState
                     (result.discrepancyRaised
                         ? 'The submitted values differ from the asset record.'
                         : 'The asset matches the recorded details.'),
-                color: result.discrepancyRaised
-                    ? Theme.of(context).colorScheme.error
-                    : Theme.of(context).colorScheme.primary,
+              ),
+            ] else ...[
+              const SizedBox(height: AppSpacing.xl),
+              SubmitButton(
+                label: 'Submit verification',
+                busyLabel: 'Submitting…',
+                icon: Icons.fact_check_outlined,
+                busy: _submitting,
+                onPressed: () => _submit(asset),
               ),
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _VerificationMessage extends StatelessWidget {
-  const _VerificationMessage({
-    required this.title,
-    required this.message,
-    required this.color,
-  });
-
-  final String title;
-  final String message;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: color.withValues(alpha: 0.10),
-      child: ListTile(
-        leading: Icon(Icons.info_outline, color: color),
-        title: Text(title),
-        subtitle: Text(message),
       ),
     );
   }

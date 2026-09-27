@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/api/api_client.dart';
 import '../../shared/api/api_exception.dart';
 import 'models/discrepancy.dart';
+import 'models/verification_campaign.dart';
 import 'models/verification_location.dart';
 import 'models/verification_task.dart';
 
@@ -94,18 +95,40 @@ class VerificationApi {
     }
   }
 
-  /// Returns open discrepancies for the campaign so completion can surface
-  /// the automatic discrepancy created by the backend comparison.
-  Future<List<Discrepancy>> getOpenDiscrepancies(String campaignId) async {
+  /// `GET /api/verification-campaigns` — newest first. Read-only: the
+  /// create/update/delete/report endpoints are deliberately not wrapped here
+  /// (campaign management is React-only, SRS §3.4).
+  Future<List<VerificationCampaign>> getCampaigns() async {
     try {
-      final response = await _dio.get<List<dynamic>>(
-        '/api/discrepancies',
-        queryParameters: {'campaignId': campaignId, 'onlyOpen': true},
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/verification-campaigns',
+        queryParameters: {'page': 1, 'pageSize': 100},
       );
-      return (response.data ?? const [])
+      final items = response.data?['items'];
+      if (items is! List) return const [];
+      return items
           .whereType<Map<String, dynamic>>()
-          .map(Discrepancy.fromJson)
+          .map(VerificationCampaign.fromJson)
           .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// `GET /api/verification-campaigns/{id}`.
+  Future<VerificationCampaign> getCampaign(String id) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/verification-campaigns/$id',
+      );
+      final data = response.data;
+      if (data == null) {
+        throw ApiException(
+          statusCode: response.statusCode ?? 0,
+          message: 'CoreGrid returned an empty campaign.',
+        );
+      }
+      return VerificationCampaign.fromJson(data);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

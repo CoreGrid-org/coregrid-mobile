@@ -72,8 +72,12 @@ lib/
   shared/
     api/                     ApiClient (dio instance + auth interceptor), typed error model
     auth/                    Token storage, PKCE flow, AuthState provider, route-guard helpers
-    widgets/                 Cross-feature widgets (loading/empty/error states, confirmation dialog for IF-05)
-    theme/                   App theming
+    widgets/                 Shared UI kit — import `ui.dart`: StatusPill/StatusTone, IconTile, RecordTile,
+                             ListCard, InfoRow, Notice, SubmitButton, SectionHeader, EntityHeader, StatCard/
+                             StatRow, Metric, AsyncView, Loading/Message/ErrorView, PhotoEvidenceCard,
+                             date/money/status formatters; `context.text` / `.colors` / `.mutedBody` shorthands
+    media/                   `pickCompressedPhoto` — IF-11 ≤1MB compression, shared by every photo upload
+    theme/                   AppTheme (light/dark), AppColors semantic tones, AppSpacing, AppRadius
 ```
 
 A feature folder owns its screens, its providers, and its API calls together — never split into global
@@ -117,6 +121,19 @@ GoRoute(
 ```
 
 Route table mirrors the feature list in §3.1 one-to-one — no route lives outside its feature's folder.
+
+**Signed-in navigation shell.** After sign-in the app runs inside a `StatefulShellRoute.indexedStack`
+(`app/app_shell.dart`) with a Material 3 bottom `NavigationBar`; each tab keeps its own stack. Tabs are
+role-filtered (`shellBranchesFor`) — Officer: Home · Verify · Workflows · Faults · Account; Staff: Home ·
+Faults · Account; unresolved role: Home · Account. Branch routes are `/home`, `/verification`
+(`?view=campaigns` opens the Campaigns segment), `/workflows`, `/faults`, `/account`. Detail and form
+routes (`/scan`, `/assets/...`, `/verification/:taskId`, `/campaigns/:id`, `/workflows/new|:id`,
+`/maintenance/...`) are top-level and push full-screen over the shell. The `redirect` still guards
+`/verification`, `/workflows` and `/campaigns` for non-Officers, independent of which tabs are shown.
+
+**Design system.** Every screen builds from `shared/widgets/ui.dart` and the theme — no screen hard-codes
+colours. Brand deep green (`CoreGridBrand.greenDeep`) is the single interactive primary; status meaning is
+carried by `StatusTone` (neutral/info/success/warning/danger) so a status reads the same in every feature.
 
 ### 3.4 API client and auth interceptor
 
@@ -184,13 +201,13 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | Sequence | Role-branched (main SRS §2.3.1): Officer sees verification tasks due, maintenance assigned, transfers awaiting confirmation; Staff sees their own fault reports and status only — narrower, since Staff has no verification/maintenance-management/transfer capability |
 | States | Loading, empty (per section — "No tasks due"), error (per section, independently retryable), populated |
 | API calls | Aggregated from the verification, maintenance and transfer list endpoints (main SRS §9), scoped to the current user |
-| Status | **Partially live** (`features/dashboard/screens/{dashboard,officer_dashboard,staff_dashboard}_screen.dart`) — "Verification Tasks Due" reads real data from `features/verification/`; "Maintenance Assigned to Me" and "Transfers Awaiting My Confirmation" stay hardcoded sample rows until `features/maintenance`/`features/transfers` exist to back them, disclosed with an on-screen banner. |
+| Status | **Live** (`features/dashboard/`) — the Home tab: greeting, "Find an asset" (scan / code-or-name search), then role-specific content. Officer: at-a-glance counts (overdue tasks, tasks to verify, open fault reports), quick actions, and previews of verification due, recent evaluations and my fault reports, each with "See all" to its tab. Staff: quick actions and my fault reports. The former hard-coded "Maintenance Assigned to Me" / "Transfers Awaiting My Confirmation" sample rows were removed rather than shown as fake data; they return as real sections when `features/maintenance` task assignment and `features/transfers` exist. |
 
 ### 4.3 Scan / Manual Entry — FR-024, FR-025, IF-06, IF-07, IF-10, IF-12
 
 | | |
 |---|---|
-| Trigger | "Scan Asset" — the primary action on the dashboard |
+| Trigger | "Scan QR code" — the primary button in the dashboard's "Find an asset" card |
 | Sequence | Camera preview (`mobile_scanner`) → decode → resolve → asset detail. A visible "Enter code manually" affordance is present from the start, not only after a failure, and is what's shown directly if camera permission is refused |
 | States | Requesting permission, scanning, resolving (must return a result or a clear failure within 3s per IF-06), not found, manual-entry form |
 | API calls | `GET /api/assets/qr/{code}` |
@@ -206,9 +223,13 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 
 ### 4.5 Physical Verification — FR-031, FR-059, FR-061
 
-Two distinct backend endpoints exist for this, but as of this writing only one is actually reachable from
-the app — read this section as "intended design" for FR-031's row, and check `doc/PROGRESS.md` before
-assuming both paths work:
+Both paths are live and share one form (`features/verification/widgets/verification_form.dart`).
+**Who:** Inventory Officer only — Staff have no verification role (SRS §3.4.1, scope change v1.5).
+**Field procedure (FR-059):** "Scan to verify" (Verify tab FAB, Officer Home) → scanner in identify mode →
+the officer's pending task for the scanned asset opens with identity already confirmed; if no task covers
+it, a dialog offers ad-hoc verification (FR-031). A task opened from the list must be confirmed with
+"Scan asset" before *Present* can be submitted (a different asset's label is rejected); *Not found* needs
+no scan. The historical rows below record how this looked before 2026-09-27:
 
 | | |
 |---|---|
@@ -229,6 +250,13 @@ the only path that can raise `Surplus`/`DataMismatch`/`Other`, since the two end
 them), and a description. Raised `Open`, `is_automatic = false`, `raised_by` = the reporting officer.
 Resolution (`Open` → `Resolved`, `PATCH /api/discrepancies/{id}/resolve`) is Auditor/Administrator-only and
 is not a mobile screen — it happens on the web console.
+
+**Campaigns — read-only context (`CampaignDetailScreen`, Verify tab → Campaigns).** SRS §3.4 makes
+"Verification campaign management" React-only, so the app wraps only the two read endpoints
+(`GET /api/verification-campaigns`, `GET /api/verification-campaigns/{id}` — `CanReadCampaigns` includes
+InventoryOfficer): name, period, scope, status, progress (`completed_task_count` / `task_count`), open
+discrepancy count, and the officer's own tasks in that campaign. No create/edit/close/report actions and no
+calls to the `CanManageCampaigns` endpoints.
 
 ### 4.6 Fault Reporting — FR-033, IF-05, IF-11
 

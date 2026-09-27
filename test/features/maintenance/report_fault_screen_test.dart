@@ -138,7 +138,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('AST-099'), findsOneWidget);
-    expect(find.text('Office Laptop'), findsOneWidget);
+    expect(find.textContaining('Office Laptop'), findsOneWidget);
 
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Describe the issue or defect…'),

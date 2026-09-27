@@ -21,7 +21,8 @@ import 'package:flutter/foundation.dart';
 void trustLocalDevCerts(Dio dio) {
   if (!kDebugMode) return;
   dio.httpClientAdapter = IOHttpClientAdapter(
-    createHttpClient: () => HttpClient()
-      ..badCertificateCallback = (_, host, _) => host == 'localhost',
+    createHttpClient: () =>
+        HttpClient()
+          ..badCertificateCallback = (_, host, _) => host == 'localhost',
   );
 }
