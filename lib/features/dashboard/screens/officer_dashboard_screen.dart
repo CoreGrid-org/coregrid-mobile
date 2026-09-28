@@ -6,7 +6,7 @@ import '../../../shared/widgets/ui.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../../maintenance/widgets/fault_tile.dart';
 import '../../transfers/transfers_providers.dart';
-import '../../transfers/widgets/transfer_tile.dart';
+import '../../transfers/widgets/transfer_summary_card.dart';
 import '../../verification/models/verification_task.dart';
 import '../../verification/screens/verification_task_list_screen.dart';
 import '../../verification/verification_providers.dart';
@@ -122,7 +122,8 @@ class OfficerDashboardBody extends ConsumerWidget {
           data: incoming,
           emptyLabel: 'No approved transfers heading to your department.',
           onSeeAll: () => context.push('/transfers'),
-          itemBuilder: TransferTile.new,
+          itemBuilder: (transfer) =>
+              TransferSummaryCard(transfer: transfer),
         ),
         DashboardPreview(
           title: 'Recent evaluations',
