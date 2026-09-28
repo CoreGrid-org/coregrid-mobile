@@ -273,10 +273,13 @@ class _AssetField extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Choose the affected asset',
-              style: context.text.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
+            GestureDetector(
+              onTap: onPick,
+              child: Text(
+                'Select Asset from Department…',
+                style: context.text.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
