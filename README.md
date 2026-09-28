@@ -1,28 +1,88 @@
 # CoreGrid Mobile
 
-The Flutter field-operations client for [CoreGrid](https://github.com/CoreGrid-org/CoreGrid) — scan an
-asset, verify it, report a fault, confirm a transfer, right where you're standing.
+CoreGrid Mobile is the Flutter field-operations client for the CoreGrid asset lifecycle platform. It gives authenticated Staff and Inventory Officers a focused mobile workflow for finding assets, scanning QR labels, verifying inventory, reporting faults, requesting transfers, confirming receipt, and reviewing assigned work.
 
-This repository holds **only the app**. There's no backend here: it talks exclusively to the CoreGrid API
-over HTTPS/REST, never to the database or the identity provider's management API directly. The backend, the
-React admin console, and the authoritative requirements (SRS) all live in the main
-[`CoreGrid`](../CoreGrid) repository.
+This repository contains the mobile client only. The CoreGrid API and web administration console are maintained in the main CoreGrid repository. The app communicates with the API through HTTPS/REST and never connects directly to PostgreSQL or ThunderID management endpoints.
 
-React is the desk — administration, configuration, approvals, reporting. Flutter is the field — scanning,
-verifying, reporting, confirming. That split is normative (`CoreGrid/doc/SRS/03-system-architecture.md`
-§3.4), not a suggestion.
+## Product boundary
 
-## Getting started
+- Staff use the mobile app to find assets and report faults.
+- Inventory Officers use the mobile app for verification, maintenance progress, workflows, transfers, receipt confirmation, and fault reporting.
+- Administrators and Auditors use the web console; they are not mobile roles.
+- ThunderID provides OIDC/OAuth 2.0 authentication.
+- CoreGrid applies organisation and role scoping in the API.
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) to set up the environment and run the app, and
-[`doc/MOBILE-SPECIFICATION.md`](doc/MOBILE-SPECIFICATION.md) for the architecture, screen-by-screen flows,
-and package choices. [`doc/PROGRESS.md`](doc/PROGRESS.md) tracks what's actually built.
+## Technology
 
-## Stack
+- Flutter and Dart
+- Riverpod for state management
+- go_router for navigation
+- Dio for authenticated API access
+- flutter_appauth and flutter_secure_storage for authentication
+- mobile_scanner for QR identification
+- image_picker for photo evidence
+- Android is the supported evaluation target.
 
-Flutter/Dart, Riverpod, `go_router`, `flutter_secure_storage`, `mobile_scanner`, `image_picker` — mandated
-by the SRS (§2.5) and ADR-004. Android 8.0+ target; release APK for evaluation, no iOS in scope.
+## Documentation
+
+- [Mobile specification](doc/mobile-specification.md) — architecture, requirements, routes, API contracts, and traceability.
+- [Progress](doc/progress.md) — implementation status and known gaps.
+- [Team allocation](doc/team-allocation.md) — ownership and contribution boundaries.
+- [Software requirements specification](doc/software-requirements-specification.md) — mobile SRS, document control, AI-use disclosure, and repository commit evidence.
+- [Asset detail notes](doc/features/asset-detail.md) — asset detail flow and implementation notes.
+- [Local networking](doc/setup/local-dev-networking.md) — Android device, HTTPS, and adb reverse setup.
+- [ThunderID mobile client](doc/setup/thunderid-mobile-client.md) — redirect URI and client registration requirements.
+- [Contributing](CONTRIBUTING.md) — development workflow and project conventions.
+
+## Quick start
+
+Install Flutter, Android Studio, and the Android SDK, then fetch dependencies:
+
+```bash
+flutter pub get
+```
+
+Copy the example configuration and provide the development API and ThunderID values:
+
+```bash
+cp .env.example .env.json
+```
+
+Use the commands and local certificate setup in [local networking](doc/setup/local-dev-networking.md). Then run:
+
+```bash
+flutter run --dart-define-from-file=.env.json
+```
+
+Run the test suite with:
+
+```bash
+flutter test
+```
+
+Before opening a pull request, also run:
+
+```bash
+dart analyze
+```
+
+Use `flutter analyze` instead if the Flutter SDK is the configured analyzer entry point.
+
+## Repository layout
+
+```text
+lib/app/                 Application shell and router
+lib/features/            Auth, assets, dashboards, maintenance, transfers, and workflows
+lib/shared/              API client, authentication, theme, and reusable widgets
+test/                    Unit and widget tests
+doc/                     Product, setup, ownership, and implementation documentation
+android/                 Android application and development certificate configuration
+```
+
+## Security and configuration
+
+Never commit `.env.json`, client secrets, access tokens, refresh tokens, or private certificates. The API client attaches the in-memory ThunderID access token to requests. Development-only certificate trust is restricted to local hosts; production builds must use normal certificate validation.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache License 2.0. See [LICENSE](LICENSE).

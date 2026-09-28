@@ -1,6 +1,6 @@
 # `features/assets/` — Asset Detail
 
-Owner: **Student 1 — Jayashan Guruge** ([`TEAM-ALLOCATION.md`](../TEAM-ALLOCATION.md)).
+Owner: **Student 1 — Jayashan Guruge** ([`team-allocation.md`](../team-allocation.md)).
 Implements the Flutter slice of **Component A — Asset Registry & QR Identification**.
 
 | Requirement | What this feature does |
@@ -11,19 +11,23 @@ Implements the Flutter slice of **Component A — Asset Registry & QR Identifica
 | **FR-024 AC4** | Department Staff never see the **Verify** action; the API rejects a direct verify call from Staff with 403 regardless. |
 | **FR-024 A3/A4** | A code from another organisation shows "Asset not found" (never leaks existence); an offline device shows an offline state, never stale cached data. |
 
-Spec reference: [`MOBILE-SPECIFICATION.md` §4.4](../MOBILE-SPECIFICATION.md).
+Spec reference: [`mobile-specification.md` §4.4](../mobile-specification.md).
 
 ## Routes
 
 ```
 /assets       →   AssetLookupScreen           manual asset-code entry (FR-025)
+/scan          →   ScanAssetScreen             camera QR scan (FR-024)
 /assets/:id   →   AssetDetailScreen(assetId)   the attribute-driven detail view (FR-020)
 ```
 
-Both registered in `lib/app/router.dart`. `AssetLookupScreen` is reachable now from the **"Enter Code"**
-button on both the Officer and Staff dashboards; it resolves the typed code via
-`GET /api/assets/qr/{code}` and pushes `/assets/:id`. Once `features/scan/` lands, the camera scanner
-becomes the other way in and the camera-refused fallback (IF-10) routes here.
+All routes are registered in `lib/app/router.dart`. Both dashboards reach them through one **Find an asset**
+card (`features/dashboard/widgets/find_asset_card.dart`): a single token typed there is tried as an exact code
+and opens the detail screen; anything else, or an unknown code, opens `/assets/search?q=…` pre-filled.
+Its **Scan QR code** button opens the camera,
+accepts QR codes only, resolves their value through `GET /api/assets/qr/{code}`, and immediately opens the
+returned authoritative record. Camera access refused, an unknown code, and offline lookup all provide a
+safe recovery path; manual code entry remains available throughout.
 
 ## Backend API (client-only repo — all calls go to `../CoreGrid/backend/`)
 
@@ -50,7 +54,7 @@ lib/features/assets/
     asset_condition.dart       AssetCondition — the five-point scale, API value ⇄ label
     asset_history_entry.dart   AssetHistoryEntry
   screens/
-    asset_lookup_screen.dart   manual code entry (FR-025) — the reachable entry point until features/scan/
+    asset_lookup_screen.dart   manual code entry (FR-025)
     asset_detail_screen.dart   loading / error (not-found · offline · session-expired · generic) / populated
   widgets/
     asset_attribute_list.dart  FR-020 renderer — switches on data *type*, never attribute *name*
@@ -63,9 +67,9 @@ lib/shared/api/
 ```
 
 > `lib/shared/api/` is nominally the app-shell owner's cross-cutting area
-> ([`TEAM-ALLOCATION.md`](../TEAM-ALLOCATION.md)). A minimal client was stood up here to unblock this
+> ([`team-allocation.md`](../team-allocation.md)). A minimal client was stood up here to unblock this
 > feature. **Not yet implemented** (left for the shell owner): the single silent refresh-and-retry on 401
-> described in `MOBILE-SPECIFICATION.md` §3.4 — a 401 currently surfaces as a "session expired" error state.
+> described in `mobile-specification.md` §3.4 — a 401 currently surfaces as a "session expired" error state.
 
 ## Behaviour notes
 
@@ -96,11 +100,8 @@ lib/shared/api/
 
 ## Not done in this slice
 
-- The camera scanner and permission/refused handling (`features/scan/`, FR-024, IF-10). Manual code entry
-  (FR-025) has a minimal screen here; the full flow folds into `features/scan/`.
-- The QR scanner and camera-permission handling (`features/scan/`, FR-024) remain
-  separate from the completed verification form.
 - Any list/search screen — out of scope per FR-028 note above.
 - End-to-end run against a live backend is blocked locally until a native ThunderID client is registered
   (see the `running-the-app` session note); the feature is built to spec and covered by widget tests
   against a faked `AssetsApi`.
+

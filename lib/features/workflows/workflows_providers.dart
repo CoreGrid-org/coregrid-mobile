@@ -4,18 +4,15 @@ import 'models/agent_workflow.dart';
 import 'models/workflow_asset_ref.dart';
 import 'workflows_api.dart';
 
-/// Agent workflows visible to the signed-in officer (FR-069), newest first.
+/// Agent workflows visible to the signed-in officer, newest first.
 final agentWorkflowsProvider = FutureProvider.autoDispose<List<AgentWorkflow>>((
   ref,
 ) async {
   final workflows = await ref.watch(workflowsApiProvider).getWorkflows();
-  return workflows.toList()
-    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return workflows.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 });
 
-/// One workflow's status/outcome (FR-069/FR-076), polled every 5s while
-/// unresolved — the backend runs the evaluation asynchronously and the app
-/// has no push channel to learn when it's done.
+/// One workflow's status/outcome, polled every 5s while unresolved.
 final agentWorkflowProvider = StreamProvider.autoDispose
     .family<AgentWorkflow, String>((ref, id) async* {
       final api = ref.watch(workflowsApiProvider);
@@ -43,11 +40,12 @@ class WorkflowAssetLookupController extends AsyncNotifier<WorkflowAssetRef?> {
 }
 
 final workflowAssetLookupControllerProvider =
-    AsyncNotifierProvider.autoDispose<WorkflowAssetLookupController, WorkflowAssetRef?>(
-      WorkflowAssetLookupController.new,
-    );
+    AsyncNotifierProvider.autoDispose<
+      WorkflowAssetLookupController,
+      WorkflowAssetRef?
+    >(WorkflowAssetLookupController.new);
 
-/// Drives "Request Evaluation" (FR-067/FR-068).
+/// Drives "Request Evaluation".
 class InitiateWorkflowController extends AsyncNotifier<void> {
   @override
   void build() {}

@@ -47,7 +47,10 @@ whatever is current when the project is actually scaffolded.
 | `permission_handler` | IF-10 | Requesting and checking camera permission with a plain-language rationale |
 | `connectivity_plus` | — | Detecting offline state to surface a clear network-error state (IF-01-equivalent for mobile lists) |
 | `intl` | — | Date/number formatting consistent with the backend's culture settings |
-| `flutter_dotenv` or `--dart-define` (see §5) | — | Environment-specific configuration (API base URL, ThunderID client ID) |
+| `shared_preferences` | — | Device-local flags that aren't secrets and don't need Keystore backing — e.g. the onboarding-seen flag (§4.0). Not for tokens; those stay in `flutter_secure_storage` per §3.4/CLAUDE.md |
+
+Resolved in favour of `--dart-define` (see §5) over `flutter_dotenv` for environment configuration — no
+`.env`-parsing package is in `pubspec.yaml`.
 
 Deliberately **not** used: any BLoC/Provider/GetX state-management package (superseded by ADR-004), any
 embedded-WebView OAuth package (violates RFC 8252 / SEC-ID-06), any local database/ORM for offline
@@ -69,8 +72,12 @@ lib/
   shared/
     api/                     ApiClient (dio instance + auth interceptor), typed error model
     auth/                    Token storage, PKCE flow, AuthState provider, route-guard helpers
-    widgets/                 Cross-feature widgets (loading/empty/error states, confirmation dialog for IF-05)
-    theme/                   App theming
+    widgets/                 Shared UI kit — import `ui.dart`: StatusPill/StatusTone, IconTile, RecordTile,
+                             ListCard, InfoRow, Notice, SubmitButton, SectionHeader, EntityHeader, StatCard/
+                             StatRow, Metric, AsyncView, Loading/Message/ErrorView, PhotoEvidenceCard,
+                             date/money/status formatters; `context.text` / `.colors` / `.mutedBody` shorthands
+    media/                   `pickCompressedPhoto` — IF-11 ≤1MB compression, shared by every photo upload
+    theme/                   AppTheme (light/dark), AppColors semantic tones, AppSpacing, AppRadius
 ```
 
 A feature folder owns its screens, its providers, and its API calls together — never split into global
@@ -115,6 +122,21 @@ GoRoute(
 
 Route table mirrors the feature list in §3.1 one-to-one — no route lives outside its feature's folder.
 
+**Signed-in navigation shell.** After sign-in the app runs inside a `StatefulShellRoute.indexedStack`
+(`app/app_shell.dart`) with a Material 3 bottom `NavigationBar`; each tab keeps its own stack. Tabs are
+role-filtered (`shellBranchesFor`) — Officer: Home · Verify · Workflows · Faults · Account; Staff: Home ·
+Faults · Account; unresolved role: Home · Account. Branch routes are `/home`, `/verification`
+(`?view=campaigns` opens the Campaigns segment), `/workflows`, `/faults` (Officer: `?view=all` opens
+*All records*, `?view=assigned` the same filtered to their assignments), `/account`. Detail and form
+routes (`/scan`, `/assets/...`, `/verification/:taskId`, `/campaigns/:id`, `/workflows/new|:id`,
+`/maintenance/report|:id`, `/transfers`, `/transfers/new|:id`) are top-level and push full-screen over the
+shell. The `redirect` guards `/verification`, `/workflows`, `/campaigns` and `/transfers` for
+non-Officers, independent of which tabs are shown.
+
+**Design system.** Every screen builds from `shared/widgets/ui.dart` and the theme — no screen hard-codes
+colours. Brand deep green (`CoreGridBrand.greenDeep`) is the single interactive primary; status meaning is
+carried by `StatusTone` (neutral/info/success/warning/danger) so a status reads the same in every feature.
+
 ### 3.4 API client and auth interceptor
 
 One shared `dio` instance (`shared/api/api_client.dart`) with a single auth interceptor:
@@ -134,6 +156,16 @@ Each row is one screen or flow; "States" follows the same loading/empty/error/po
 uses for React list views (IF-01), applied here for consistency even where the mobile-specific requirement
 doesn't spell it out.
 
+### 4.0 Onboarding (not an SRS requirement)
+
+| | |
+|---|---|
+| Trigger | App cold start, before sign-in — the router's `initialLocation` |
+| Sequence | Three-page swipeable intro (Scan & Identify / Verify & Report / Stay On Top of Your Day) → Sign In, or auto-skipped straight to §4.1 once already seen |
+| States | Page N of 3, skip |
+| API calls | None — a device-local flag (`OnboardingStorage`) records that it's been shown, so it only ever appears once per install |
+| Status | Live (`features/onboarding/`) — a UX addition to the app-shell owner's scope, not tied to any FR/IF requirement. Kept out of §8's traceability table for that reason; it's listed here so it isn't mistaken for an undocumented gap. |
+
 ### 4.1 Authentication — FR-001, FR-008, SEC-ID-06
 
 | | |
@@ -142,6 +174,16 @@ doesn't spell it out.
 | Sequence | Splash → sign-in button → external browser (ThunderID) → redirect back via custom scheme → token exchange → `/api/me` → role check → dashboard, or `/access-restricted` |
 | States | Signing in, sign-in failed (non-technical message, retry), role not supported, signed out |
 | API calls | Token exchange via ThunderID (not the CoreGrid API directly); `GET /api/me` on success |
+
+**No registration screen — by design, not by omission.** This app never creates an account. Every CoreGrid
+user is provisioned by an Administrator through the React console's Users & Roles page
+(`POST /api/users`, `ManageUsers` policy — Administrator only), which is how ThunderID's `CoreGridUser`
+identity gets an `ExternalSubjectId` linked to a `Users` row and a role in the first place. `features/auth/`
+here is sign-in-only: there is no "Create account"/"Sign up" affordance anywhere in this app, and none
+should be added — building one would duplicate Administrator-only functionality that's explicitly
+React-only per the responsibility boundary (main SRS §3.4), and ThunderID itself has no self-registration
+enabled for this deployment. A user with no CoreGrid account yet simply cannot sign in to this app; that's
+expected, not a bug to fix here.
 
 **Role gate (main SRS §3.4, scope change v1.5):** ThunderID's `CoreGridUser` type is shared by all four
 roles — there is no way to restrict *sign-in* to specific roles at the identity-provider level — so this app
@@ -161,13 +203,13 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | Sequence | Role-branched (main SRS §2.3.1): Officer sees verification tasks due, maintenance assigned, transfers awaiting confirmation; Staff sees their own fault reports and status only — narrower, since Staff has no verification/maintenance-management/transfer capability |
 | States | Loading, empty (per section — "No tasks due"), error (per section, independently retryable), populated |
 | API calls | Aggregated from the verification, maintenance and transfer list endpoints (main SRS §9), scoped to the current user |
-| Status | **Partially live** (`features/dashboard/screens/{dashboard,officer_dashboard,staff_dashboard}_screen.dart`) — "Verification Tasks Due" reads real data from `features/verification/`; "Maintenance Assigned to Me" and "Transfers Awaiting My Confirmation" stay hardcoded sample rows until `features/maintenance`/`features/transfers` exist to back them, disclosed with an on-screen banner. |
+| Status | **Live** (`features/dashboard/`) — the Home tab: greeting, "Find an asset" (scan / code-or-name search), then role-specific content. Officer: at-a-glance counts (overdue tasks, tasks to verify, open fault reports), quick actions (incl. Transfers), and previews of verification due, maintenance assigned to me (`GET /api/maintenance?assigneeId=<me>` for APPROVED + IN_PROGRESS), transfers to receive (APPROVED, into the officer's department), recent evaluations and my fault reports, each with "See all". Staff: quick actions and my fault reports. |
 
 ### 4.3 Scan / Manual Entry — FR-024, FR-025, IF-06, IF-07, IF-10, IF-12
 
 | | |
 |---|---|
-| Trigger | "Scan Asset" — the primary action on the dashboard |
+| Trigger | "Scan QR code" — the primary button in the dashboard's "Find an asset" card |
 | Sequence | Camera preview (`mobile_scanner`) → decode → resolve → asset detail. A visible "Enter code manually" affordance is present from the start, not only after a failure, and is what's shown directly if camera permission is refused |
 | States | Requesting permission, scanning, resolving (must return a result or a clear failure within 3s per IF-06), not found, manual-entry form |
 | API calls | `GET /api/assets/qr/{code}` |
@@ -179,17 +221,44 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | Trigger | Successful scan or manual lookup |
 | Sequence | Attribute-driven read view (rendered from the type's attribute definitions, no hardcoded domain knowledge — same rule as the React client, FR-020) with entry points to Verify, Report Fault, and — if the asset's current lifecycle state allows it — Condition update |
 | States | Loading, error (asset not found / not accessible to this user's department), populated |
-| API calls | `GET /api/assets/{id}` |
+| API calls | `GET /api/assets/{id}` (`GET /api/assets/qr/{code}` when reached by code instead of ID — same detail screen either way); condition update is `PATCH /api/assets/{id}/condition`, gated client-side to ACTIVE/UNDER_MAINTENANCE, via the condition-update bottom sheet. That endpoint is `CanManageAssets`-gated server-side — InventoryOfficer/Administrator only, **not** Staff — so the "Update Condition" button must only render for InventoryOfficer, the same way `canVerifyAssetsProvider` already gates the Verify button (see `doc/progress.md` FR-029 for a currently-open gap where this isn't yet enforced client-side) |
 
 ### 4.5 Physical Verification — FR-031, FR-059, FR-061
 
+Both paths are live and share one form (`features/verification/widgets/verification_form.dart`).
+**Who:** Inventory Officer only — Staff have no verification role (SRS §3.4.1, scope change v1.5).
+**Field procedure (FR-059):** "Scan to verify" (Verify tab FAB, Officer Home) → scanner in identify mode →
+the officer's pending task for the scanned asset opens with identity already confirmed; if no task covers
+it, a dialog offers ad-hoc verification (FR-031). A task opened from the list must be confirmed with
+"Scan asset" before *Present* can be submitted (a different asset's label is rejected); *Not found* needs
+no scan. The historical rows below record how this looked before 2026-09-27:
+
 | | |
 |---|---|
-| Trigger | "Verify" from asset detail, or from a verification-campaign task in the task list |
+| Trigger (intended, FR-031) | "Verify" from asset detail should offer ad hoc verification independent of any campaign task |
+| Trigger (**actual, today**) | Asset detail's "Verify" button (Officer only, `canVerifyAssetsProvider`) looks up the current user's pending verification *task* for that asset and opens it — **or** opening a task directly from the verification-task list (FR-059, `features/verification/`). If there's no pending task for the asset, the user gets a message pointing them at the task list; there's no fallback to a true ad hoc verification today |
 | Sequence | Assert presence → assert location (defaults to registered location, editable) → assert condition → submit → result screen showing whether a discrepancy was raised |
 | States | In progress (multi-step, must survive backgrounding without losing entered state), submitting, discrepancy raised, no discrepancy, submission error |
-| API calls | `POST /api/assets/{id}/verify`; discrepancy raised manually (FR-061) goes through a separate photo-attached submission |
+| API calls (intended) | Ad hoc: `POST /api/assets/{id}/verify` (`AssetVerificationScreen`, `features/assets/`). Task-bound: `PATCH /api/verification-tasks/{id}/complete` (`VerificationTaskDetailScreen`, `features/verification/`). Both run the same comparison server-side (see below) and both return whether a discrepancy was raised — the response shape differs (asset vs. task payload), so the two screens can't share one API call even though they'd share the same form widget |
+| API calls (**actual, today**) | Only the task-bound path is reachable. `AssetVerificationScreen` and its `verifyAsset()` call exist and are widget-tested in isolation, but nothing in `lib/` navigates to it — it isn't in `app/router.dart` and isn't called from `AssetDetailActions` either. Verifying an asset with no open campaign task isn't possible from the running app today. |
+| Server-side logic | Neither endpoint auto-corrects the register. If asserted "not present" → raises `Missing` and stops (location/condition aren't checked for an asset that isn't there). Otherwise: asserted location ≠ registered location → `LocationMismatch`; asserted condition ≠ registered condition → `ConditionMismatch`. Raised `Open`, `is_automatic = true`, no `raised_by` user. `Surplus`/`DataMismatch`/`Other` can't be produced this way — see FR-061 below. |
 | Note | Officer only (main SRS scope change v1.5) — Auditor no longer completes verification tasks via mobile scan; Auditor reviews results on the web console instead |
+
+**Manual discrepancy — FR-061 (task-bound only; `RaiseDiscrepancyScreen`):** a two-call submission, not one —
+`POST /api/verification-tasks/photos` first (uploads the optional evidence photo, compressed client-side to
+≤1MB per IF-11, returns a URL) then `POST /api/verification-tasks/{taskId}/discrepancies` with that URL,
+`type` (any of `Missing / Surplus / LocationMismatch / ConditionMismatch / DataMismatch / Other` — this is
+the only path that can raise `Surplus`/`DataMismatch`/`Other`, since the two endpoints above can't infer
+them), and a description. Raised `Open`, `is_automatic = false`, `raised_by` = the reporting officer.
+Resolution (`Open` → `Resolved`, `PATCH /api/discrepancies/{id}/resolve`) is Auditor/Administrator-only and
+is not a mobile screen — it happens on the web console.
+
+**Campaigns — read-only context (`CampaignDetailScreen`, Verify tab → Campaigns).** SRS §3.4 makes
+"Verification campaign management" React-only, so the app wraps only the two read endpoints
+(`GET /api/verification-campaigns`, `GET /api/verification-campaigns/{id}` — `CanReadCampaigns` includes
+InventoryOfficer): name, period, scope, status, progress (`completed_task_count` / `task_count`), open
+discrepancy count, and the officer's own tasks in that campaign. No create/edit/close/report actions and no
+calls to the `CanManageCampaigns` endpoints.
 
 ### 4.6 Fault Reporting — FR-033, IF-05, IF-11
 
@@ -198,26 +267,55 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | Trigger | "Report Fault" from asset detail |
 | Sequence | Description → observed condition → optional photo (camera or library, compressed client-side to ≤1MB) → confirmation naming the asset (IF-05) → submit |
 | States | Draft, photo compressing, submitting, submitted, error (with the draft preserved for retry) |
-| API calls | `POST /api/maintenance` (fault report is the creation of a maintenance record) |
+| API calls | If a photo was attached: `POST /api/maintenance/photos` first (returns a URL), then `POST /api/maintenance/faults` with `asset_id`, `description` (≤2000 chars), `observed_condition`, and that photo URL. **Not** the generic `POST /api/maintenance` — that endpoint is InventoryOfficer-only and would 403 for Staff, who file the majority of fault reports. The fault-report record always starts unassigned (`assignee_id` is never set here) — see §4.7 for how it gets assigned. |
 
 ### 4.7 Maintenance Task Progress — FR-037, FR-042
 
 | | |
 |---|---|
-| Trigger | From the dashboard's assigned-maintenance section or a filtered list |
-| Sequence | List (status/priority/date filters) → record detail → legal-transition-only status update (illegal transitions not offered as options, not merely rejected server-side) |
+| Trigger | From the dashboard's "Maintenance assigned to me", or the Officer's Faults tab → *All records* (`MaintenanceRecordsView`) |
+| Sequence | List (status/priority/type/department/asset/assignee/date-range filters, sort, "Load more") → record detail (`/maintenance/:id`, re-read by id) → legal-transition-only update (illegal transitions not offered, not merely rejected server-side) |
 | States | Loading, empty, error, populated; update-in-flight |
-| API calls | `GET /api/maintenance` (filtered), `POST /api/maintenance/{id}/status` (or equivalent transition endpoint per main SRS §9) |
+| API calls | `GET /api/maintenance` (filtered — filter to `assignee_id = me` for "my work"), then one of the three transition endpoints below depending on the record's current status |
+
+**Status transitions** (`REQUESTED → APPROVED → IN_PROGRESS → COMPLETED`, or `CANCELLED` from any
+non-terminal state) — there is no generic `/status` endpoint; each transition is its own call:
+
+| Transition | Endpoint | Who |
+|---|---|---|
+| `REQUESTED → APPROVED` | `POST /api/maintenance/{id}/approve` | InventoryOfficer/Administrator — see "Assigned to", below |
+| `APPROVED → IN_PROGRESS` | `POST /api/maintenance/{id}/start` | InventoryOfficer/Administrator |
+| `IN_PROGRESS → COMPLETED` | `POST /api/maintenance/{id}/complete` | **InventoryOfficer only** — Administrator is deliberately excluded from this one endpoint (every other transition uses the InventoryOfficer-or-Administrator policy); since Administrator has no mobile access anyway (§4.1's role gate), this asymmetry doesn't affect this app in practice, but don't assume the same role set applies to every transition if extending this screen |
+| any → `CANCELLED` | `POST /api/maintenance/{id}/cancel` | InventoryOfficer/Administrator, optional reason |
+
+**What mobile actually offers (as built, 2026-09-27).** SRS §3.4's responsibility table is normative and
+reads "Maintenance assignment, costing, completion — React: Yes / Flutter: Progress update only". So the app
+offers exactly one transition: **Start work** (`APPROVED → IN_PROGRESS`), shown only to the record's
+assignee (matched on `assignee_id` / email from `GET /api/me`). Approve, complete and cancel are not built
+here; the detail screen tells the user what the record is waiting for instead. The table above and the
+completion-form note below describe the API, not a mobile to-do list — building completion on mobile would
+need a §3.4 scope change first.
+
+**How "Assigned to" gets set — there is no separate assign action.** Assignment happens exclusively as part
+of Approve: `POST /api/maintenance/{id}/approve` takes both `assignee_id` and `estimated_cost` in the same
+call and sets them together with the status flip to `APPROVED`. There's no reassignment afterwards — Amend
+(`PUT /api/maintenance/{id}`) only touches type/priority/description, never the assignee — and `Start` is
+rejected server-side if the record has no assignee yet. So on mobile: a Staff-filed fault report or an
+Officer-created record sits `REQUESTED` and unassigned until an InventoryOfficer/Administrator approves it
+(picking an assignee from the org's users, no role restriction on who can be chosen), at which point it
+appears in that assignee's "Maintenance Assigned to Me" dashboard section. Completing a record additionally
+requires `estimated_cost`/`actual_cost`, ≥10-character `work_performed`, a `completion_date`, and a
+`resulting_condition` — build that as a real form, not a bare "Mark complete" button.
 
 ### 4.8 Transfer Request & Receipt Confirmation — FR-043, FR-046
 
 | | |
 |---|---|
-| Trigger | "Raise Transfer" from asset detail, or "Confirm Receipt" from the dashboard's awaiting-confirmation section |
-| Sequence (raise) | Destination department → destination location → reason → submit |
-| Sequence (confirm) | Scan the incoming asset (reuses §4.3) → confirm receipt → asset returns to ACTIVE at the new department/location |
+| Trigger | "Request Transfer" on asset detail (ACTIVE assets), the Transfers quick action / list (`/transfers`), or the dashboard's "Transfers to receive" |
+| Sequence (raise) | Asset (code, scan, or pre-filled) → destination department → destination location → submit → the new transfer's detail. *Reason* is in the SRS text but not in the API's `InitiateTransferRequest` yet |
+| Sequence (confirm) | Transfer detail (APPROVED, into the officer's own department) → "Scan to confirm receipt" → shared identify-mode scanner (`identifyAssetByScan`, manual code entry still available) → scanned asset must equal the transfer's → `POST …/confirm-receipt` → asset ACTIVE at the new department/location |
 | States | Both flows: draft, submitting, submitted, error |
-| API calls | `POST /api/transfers`; confirmation via the transfer's receipt-confirmation endpoint (main SRS §9) |
+| API calls | Raise: `POST /api/transfers`, InventoryOfficer/Administrator only (`CanRequestTransfer`). Confirm: `POST /api/transfers/{id}/confirm-receipt`, InventoryOfficer/Administrator only (`CanConfirmReceipt`) — both policies exclude Staff and Auditor, so on this Officer-only-mobile app there's no extra role gating to add beyond §4.1's. Approve/reject (`POST /api/transfers/{id}/approve`, `/reject`) are Administrator-only and out of scope for this app entirely. |
 
 ### 4.9 Agentic Workflow Status — FR-067, FR-069, FR-076
 
@@ -234,9 +332,9 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | | |
 |---|---|
 | Trigger | Notification icon/badge from any screen |
-| Sequence | List, most recent first, unread visually distinguished; tapping one navigates to the relevant asset/task/workflow |
+| Sequence | List, most recent first, unread visually distinguished; tapping one navigates to the relevant asset/task/workflow, and marks it read |
 | States | Loading, empty, error, populated |
-| API calls | `GET /api/notifications` |
+| API calls | `GET /api/notifications` for the list; `GET /api/notifications/unread-count` for the badge (poll or refresh on app resume — there's no push channel); `PATCH /api/notifications/{id}/read` on tap-through; `PATCH /api/notifications/read-all` for a "mark all read" action |
 
 ## 5. Environment and Build Configuration
 
@@ -246,7 +344,7 @@ Three configurations, selected at build time via `--dart-define`, not committed 
 
 | Flavor | API base URL | ThunderID client |
 |---|---|---|
-| `dev` | `https://localhost:7240`, reached via `adb reverse` — see `doc/setup/local-dev-networking.md` for why this replaces the `10.0.2.2` emulator alias (it avoids an OIDC issuer-URL mismatch against ThunderID) and the TLS-trust setup it needs | Dev-registered mobile client (doc/setup/ThunderID-mobile-client.md) |
+| `dev` | `https://localhost:7240`, reached via `adb reverse` — see `doc/setup/local-dev-networking.md` for why this replaces the `10.0.2.2` emulator alias (it avoids an OIDC issuer-URL mismatch against ThunderID) and the TLS-trust setup it needs | Dev-registered mobile client (doc/setup/thunderid-mobile-client.md) |
 | `staging` | Deployed staging API | Staging-registered mobile client |
 | `prod` | Deployed production API | Production-registered mobile client |
 
@@ -272,7 +370,7 @@ ID in source that gets committed, and never commit a `.env`/`.env.json` file con
 ### 5.2 App identity and versioning
 
 - Application ID: `com.coregrid.mobile` (placeholder — confirm against the actual ThunderID redirect-scheme
-  registration in `doc/setup/ThunderID-mobile-client.md` before changing either, since they must match).
+  registration in `doc/setup/thunderid-mobile-client.md` before changing either, since they must match).
 - Version scheme: semantic `MAJOR.MINOR.PATCH+BUILD` in `pubspec.yaml`, `BUILD` incremented on every release
   build regardless of whether `MAJOR.MINOR.PATCH` changed.
 
@@ -304,7 +402,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: '3.47.0'
+          channel: stable
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -317,7 +416,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: '3.47.0'
+          channel: stable
       - run: flutter pub get
       - run: >
           flutter build apk --release
@@ -348,9 +448,9 @@ single-evaluator Android APK deliverable (main SRS §2.4).
 ## 8. Traceability
 
 Maps each Flutter-owned requirement to the module that satisfies it, for quick lookup — current build
-status lives in [`PROGRESS.md`](PROGRESS.md), not here; this table doesn't change as work progresses. The
+status lives in [`progress.md`](progress.md), not here; this table doesn't change as work progresses. The
 **Owner** column is the same per-feature assignment as
-[`TEAM-ALLOCATION.md`](TEAM-ALLOCATION.md) — see that file for why, not just who.
+[`team-allocation.md`](team-allocation.md) — see that file for why, not just who.
 
 | Requirement | Module (§) | Owner |
 |---|---|---|
@@ -359,7 +459,7 @@ status lives in [`PROGRESS.md`](PROGRESS.md), not here; this table doesn't chang
 | FR-024, FR-025, IF-06, IF-07, IF-10, IF-12 | `features/scan/` (§4.3) | Student 1 (Jayashan) |
 | FR-028 | `features/assets/` (basic lookup only — advanced search/filter/export is React-only per SRS §3.4) | Student 1 (Jayashan) |
 | FR-029 | `features/assets/` (§4.4) | Student 1 (Jayashan) |
-| FR-031 | `features/scan/` → verify entry point (§4.5) | Student 1 (Jayashan) — this component's named business-specific operation |
+| FR-031 | `features/assets/` — the ad hoc `POST /api/assets/{id}/verify` path (§4.5), not `features/scan/` — the asset-detail entry point doesn't depend on a scanner existing | Student 1 (Jayashan) — this component's named business-specific operation. Built but not yet routed — see `doc/progress.md` |
 | FR-058, FR-059, FR-061 | `features/verification/` (§4.5) | Student 4 (Hasitha) |
 | FR-033, IF-11 | `features/maintenance/` (§4.6) | Student 2 (Seneja) |
 | FR-037, FR-042 | `features/maintenance/` (§4.7) | Student 2 (Seneja) |
@@ -370,3 +470,4 @@ status lives in [`PROGRESS.md`](PROGRESS.md), not here; this table doesn't chang
 | IF-02, IF-05, IF-09 | Cross-cutting — `shared/widgets/`, `shared/auth/` route guards, `shared/api/` error mapping | Student 4 (Hasitha) — shell/shared |
 | IF-03 | Cross-cutting — form validation pattern in every feature's screens | Each feature's own owner |
 | IF-13 | Constraint, not a module — no location/biometric/Bluetooth/NFC code in the baseline | — |
+

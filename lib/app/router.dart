@@ -4,37 +4,56 @@ import 'package:go_router/go_router.dart';
 import '../features/assets/screens/asset/asset_detail_screen.dart';
 import '../features/assets/screens/asset/asset_lookup_screen.dart';
 import '../features/assets/screens/asset/asset_search_screen.dart';
+import '../features/assets/screens/asset/asset_verification_screen.dart';
+import '../features/assets/models/asset/asset_detail.dart';
+import '../features/scan/screens/scan_asset_screen.dart';
 import '../features/auth/screens/access_restricted_screen.dart';
 import '../features/auth/screens/sign_in_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
+import '../features/maintenance/screens/report_fault_screen.dart';
+import '../features/maintenance/screens/fault_detail_screen.dart';
+import '../features/maintenance/models/fault_report.dart';
 import '../features/verification/screens/raise_discrepancy_screen.dart';
 import '../features/verification/screens/verification_task_detail_screen.dart';
 import '../features/verification/screens/verification_task_list_screen.dart';
 import '../features/workflows/screens/initiate_workflow_screen.dart';
 import '../features/workflows/screens/workflow_detail_screen.dart';
 import '../features/workflows/screens/workflow_list_screen.dart';
+import '../features/transfers/screens/initiate_transfer_screen.dart';
+import '../features/transfers/screens/transfer_detail_screen.dart';
+import '../features/transfers/screens/transfer_list_screen.dart';
+import '../features/account/screens/account_screen.dart';
+import '../features/notifications/screens/notifications_screen.dart';
+import '../features/maintenance/screens/my_faults_screen.dart';
+import '../features/verification/screens/campaign_detail_screen.dart';
 import '../shared/auth/auth_controller.dart';
 import '../shared/auth/auth_state.dart';
+import 'app_shell.dart';
 
-/// `features/verification/` and `features/workflows/` are Inventory Officer
-/// only on mobile (FR-058/FR-059/FR-061/FR-067/FR-069/FR-076 — SRS scope
-/// change v1.5; Staff has no role in either). Both dashboards never link to
-/// these routes for a Staff session, but a direct navigation is still
-/// guarded here per §3.3's `redirect`-based role gate.
-const _officerOnlyPrefixes = ['/verification', '/workflows'];
+/// `features/verification/`, `features/workflows/` and `features/transfers/`
+/// are Inventory Officer only on mobile. The shell never shows these to a
+/// Staff session, but a direct navigation is still guarded here.
+const _officerOnlyPrefixes = [
+  '/verification',
+  '/workflows',
+  '/campaigns',
+  '/transfers',
+];
+
+bool _isOfficerOnly(String location) =>
+    _officerOnlyPrefixes.any(location.startsWith) ||
+    // Ad-hoc verification (FR-031) — `/assets/:id/verify`.
+    (location.startsWith('/assets/') && location.endsWith('/verify'));
 
 /// Route table mirrors the `lib/features/` layout one-to-one
-/// (`doc/MOBILE-SPECIFICATION.md` §3.1/§3.3) — no route lives outside its
+/// (`doc/mobile-specification.md` §3.1/§3.3) — no route lives outside its
 /// feature's folder. Each feature wires its own routes in here as it lands.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/onboarding',
     redirect: (context, state) {
-      final isOfficerOnly = _officerOnlyPrefixes.any(
-        (prefix) => state.matchedLocation.startsWith(prefix),
-      );
-      if (!isOfficerOnly) return null;
+      if (!_isOfficerOnly(state.matchedLocation)) return null;
 
       final auth = ref.read(authControllerProvider);
       final role = auth is AuthAuthenticated ? auth.role : null;
@@ -49,56 +68,161 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/sign-in',
         builder: (context, state) => const SignInScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const DashboardScreen(),
+      // Signed-in tabs. Branch order must match `ShellBranch`.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) => AppShell(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (context, state) => const DashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/verification',
+                builder: (context, state) => VerificationTaskListScreen(
+                  showCampaigns:
+                      state.uri.queryParameters['view'] == 'campaigns',
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/workflows',
+                builder: (context, state) => const WorkflowListScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/faults',
+                builder: (context, state) =>
+                    MyFaultsScreen(view: state.uri.queryParameters['view']),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/account',
+                builder: (context, state) => const AccountScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '/access-restricted',
         builder: (context, state) =>
             AccessRestrictedScreen(role: state.extra as String? ?? ''),
       ),
-      // features/assets/ — FR-025 manual code entry, the reachable entry point
-      // to the detail screen until features/scan/ lands.
+      // FR-080 — the user's own notifications (every role).
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      // Manual asset-code entry fallback.
       GoRoute(
         path: '/assets',
         builder: (context, state) => const AssetLookupScreen(),
       ),
       GoRoute(
         path: '/assets/search',
-        builder: (context, state) => const AssetSearchScreen(),
+        builder: (context, state) => AssetSearchScreen(
+          initialQuery: state.uri.queryParameters['q'] ?? '',
+        ),
       ),
-      // features/assets/ — FR-020/§4.4. Resolves the asset by id; reached from
-      // the lookup screen above, or a scan once features/scan/ exists.
+      GoRoute(
+        path: '/scan',
+        builder: (context, state) => ScanAssetScreen(
+          identify: state.uri.queryParameters['purpose'] == 'identify',
+        ),
+      ),
+      // Ad-hoc verification (FR-031). Officer only.
+      GoRoute(
+        path: '/assets/:id/verify',
+        builder: (context, state) => AssetVerificationScreen(
+          assetId: state.pathParameters['id']!,
+          initialAsset: state.extra as AssetDetail?,
+        ),
+      ),
+      // Asset detail — reached from manual lookup or scan.
       GoRoute(
         path: '/assets/:id',
-        builder: (context, state) =>
-            AssetDetailScreen(assetId: state.pathParameters['id']!),
+        builder: (context, state) => AssetDetailScreen(
+          assetId: state.pathParameters['id']!,
+          initialAsset: state.extra as AssetDetail?,
+        ),
       ),
-      // features/verification/ — FR-058 task list, FR-059 completion,
-      // FR-061 manual discrepancy raising. Officer only — see redirect above.
+      // Fault reporting, available to Staff and Officer.
       GoRoute(
-        path: '/verification',
-        builder: (context, state) => const VerificationTaskListScreen(),
+        path: '/maintenance/report',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is AssetDetail) {
+            return ReportFaultScreen(initialAsset: extra);
+          }
+          final values = extra as Map<String, String?>?;
+          return ReportFaultScreen(
+            assetId: values?['assetId'],
+            assetCode: values?['assetCode'],
+          );
+        },
+      ),
+      // features/maintenance/ — one maintenance record (FR-033 report,
+      // FR-037 progress update). The list's copy rides along as extra so it
+      // renders at once; the screen re-reads it by id.
+      GoRoute(
+        path: '/maintenance/:id',
+        builder: (context, state) => FaultDetailScreen(
+          id: state.pathParameters['id']!,
+          report: state.extra as FaultReport?,
+        ),
+      ),
+      // Verification task detail / discrepancy and read-only campaign detail
+      // push full-screen over the tabs. Officer only.
+      GoRoute(
+        path: '/campaigns/:id',
+        builder: (context, state) =>
+            CampaignDetailScreen(campaignId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/verification/:taskId',
         builder: (context, state) => VerificationTaskDetailScreen(
           taskId: state.pathParameters['taskId']!,
+          scanned: state.uri.queryParameters['scanned'] == '1',
         ),
       ),
       GoRoute(
         path: '/verification/:taskId/discrepancy',
-        builder: (context, state) => RaiseDiscrepancyScreen(
-          taskId: state.pathParameters['taskId']!,
+        builder: (context, state) =>
+            RaiseDiscrepancyScreen(taskId: state.pathParameters['taskId']!),
+      ),
+      // Transfer routes (FR-043/FR-046). Officer only — see _officerOnlyPrefixes.
+      GoRoute(
+        path: '/transfers',
+        builder: (context, state) => const TransferListScreen(),
+      ),
+      GoRoute(
+        path: '/transfers/new',
+        builder: (context, state) => InitiateTransferScreen(
+          initialAsset: state.extra as AssetDetail?,
         ),
       ),
-      // features/workflows/ — FR-067/FR-068 initiate, FR-069/FR-076
-      // status/outcome. Officer only — see redirect above.
+      // Transfer detail; FR-046 receipt confirmation is its scan action.
       GoRoute(
-        path: '/workflows',
-        builder: (context, state) => const WorkflowListScreen(),
+        path: '/transfers/:id',
+        builder: (context, state) =>
+            TransferDetailScreen(transferId: state.pathParameters['id']!),
       ),
+      // Workflow creation / detail. Officer only.
       GoRoute(
         path: '/workflows/new',
         builder: (context, state) => const InitiateWorkflowScreen(),

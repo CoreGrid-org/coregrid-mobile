@@ -51,7 +51,8 @@ class AssetDetail {
   /// being worked on; once it's in transit or has left the register, condition
   /// changes flow through those workflows instead.
   bool get allowsConditionUpdate => switch (lifecycleStatus) {
-    AssetLifecycleStatus.active || AssetLifecycleStatus.underMaintenance => true,
+    AssetLifecycleStatus.active ||
+    AssetLifecycleStatus.underMaintenance => true,
     _ => false,
   };
 

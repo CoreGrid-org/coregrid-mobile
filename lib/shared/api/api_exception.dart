@@ -1,11 +1,13 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 
-/// Typed error surfaced by every feature's API layer (`MOBILE-SPECIFICATION.md`
+/// Typed error surfaced by every feature's API layer (`mobile-specification.md`
 /// §3.4). Screens map this to a plain-language message and, where present,
 /// per-field form errors (IF-03/IF-09) — they never show a raw `DioException`.
 ///
 /// `shared/api/` is nominally the app-shell owner's (Student 4) cross-cutting
-/// area per `TEAM-ALLOCATION.md`; this is a deliberately minimal client stood
+/// area per `team-allocation.md`; this is a deliberately minimal client stood
 /// up so `features/assets/` can talk to the API. Refresh-token retry (§3.4) is
 /// left as a `TODO` for the shell owner rather than duplicated here.
 class ApiException implements Exception {
@@ -27,7 +29,7 @@ class ApiException implements Exception {
   final Map<String, List<String>> fieldErrors;
 
   /// True when the failure is connectivity, not an HTTP response — lets a
-  /// screen show the "offline" state (FR-024 A4) instead of a generic error.
+  /// screen show the "offline" state instead of a generic error.
   final bool isNetworkError;
 
   bool get isNotFound => statusCode == 404;
@@ -59,6 +61,9 @@ class ApiException implements Exception {
       case DioExceptionType.cancel:
         return ApiException(statusCode: 0, message: 'Request cancelled.');
       case DioExceptionType.badCertificate:
+      // dio reports a failed TLS handshake (e.g. an untrusted self-signed
+      // cert) as `unknown` unless a validateCertificate hook is set.
+      case DioExceptionType.unknown when e.error is HandshakeException:
         return ApiException(
           statusCode: 0,
           message: 'The server\'s security certificate could not be verified.',
@@ -107,3 +112,4 @@ class ApiException implements Exception {
   @override
   String toString() => 'ApiException($statusCode): $message';
 }
+

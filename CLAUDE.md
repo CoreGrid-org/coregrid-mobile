@@ -8,8 +8,8 @@ agentic-AI service directly (SRS constraint C-05).
 
 The requirements this app implements are specified in the main repository, not here — treat
 [`../CoreGrid/doc/SRS/`](../CoreGrid/doc/SRS/00-front-matter.md) as authoritative, and
-[`../CoreGrid/doc/PROGRESS.md`](../CoreGrid/doc/PROGRESS.md) as the current build-status source of truth for
-the whole platform. This repo's own [`doc/PROGRESS.md`](doc/PROGRESS.md) tracks only the mobile slice.
+[`../CoreGrid/doc/progress.md`](../CoreGrid/doc/progress.md) as the current build-status source of truth for
+the whole platform. This repo's own [`doc/progress.md`](doc/progress.md) tracks only the mobile slice.
 Assume both repositories are checked out as siblings under the same parent directory — relative links
 between them depend on that layout.
 
@@ -19,13 +19,13 @@ agent, token storage, SEC-ID-06/07), §5.1–5.2 (IF-02 through IF-13 — UI and
 requirements), and the Flutter-tagged rows of §6 (FR-024, FR-025, FR-031, FR-033, FR-037, FR-046, FR-058,
 FR-059, FR-061, FR-067, FR-076, FR-083).
 
-**[`doc/MOBILE-SPECIFICATION.md`](doc/MOBILE-SPECIFICATION.md)** is the implementation-level companion to
+**[`doc/mobile-specification.md`](doc/mobile-specification.md)** is the implementation-level companion to
 the above — package selection, the Riverpod/go_router/dio patterns to follow, every screen's flow and API
 calls, environment/build flavors, and the CI pipeline. Read it before scaffolding or adding a screen; it's
 the concrete "how" behind the SRS's "what". It is not itself part of the baselined SRS, so update it freely
 as the app is actually built — no scope-change process required for this file.
 
-**[`doc/TEAM-ALLOCATION.md`](doc/TEAM-ALLOCATION.md)** says which group member owns which `lib/features/`
+**[`doc/team-allocation.md`](doc/team-allocation.md)** says which group member owns which `lib/features/`
 folder. If you're picking up work in this repo, check it before touching a feature that isn't clearly
 unowned — building someone else's assigned FR range without coordination is the kind of overlap SE3090's
 individual-contribution rules (main SRS §12.1) specifically penalise.
@@ -58,3 +58,4 @@ individual-contribution rules (main SRS §12.1) specifically penalise.
   sign-out clears local state (SRS §4.8).
 - If you touched the API base URL or ThunderID client config: update `doc/setup/` here, not just local
   `.env`/config files, so the next session doesn't have to rediscover it.
+

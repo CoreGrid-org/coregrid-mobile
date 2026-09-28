@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../shared/theme/app_theme.dart';
+import '../../../shared/widgets/ui.dart';
 import '../onboarding_providers.dart';
 
 class _OnboardingPageData {
@@ -22,7 +22,7 @@ class _OnboardingPageData {
 const _pages = [
   _OnboardingPageData(
     icon: Icons.qr_code_scanner,
-    color: CoreGridBrand.green,
+    color: CoreGridBrand.orangeDeep,
     title: 'Scan & Identify',
     description:
         'Point your camera at an asset\'s QR label - or type the code - and '
@@ -38,7 +38,7 @@ const _pages = [
   ),
   _OnboardingPageData(
     icon: Icons.dashboard_customize_outlined,
-    color: CoreGridBrand.magenta,
+    color: Color(0xFFF59E0B),
     title: 'Stay On Top of Your Day',
     description:
         'See what\'s due, what\'s assigned to you, and what\'s moved '
@@ -107,10 +107,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -122,8 +119,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       height: 8,
                       decoration: BoxDecoration(
                         color: i == _page
-                            ? _pages[_page].color
-                            : Theme.of(context).colorScheme.outlineVariant,
+                            ? context.colors.primary
+                            : context.colors.outlineVariant,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -136,9 +133,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 width: double.infinity,
                 height: 52,
                 child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _pages[_page].color,
-                  ),
                   onPressed: () {
                     if (_page == _pages.length - 1) {
                       _finish();
@@ -174,29 +168,19 @@ class _OnboardingPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              color: data.color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(36),
-            ),
-            child: Icon(data.icon, size: 64, color: data.color),
-          ),
+          IconTile(data.icon, color: data.color, size: 128),
           const SizedBox(height: 40),
           Text(
             data.title,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: context.text.headlineSmall,
           ),
           const SizedBox(height: 12),
           Text(
             data.description,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            style: context.text.bodyLarge?.copyWith(
+              color: context.colors.onSurfaceVariant,
             ),
           ),
         ],

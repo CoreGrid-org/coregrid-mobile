@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../shared/widgets/ui.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_detail.dart';
-import '../../screens/asset/asset_verification_screen.dart';
+import '../../../verification/verify_flow.dart';
 import 'condition_update_sheet.dart';
 
-/// The role-and-lifecycle-aware entry points on the asset detail screen
-/// (§4.4): Verify, Report Fault, Condition update. An action the user can't
-/// take for their role is **not rendered** (IF-02), not merely disabled.
+/// The role-and-lifecycle-aware entry points on the asset detail screen:
+/// Verify (Officer), Report Fault (everyone), Update Condition (Officer,
+/// non-disposed assets), Request Transfer (Officer, ACTIVE assets — FR-043).
+/// The backend enforces the same rules (403/422s).
 class AssetDetailActions extends ConsumerWidget {
   const AssetDetailActions({super.key, required this.asset});
 
@@ -17,36 +20,64 @@ class AssetDetailActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canVerify = ref.watch(canVerifyAssetsProvider);
+    // Same role as verification (RequestTransfer: Officer/Admin), and only
+    // an ACTIVE asset can be transferred.
+    final canTransfer =
+        canVerify && asset.lifecycleStatus == AssetLifecycleStatus.active;
+    final canUpdateCondition =
+        ref.watch(canUpdateAssetConditionProvider) &&
+        asset.allowsConditionUpdate;
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    final reportFault = OutlinedButton.icon(
+      onPressed: () => context.push(
+        '/maintenance/report',
+        extra: asset,
+      ),
+      icon: const Icon(Icons.build_circle_outlined, size: 20),
+      label: const Text('Report Fault'),
+    );
+    final updateCondition = OutlinedButton.icon(
+      onPressed: () => _updateCondition(context, ref),
+      icon: const Icon(Icons.health_and_safety_outlined, size: 20),
+      label: const Text('Update Condition'),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (canVerify)
+        if (canVerify) ...[
           FilledButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AssetVerificationScreen(asset: asset),
-              ),
-            ),
-            icon: const Icon(Icons.fact_check_outlined),
+            onPressed: () => openVerificationFor(context, ref, asset),
+            icon: const Icon(Icons.fact_check_outlined, size: 20),
             label: const Text('Verify'),
           ),
-        OutlinedButton.icon(
-          onPressed: () =>
-              _notYetInThisRepo(context, 'features/maintenance (Report Fault)'),
-          icon: const Icon(Icons.report_gmailerrorred_outlined),
-          label: const Text('Report Fault'),
-        ),
-        if (asset.allowsConditionUpdate)
+          const SizedBox(height: AppSpacing.md),
+        ],
+        if (canTransfer) ...[
           OutlinedButton.icon(
-            onPressed: () => _updateCondition(context, ref),
-            icon: const Icon(Icons.tune_outlined),
-            label: const Text('Update Condition'),
+            onPressed: () => context.push('/transfers/new', extra: asset),
+            icon: const Icon(Icons.local_shipping_outlined, size: 20),
+            label: const Text('Request Transfer'),
           ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        if (canUpdateCondition)
+          Row(
+            children: [
+              Expanded(child: reportFault),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: updateCondition),
+            ],
+          )
+        else
+          reportFault,
       ],
     );
   }
+
+  // ========================================================================
+  // UPDATE CONDITION
+  // ========================================================================
 
   Future<void> _updateCondition(BuildContext context, WidgetRef ref) async {
     final saved = await ConditionUpdateSheet.show(
@@ -54,18 +85,10 @@ class AssetDetailActions extends ConsumerWidget {
       assetId: asset.id,
       current: asset.condition,
     );
-    if (saved == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Condition updated.')),
-      );
-    }
-  }
 
-  /// Report Fault remains owned by `features/maintenance/` and is not built in
-  /// this feature yet.
-  void _notYetInThisRepo(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature isn\'t built yet.')),
-    );
+    if (saved == true && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Condition updated.')));
+    }
   }
 }

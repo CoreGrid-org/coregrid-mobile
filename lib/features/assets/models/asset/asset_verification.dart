@@ -3,18 +3,18 @@ import 'asset_condition.dart';
 class AssetVerificationRequest {
   const AssetVerificationRequest({
     required this.present,
-    required this.location,
+    required this.locationId,
     required this.condition,
   });
 
   final bool present;
-  final String location;
+  final String locationId;
   final AssetCondition condition;
 
   Map<String, dynamic> toJson() => {
-    'is_present': present,
-    'location': location.trim(),
-    'condition': condition.apiValue,
+    'asserted_present': present,
+    'asserted_location_id': locationId,
+    'asserted_condition': condition.apiValue,
   };
 }
 
@@ -30,6 +30,7 @@ class AssetVerificationResult {
   factory AssetVerificationResult.fromJson(Map<String, dynamic> json) {
     return AssetVerificationResult(
       discrepancyRaised:
+          (json['raised_discrepancy_types'] as List<dynamic>?)?.isNotEmpty ??
           json['discrepancy_raised'] as bool? ??
           json['has_discrepancy'] as bool? ??
           false,

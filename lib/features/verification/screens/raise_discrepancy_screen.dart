@@ -1,20 +1,17 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../shared/api/api_exception.dart';
+import '../../../shared/media/photo_picker.dart';
+import '../../../shared/widgets/photo_evidence_card.dart';
+import '../../../shared/widgets/ui.dart';
 import '../models/discrepancy.dart';
 import '../verification_providers.dart';
 
-/// FR-061 — raise a discrepancy manually, with an optional photo compressed
-/// client-side to ≤1MB before upload (IF-11, same rule the SRS states for
-/// fault-report photos — applied here for consistency). Route:
-/// `/verification/:taskId/discrepancy`.
+/// Screen for raising a discrepancy manually with an optional photo.
 class RaiseDiscrepancyScreen extends ConsumerStatefulWidget {
   const RaiseDiscrepancyScreen({super.key, required this.taskId});
 
@@ -27,8 +24,6 @@ class RaiseDiscrepancyScreen extends ConsumerStatefulWidget {
 
 class _RaiseDiscrepancyScreenState
     extends ConsumerState<RaiseDiscrepancyScreen> {
-  static const _maxPhotoBytes = 1024 * 1024; // IF-11: ≤1MB
-
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   DiscrepancyType _type = DiscrepancyType.other;
@@ -43,47 +38,18 @@ class _RaiseDiscrepancyScreenState
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
-    final picked = await ImagePicker().pickImage(
-      source: source,
-      imageQuality: 90,
-    );
-    if (picked == null) return;
-
     setState(() => _compressing = true);
     try {
-      final compressed = await _compressUnderLimit(picked.path);
-      setState(() {
-        _photoBytes = compressed;
-        _photoFileName = picked.name;
-      });
+      final photo = await pickCompressedPhoto(source);
+      if (photo != null && mounted) {
+        setState(() {
+          _photoBytes = photo.bytes;
+          _photoFileName = photo.fileName;
+        });
+      }
     } finally {
       if (mounted) setState(() => _compressing = false);
     }
-  }
-
-  /// Compresses by stepping quality down until the result is ≤1MB or quality
-  /// bottoms out — same approach the SRS mandates for fault-report photos.
-  Future<Uint8List> _compressUnderLimit(String path) async {
-    var quality = 85;
-    Uint8List result = await FlutterImageCompress.compressWithFile(
-          path,
-          quality: quality,
-          minWidth: 1280,
-          minHeight: 1280,
-        ) ??
-        await File(path).readAsBytes();
-
-    while (result.length > _maxPhotoBytes && quality > 20) {
-      quality -= 15;
-      result = await FlutterImageCompress.compressWithFile(
-            path,
-            quality: quality,
-            minWidth: 1280,
-            minHeight: 1280,
-          ) ??
-          result;
-    }
-    return result;
   }
 
   Future<void> _submit() async {
@@ -100,9 +66,8 @@ class _RaiseDiscrepancyScreenState
         );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Discrepancy raised.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Discrepancy raised.')));
       context.pop();
     }
   }
@@ -110,111 +75,95 @@ class _RaiseDiscrepancyScreenState
   @override
   Widget build(BuildContext context) {
     final submitState = ref.watch(raiseDiscrepancyControllerProvider);
+    final busy = submitState.isLoading;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Raise Discrepancy')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
+      appBar: AppBar(title: const Text('Raise discrepancy')),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: AppSpacing.pageInsets,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Flag something the automatic comparison cannot catch. '
+                'Flag something the automatic comparison can\'t catch. '
                 'Describe it, and attach a photo if it helps.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                style: context.mutedBody,
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<DiscrepancyType>(
-                initialValue: _type,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Type',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  for (final type in DiscrepancyType.values)
-                    DropdownMenuItem(value: type, child: Text(type.label)),
-                ],
-                onChanged: submitState.isLoading
-                    ? null
-                    : (value) {
-                        if (value != null) setState(() => _type = value);
-                      },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                enabled: !submitState.isLoading,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Describe the discrepancy'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              if (_photoBytes != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(
-                    _photoBytes!,
-                    height: 160,
-                    fit: BoxFit.cover,
+              const SectionHeader('Details'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<DiscrepancyType>(
+                        initialValue: _type,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Type',
+                          prefixIcon: Icon(Icons.category_outlined),
+                        ),
+                        items: [
+                          for (final t in DiscrepancyType.values)
+                            DropdownMenuItem(value: t, child: Text(t.label)),
+                        ],
+                        onChanged: busy
+                            ? null
+                            : (v) {
+                                if (v != null) setState(() => _type = v);
+                              },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: _descriptionController,
+                        enabled: !busy,
+                        minLines: 4,
+                        maxLines: 6,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          hintText: 'What did you observe?',
+                          alignLabelWithHint: true,
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Describe the discrepancy'
+                            : null,
+                      ),
+                    ],
                   ),
                 ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: (submitState.isLoading || _compressing)
-                        ? null
-                        : () => _pickPhoto(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt_outlined),
-                    label: const Text('Take Photo'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: (submitState.isLoading || _compressing)
-                        ? null
-                        : () => _pickPhoto(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('Choose Photo'),
-                  ),
-                ],
               ),
-              if (_compressing) ...[
-                const SizedBox(height: 8),
-                const LinearProgressIndicator(),
-              ],
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: (submitState.isLoading || _compressing)
-                    ? null
-                    : _submit,
-                icon: submitState.isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_outlined),
-                label: Text(submitState.isLoading ? 'Submitting…' : 'Submit'),
+              const SectionHeader('Photo evidence'),
+              PhotoEvidenceCard(
+                photoBytes: _photoBytes,
+                compressing: _compressing,
+                disabled: busy || _compressing,
+                onPick: _pickPhoto,
+                onRemove: () => setState(() {
+                  _photoBytes = null;
+                  _photoFileName = null;
+                }),
               ),
               if (submitState.hasError) ...[
-                const SizedBox(height: 12),
-                Text(
-                  submitState.error is ApiException
-                      ? (submitState.error as ApiException).message
-                      : 'Couldn\'t raise this discrepancy. Try again.',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                const SizedBox(height: AppSpacing.md),
+                Notice(
+                  tone: StatusTone.danger,
+                  message: errorMessageFor(
+                    submitState.error!,
+                    fallback: 'Couldn\'t raise this discrepancy. Try again.',
+                  ),
                 ),
               ],
+              const SizedBox(height: AppSpacing.xl),
+              SubmitButton(
+                label: 'Submit',
+                busyLabel: 'Submitting…',
+                icon: Icons.send_outlined,
+                busy: busy,
+                onPressed: _compressing ? null : _submit,
+              ),
             ],
           ),
         ),

@@ -4,15 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/api/api_exception.dart';
+import '../../../../shared/widgets/ui.dart';
 import '../../assets_providers.dart';
 import '../../models/asset/asset_detail.dart';
 
-/// Manual asset-code entry (FR-025) — the always-available way to reach an
-/// asset record without the camera. Route: `/assets`.
-///
-/// This is the minimal version that also serves as the reachable entry point
-/// to [AssetDetailScreen] until `features/scan/` lands; the full scanner +
-/// permission-fallback flow (FR-024, IF-10) folds this in there.
 class AssetLookupScreen extends ConsumerStatefulWidget {
   const AssetLookupScreen({super.key});
 
@@ -32,23 +27,24 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
 
   Future<void> _lookup() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+
     FocusScope.of(context).unfocus();
+
     await ref
         .read(assetLookupControllerProvider.notifier)
-        .lookup(_controller.text);
+        .lookup(_controller.text.trim());
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(assetLookupControllerProvider);
 
-    // On a successful resolve, go to the detail screen. AC3: resolving by code
-    // and by id return the same record.
     ref.listen<AsyncValue<AssetDetail?>>(assetLookupControllerProvider, (
       _,
       next,
     ) {
       final asset = next.asData?.value;
+
       if (asset != null) {
         context.push('/assets/${asset.id}');
         ref.read(assetLookupControllerProvider.notifier).reset();
@@ -56,64 +52,88 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Look Up Asset')),
-      body: SafeArea(
+      appBar: AppBar(title: const Text('Enter asset code')),
+      body: Form(
+        key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Enter the asset code printed on the label.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+          padding: AppSpacing.pageInsets,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Type the code printed on the asset\'s label to open its record.',
+                style: context.mutedBody,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _controller,
+                        autofocus: true,
+                        textInputAction: TextInputAction.search,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                        ],
+                        style: context.text.titleMedium,
+                        decoration: const InputDecoration(
+                          labelText: 'Asset code',
+                          hintText: 'e.g. AST-00042',
+                          prefixIcon: Icon(Icons.qr_code_2_rounded),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Enter an asset code';
+                          }
+                          return null;
+                        },
+                        onFieldSubmitted: (_) => _lookup(),
+                      ),
+                      if (state.hasError) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        _LookupError(error: state.error!),
+                      ],
+                      const SizedBox(height: AppSpacing.lg),
+                      SubmitButton(
+                        label: 'Find Asset',
+                        busyLabel: 'Looking up...',
+                        icon: Icons.search_rounded,
+                        busy: state.isLoading,
+                        onPressed: _lookup,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _controller,
-                  autofocus: true,
-                  textInputAction: TextInputAction.search,
-                  textCapitalization: TextCapitalization.characters,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'Asset code',
-                    hintText: 'e.g. AST-00042',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
-                      ? 'Enter an asset code'
-                      : null,
-                  onFieldSubmitted: (_) => _lookup(),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: state.isLoading ? null : _lookup,
-                  icon: state.isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.search),
-                  label: Text(state.isLoading ? 'Looking up…' : 'Find asset'),
-                ),
-                const SizedBox(height: 16),
-                if (state.hasError) _LookupError(error: state.error!),
-              ],
-            ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              const Notice(
+                icon: Icons.sell_outlined,
+                title: 'Where can I find the code?',
+                message:
+                    'It\'s printed under the QR code on the identification '
+                    'label attached to the asset.',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextButton.icon(
+                onPressed: () => context.pushReplacement('/scan'),
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+                label: const Text('Scan the QR code instead'),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-
 }
+
+// ============================================================================
+// ERROR WIDGET
+// ============================================================================
 
 class _LookupError extends StatelessWidget {
   const _LookupError({required this.error});
@@ -122,10 +142,9 @@ class _LookupError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final api = error is ApiException ? error : null;
+    final api = error is ApiException ? error as ApiException : null;
+
     final message = switch (api) {
-      // AC2/A3 — a code from another organisation comes back as 404, and we
-      // say nothing about whether it exists elsewhere.
       ApiException(isNotFound: true) =>
         'No asset with that code exists in your organisation.',
       ApiException(isNetworkError: true) =>
@@ -134,25 +153,6 @@ class _LookupError extends StatelessWidget {
       _ => 'Something went wrong. Try again.',
     };
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.error_outline,
-          size: 18,
-          color: Theme.of(context).colorScheme.error,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            message,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.error,
-            ),
-          ),
-        ),
-      ],
-    );
+    return Notice(tone: StatusTone.danger, message: message);
   }
 }
-
