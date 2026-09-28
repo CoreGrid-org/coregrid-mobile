@@ -402,7 +402,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: '3.47.0'
+          channel: stable
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -415,7 +416,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: pubspec.yaml
+          flutter-version: '3.47.0'
+          channel: stable
       - run: flutter pub get
       - run: >
           flutter build apk --release
@@ -468,5 +470,4 @@ status lives in [`progress.md`](progress.md), not here; this table doesn't chang
 | IF-02, IF-05, IF-09 | Cross-cutting — `shared/widgets/`, `shared/auth/` route guards, `shared/api/` error mapping | Student 4 (Hasitha) — shell/shared |
 | IF-03 | Cross-cutting — form validation pattern in every feature's screens | Each feature's own owner |
 | IF-13 | Constraint, not a module — no location/biometric/Bluetooth/NFC code in the baseline | — |
-
 
