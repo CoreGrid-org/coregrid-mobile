@@ -18,7 +18,7 @@ class QuickAction {
   final VoidCallback onTap;
 }
 
-/// Shortcut cards in a two-column grid; an odd last card spans the row.
+/// Shortcut tiles in a 3-column grid matching the soft rounded icon-tile design.
 class QuickActionsGrid extends StatelessWidget {
   const QuickActionsGrid({super.key, required this.actions});
 
@@ -26,31 +26,27 @@ class QuickActionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = <Widget>[];
-    for (var i = 0; i < actions.length; i += 2) {
-      final pair = actions.skip(i).take(2).toList();
-      rows.add(
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _QuickActionCard(pair[0])),
-              if (pair.length == 2) ...[
-                const SizedBox(width: AppSpacing.md),
-                Expanded(child: _QuickActionCard(pair[1])),
-              ],
-            ],
-          ),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.lg,
         ),
-      );
-    }
-    return Column(
-      children: [
-        for (var i = 0; i < rows.length; i++) ...[
-          if (i > 0) const SizedBox(height: AppSpacing.md),
-          rows[i],
-        ],
-      ],
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: actions.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: AppSpacing.lg,
+            crossAxisSpacing: AppSpacing.md,
+            childAspectRatio: 0.9,
+          ),
+          itemBuilder: (context, index) {
+            return _QuickActionCard(actions[index]);
+          },
+        ),
+      ),
     );
   }
 }
@@ -62,39 +58,40 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: action.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md + 2),
-          child: Row(
-            children: [
-              IconTile(action.icon, size: 40),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      action.label,
-                      style: context.text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (action.caption != null)
-                      Text(
-                        action.caption!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.mutedSmall,
-                      ),
-                  ],
-                ),
-              ),
-            ],
+    return InkWell(
+      onTap: action.onTap,
+      borderRadius: BorderRadius.circular(AppRadius.control),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: context.colors.primaryContainer,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(
+              action.icon,
+              size: 28,
+              color: context.colors.primary,
+            ),
           ),
-        ),
+          const SizedBox(height: AppSpacing.xs + 2),
+          Text(
+            action.label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.text.labelMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: context.colors.onSurface,
+              height: 1.2,
+            ),
+          ),
+        ],
       ),
     );
   }

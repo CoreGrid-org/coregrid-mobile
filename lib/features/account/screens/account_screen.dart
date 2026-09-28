@@ -191,7 +191,7 @@ class _ProfileHero extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [CoreGridBrand.greenDeep, Color(0xFF0B4A3A)],
+                      colors: [CoreGridBrand.orangeDeep, Color(0xFF8B3300)],
                     ),
                   ),
                 ),

@@ -22,7 +22,7 @@ class _OnboardingPageData {
 const _pages = [
   _OnboardingPageData(
     icon: Icons.qr_code_scanner,
-    color: CoreGridBrand.greenDeep,
+    color: CoreGridBrand.orangeDeep,
     title: 'Scan & Identify',
     description:
         'Point your camera at an asset\'s QR label - or type the code - and '
@@ -38,7 +38,7 @@ const _pages = [
   ),
   _OnboardingPageData(
     icon: Icons.dashboard_customize_outlined,
-    color: CoreGridBrand.magenta,
+    color: Color(0xFFF59E0B),
     title: 'Stay On Top of Your Day',
     description:
         'See what\'s due, what\'s assigned to you, and what\'s moved '

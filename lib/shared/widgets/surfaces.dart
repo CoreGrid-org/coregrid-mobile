@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'status_pill.dart';
 
-/// A tinted rounded-square icon — the app's single icon "badge" language.
+/// A simple icon — sized and optionally tinted by [tone] or [color].
+/// Replaces the former tinted rounded-square badge with a plain icon.
 class IconTile extends StatelessWidget {
   const IconTile(this.icon, {super.key, this.tone, this.color, this.size = 40});
 
@@ -17,21 +18,11 @@ class IconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
-    final fg = tone?.foreground(context) ?? color ?? scheme.primary;
-    final bg =
-        tone?.background(context) ??
-        (color?.withValues(alpha: 0.12) ?? scheme.primaryContainer);
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(size * 0.3),
-      ),
-      child: Icon(icon, color: fg, size: size * 0.5),
-    );
+    final fg = color ?? scheme.primary;
+    return Icon(icon, color: fg, size: size * 0.55);
   }
 }
+
 
 /// Group title above a block of content, with an optional trailing action
 /// ("See all").
@@ -69,6 +60,7 @@ class SectionHeader extends StatelessWidget {
               style: TextButton.styleFrom(
                 visualDensity: VisualDensity.compact,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
+                foregroundColor: context.colors.onSurface,
               ),
               child: Text(actionLabel!),
             ),
@@ -227,7 +219,7 @@ class InfoRow extends StatelessWidget {
   }
 }
 
-/// An inline, tone-coloured message block (info, success, warning, error).
+/// A simple inline hint — icon + message text, no background.
 class Notice extends StatelessWidget {
   const Notice({
     super.key,
@@ -244,7 +236,7 @@ class Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = tone.foreground(context);
+    final muted = context.colors.onSurfaceVariant;
     final resolvedIcon =
         icon ??
         switch (tone) {
@@ -253,17 +245,16 @@ class Notice extends StatelessWidget {
           StatusTone.danger => Icons.error_outline,
           _ => Icons.info_outline,
         };
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md + 2),
-      decoration: BoxDecoration(
-        color: tone.background(context),
-        borderRadius: BorderRadius.circular(AppRadius.control),
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.sm,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(resolvedIcon, color: fg, size: 20),
-          const SizedBox(width: AppSpacing.md),
+          Icon(resolvedIcon, color: muted, size: 18),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,17 +263,17 @@ class Notice extends StatelessWidget {
                   Text(
                     title!,
                     style: context.text.bodyMedium?.copyWith(
-                      color: fg,
-                      fontWeight: FontWeight.w700,
+                      color: muted,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                 ],
                 Text(
                   message,
-                  style: context.text.bodyMedium?.copyWith(
-                    color: title == null ? fg : context.colors.onSurface,
-                    height: 1.35,
+                  style: context.text.bodySmall?.copyWith(
+                    color: muted,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -292,6 +283,7 @@ class Notice extends StatelessWidget {
       ),
     );
   }
+
 }
 
 /// Primary call-to-action with a built-in busy state — every form's submit
@@ -418,6 +410,7 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final v = value;
     return Card(
+      color: Colors.white,
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -428,9 +421,8 @@ class StatCard extends StatelessWidget {
               Text(
                 v == null ? '–' : '$v',
                 style: context.text.headlineSmall?.copyWith(
-                  color: v == null || v == 0
-                      ? context.colors.onSurfaceVariant
-                      : tone.foreground(context),
+                  color: context.colors.onSurface,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 2),

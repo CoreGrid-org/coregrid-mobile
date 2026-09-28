@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 
-/// CoreGrid's brand palette, sourced from `assets/branding/coregrid.webp`
-/// (the tower-and-skyline mark): teal-green tower as the seed, orange and
-/// magenta as the two accent hues the logo itself uses. Kept as named
-/// constants so screens that want the literal brand hue — not a seed-derived
-/// approximation of it — have somewhere to get it from.
+/// CoreGrid brand palette — orange & white edition.
+/// Primary accent is the brand orange; white surfaces give a clean, warm feel.
 abstract final class CoreGridBrand {
-  static const Color green = Color(0xFF1E8A6E);
-
-  /// The darker brand green used as the interactive `primary` on light
-  /// surfaces — [green] itself is too light for white text (WCAG AA).
-  static const Color greenDeep = Color(0xFF12664F);
+  /// Primary brand orange.
   static const Color orange = Color(0xFFEE6C0E);
-  static const Color magenta = Color(0xFFB81E6E);
 
-  /// Near-black used for panels drawn over the camera preview.
-  static const Color ink = Color(0xFF111827);
+  /// Deeper orange for text/interactive elements on light backgrounds (WCAG AA).
+  static const Color orangeDeep = Color(0xFFCC5500);
+
+  /// Soft warm orange for containers / highlights.
+  static const Color orangeLight = Color(0xFFFFF0E6);
+
+  /// Near-black for ink / primary text.
+  static const Color ink = Color(0xFF1A1A1A);
+
+  /// Warm off-white scaffold.
+  static const Color warmWhite = Color(0xFFFAF8F6);
 }
 
 /// Shared corner-radius scale — one source for "rounded" across every
@@ -99,30 +100,32 @@ class AppColors extends ThemeExtension<AppColors> {
         (theme.brightness == Brightness.dark ? dark : light);
   }
 
+  // Light: warm, orange-tinted semantic colours that sit naturally alongside
+  // the brand orange primary without competing with it.
   static const light = AppColors(
-    success: Color(0xFF17754A),
-    successContainer: Color(0xFFE3F4EA),
+    success: Color(0xFF2E7D32),
+    successContainer: Color(0xFFE8F5E9),
     warning: Color(0xFF9A5B00),
-    warningContainer: Color(0xFFFDF0DC),
-    info: Color(0xFF1F5FB8),
-    infoContainer: Color(0xFFE6EFFC),
+    warningContainer: Color(0xFFFFF3CD),
+    info: Color(0xFF1565C0),
+    infoContainer: Color(0xFFE3F0FF),
     danger: Color(0xFFB42318),
     dangerContainer: Color(0xFFFDECEA),
-    neutral: Color(0xFF4B5563),
-    neutralContainer: Color(0xFFEEF0F3),
+    neutral: Color(0xFF5A5A5A),
+    neutralContainer: Color(0xFFF0EEEB),
   );
 
   static const dark = AppColors(
-    success: Color(0xFF7BD6A4),
-    successContainer: Color(0xFF113524),
-    warning: Color(0xFFF4C36B),
-    warningContainer: Color(0xFF3A2A0C),
-    info: Color(0xFF9CC2FA),
-    infoContainer: Color(0xFF14284A),
-    danger: Color(0xFFF7A39A),
-    dangerContainer: Color(0xFF45160F),
-    neutral: Color(0xFFC3C9D2),
-    neutralContainer: Color(0xFF2A2F36),
+    success: Color(0xFF81C784),
+    successContainer: Color(0xFF1B3A1C),
+    warning: Color(0xFFFFB74D),
+    warningContainer: Color(0xFF3A2800),
+    info: Color(0xFF90CAF9),
+    infoContainer: Color(0xFF0D2A4A),
+    danger: Color(0xFFEF9A9A),
+    dangerContainer: Color(0xFF4A1010),
+    neutral: Color(0xFFBDBDBD),
+    neutralContainer: Color(0xFF2C2C2C),
   );
 
   @override
@@ -153,35 +156,49 @@ abstract final class AppTheme {
 
   static ThemeData _build(Brightness brightness) {
     final isLight = brightness == Brightness.light;
+
+    // Seed from the brand orange so Material 3 generates a harmonious
+    // tonal palette. Then we override key roles to keep surfaces white and
+    // primary squarely on orange.
     final seeded = ColorScheme.fromSeed(
-      seedColor: CoreGridBrand.green,
+      seedColor: CoreGridBrand.orange,
       brightness: brightness,
     );
 
-    // Light: a cool-grey canvas with white, hairline-bordered cards — the
-    // layered "enterprise" look — and the deep brand green as primary.
     final scheme = isLight
         ? seeded.copyWith(
-            primary: CoreGridBrand.greenDeep,
+            primary: CoreGridBrand.orangeDeep,
             onPrimary: Colors.white,
-            primaryContainer: const Color(0xFFDDF1E9),
-            onPrimaryContainer: const Color(0xFF0B3F31),
+            primaryContainer: CoreGridBrand.orangeLight,
+            onPrimaryContainer: const Color(0xFF5C1F00),
+            secondary: const Color(0xFF7A4010),
+            onSecondary: Colors.white,
+            secondaryContainer: const Color(0xFFFFDCC8),
+            onSecondaryContainer: const Color(0xFF2F1200),
+            // Keep surfaces bright white / warm-grey for the clean look.
             surface: Colors.white,
-            onSurface: const Color(0xFF111827),
-            onSurfaceVariant: const Color(0xFF5B6472),
+            onSurface: CoreGridBrand.ink,
+            onSurfaceVariant: const Color(0xFF6B6460),
             surfaceContainerLowest: Colors.white,
-            surfaceContainerLow: const Color(0xFFF6F7F9),
-            surfaceContainer: const Color(0xFFF1F3F5),
-            surfaceContainerHigh: const Color(0xFFEBEEF1),
-            surfaceContainerHighest: const Color(0xFFE4E7EB),
-            outline: const Color(0xFFB8BEC7),
-            outlineVariant: const Color(0xFFE4E7EB),
+            surfaceContainerLow: const Color(0xFFFAF8F6),
+            surfaceContainer: const Color(0xFFF5F2EF),
+            surfaceContainerHigh: const Color(0xFFEFEBE7),
+            surfaceContainerHighest: const Color(0xFFE8E3DE),
+            outline: const Color(0xFFBCB4AC),
+            outlineVariant: const Color(0xFFE8E3DE),
             error: AppColors.light.danger,
           )
-        : seeded;
+        : seeded.copyWith(
+            primary: const Color(0xFFFFB77A),
+            onPrimary: const Color(0xFF4A1800),
+            primaryContainer: const Color(0xFF6B2D00),
+            onPrimaryContainer: const Color(0xFFFFDCC8),
+          );
 
-    final canvas = isLight ? const Color(0xFFF6F7F9) : scheme.surface;
+    // Light: warm white canvas; dark: dark surface.
+    final canvas = isLight ? CoreGridBrand.warmWhite : scheme.surface;
     final cardColor = isLight ? Colors.white : scheme.surfaceContainer;
+
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
     final text = base.textTheme.copyWith(
       headlineMedium: base.textTheme.headlineMedium?.copyWith(
@@ -220,7 +237,8 @@ abstract final class AppTheme {
       textTheme: text,
       scaffoldBackgroundColor: canvas,
       visualDensity: VisualDensity.standard,
-      splashFactory: InkSparkle.splashFactory,
+      // Subtle ripple — no heavy splash animation.
+      splashFactory: InkRipple.splashFactory,
       extensions: [isLight ? AppColors.light : AppColors.dark],
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -229,9 +247,7 @@ abstract final class AppTheme {
         backgroundColor: canvas,
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.black.withValues(alpha: 0.12),
-        // Large page titles ("Verification", "My fault reports") — the
-        // title is the page's anchor, so it gets headline weight.
+        shadowColor: Colors.black.withValues(alpha: 0.08),
         toolbarHeight: 72,
         titleSpacing: AppSpacing.page,
         titleTextStyle: text.headlineSmall?.copyWith(
@@ -258,6 +274,7 @@ abstract final class AppTheme {
         elevation: 0,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
+        // Orange tint on the selected indicator.
         indicatorColor: scheme.primaryContainer,
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
@@ -283,6 +300,16 @@ abstract final class AppTheme {
           ),
         ),
       ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: scheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        focusElevation: 4,
+        hoverElevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
+        ),
+      ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         side: BorderSide(color: scheme.outlineVariant),
@@ -301,6 +328,8 @@ abstract final class AppTheme {
           shape: controlShape,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           textStyle: text.labelLarge?.copyWith(fontSize: 15),
+          backgroundColor: scheme.primary,
+          foregroundColor: Colors.white,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -310,18 +339,20 @@ abstract final class AppTheme {
           side: BorderSide(color: scheme.outline.withValues(alpha: 0.6)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           textStyle: text.labelLarge?.copyWith(fontSize: 15),
+          foregroundColor: scheme.primary,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           shape: controlShape,
           textStyle: text.labelLarge,
+          foregroundColor: scheme.primary,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isLight
-            ? const Color(0xFFF3F4F6)
+            ? const Color(0xFFF5F2EF)
             : scheme.surfaceContainerHigh,
         border: inputBorder(Colors.transparent),
         enabledBorder: inputBorder(Colors.transparent),
@@ -349,6 +380,8 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
         ),
+        backgroundColor: isLight ? const Color(0xFF2C2C2C) : cardColor,
+        contentTextStyle: const TextStyle(color: Colors.white),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         showDragHandle: true,
