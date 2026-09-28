@@ -3,7 +3,7 @@
 The main SRS already assigns each SE3090 group member end-to-end ownership of one business component —
 backend, database, React, Flutter, tests, and one agent (§12, §18 of the
 [main SRS](../../CoreGrid/doc/SRS/00-front-matter.md)). This document is that assignment translated into
-**this repository's** `lib/features/` layout (`doc/MOBILE-SPECIFICATION.md` §3.1), so each member can find
+**this repository's** `lib/features/` layout (`doc/mobile-specification.md` §3.1), so each member can find
 their part here without re-deriving it from the main repo every time. Where the main SRS states Flutter
 ownership explicitly (§12's "Flutter" row), this document just restates it against the concrete folder
 names. Where it doesn't — the app shell, dashboard — this document proposes an owner and says so plainly, so
@@ -23,11 +23,11 @@ different repository, so there's one mental mapping per person rather than two.
 
 **No one owns a registration screen — there isn't one to build.** Every CoreGrid account is created by an
 Administrator through the React console (Component D, `ManageUsers` policy); this app only ever signs
-existing users in (`doc/MOBILE-SPECIFICATION.md` §4.1). Don't read `features/auth/`'s FR-001–FR-009 range
+existing users in (`doc/mobile-specification.md` §4.1). Don't read `features/auth/`'s FR-001–FR-009 range
 below as including sign-up — it doesn't, on either platform.
 
-For what's actually built vs. outstanding per requirement, `doc/PROGRESS.md` is authoritative — this file
-divides the work, PROGRESS.md tracks its completion; check there before assuming a row below is (or isn't)
+For what's actually built vs. outstanding per requirement, `doc/progress.md` is authoritative — this file
+divides the work, progress.md tracks its completion; check there before assuming a row below is (or isn't)
 done.
 
 ### Student 1 — Jayashan Guruge — `features/scan/`, `features/assets/`
@@ -35,14 +35,14 @@ done.
 The device-feature centrepiece (§8, C-04): QR scan via `mobile_scanner` (FR-024, IF-06/IF-07/IF-10/IF-12),
 manual code entry as the always-visible fallback (FR-025), the attribute-driven asset detail screen
 (FR-020), and condition update (FR-029, InventoryOfficer/Administrator only server-side via `CanManageAssets`
-— see `doc/PROGRESS.md` for a currently-open client-side role-gate gap on that button). Every other screen
+— see `doc/progress.md` for a currently-open client-side role-gate gap on that button). Every other screen
 that needs "resolve an asset from a scan or a code" (transfer receipt confirmation, verification tasks)
 calls into `features/scan/`, so this landed first and unblocked the other owners, as intended. **Status
 correction:** FR-031's own dedicated ad hoc verification (`AssetVerificationScreen`,
 `POST /api/assets/{id}/verify`, this component's named business-specific operation) is built and
 widget-tested but not yet wired into a route — asset detail's "Verify" button currently opens Student 4's
 task-based FR-059 flow instead (when a pending task exists) rather than this screen. See
-`doc/PROGRESS.md`'s FR-031 row for the exact gap.
+`doc/progress.md`'s FR-031 row for the exact gap.
 
 ### Student 2 — Seneja Ramanayaka — `features/maintenance/`, `features/notifications/`
 
@@ -64,7 +64,7 @@ owner's larger share of the work is Component C's backend/React transfer-and-dis
 
 Verification-campaign task list and the field verification flow (FR-058, FR-059), manual discrepancy raising
 (FR-061), and agent-status display (FR-067–FR-069, FR-076 — the main SRS's Flutter cell for this component
-names "agent status display" explicitly). **Built** — see `doc/PROGRESS.md` for the live status and the
+names "agent status display" explicitly). **Built** — see `doc/progress.md` for the live status and the
 exact endpoints each screen calls; both features are Inventory-Officer-only on mobile (Staff has no role in
 either — SRS scope change v1.5) and are guarded at the router level, not just hidden from the dashboard.
 One backend fix landed alongside them, in this owner's own Component D scope: `DiscrepanciesController`'s
@@ -83,17 +83,17 @@ assign to any single component, because they're genuinely cross-cutting rather t
 
 **This table is a recommendation, not a restatement of the main SRS** — if the group would rather split the
 app shell differently (e.g. whoever finishes their own feature first bootstraps it), that's a fine
-alternative; just update this file and `doc/PROGRESS.md` to match, since PROGRESS.md's per-requirement
+alternative; just update this file and `doc/progress.md` to match, since progress.md's per-requirement
 status is what an evaluator or a teammate resuming later trusts.
 
 ## Remaining work
 
-Per `doc/PROGRESS.md`'s own "Next milestone" (check there for the live picture — this is just who owns each
+Per `doc/progress.md`'s own "Next milestone" (check there for the live picture — this is just who owns each
 outstanding piece, not its status):
 
 - **Student 1 (Jayashan)** — `features/scan/` has landed (camera QR scan, both dashboards route to it). What's
   left in this range: wire `AssetVerificationScreen` into a route so FR-031's ad hoc verification is actually
-  reachable (it's built and tested but currently orphaned — see `doc/PROGRESS.md`), and close the FR-029
+  reachable (it's built and tested but currently orphaned — see `doc/progress.md`), and close the FR-029
   role-gate gap on the "Update Condition" button (currently shown to Staff, who'll get a 403).
 - **Student 2 (Seneja)** — `features/maintenance/` and `features/notifications/` are both still to build;
   the dashboard's "Maintenance Assigned to Me" section stays mock until the former exists to back it.
@@ -101,7 +101,7 @@ outstanding piece, not its status):
   Confirmation" section stays mock until it exists.
 - **Student 4 (Hasitha, Group Leader)** — Flutter scope (auth, dashboard, verification, workflows) is
   feature-complete against the real backend. The dev ThunderID mobile-client registration
-  (`doc/setup/ThunderID-mobile-client.md`) is already done and in local use — every owner can already
+  (`doc/setup/thunderid-mobile-client.md`) is already done and in local use — every owner can already
   exercise their screens against a real sign-in. What remains, infrastructural rather than a feature: the
   `staging`/`prod` client registrations, owned here for the same identity/org-config reason, needed before a
   release build rather than before local development.
@@ -122,3 +122,5 @@ per capability, a pull request reviewed by at least one other member, requiremen
 implementing issue/PR, and — per `CLAUDE.md` here — `flutter analyze` and `flutter test` passing before any
 of that. The main SRS's rule that "work an owner cannot explain is treated as not delivered" applies here
 exactly as it does to the backend and React work.
+
+

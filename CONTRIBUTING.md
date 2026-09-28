@@ -84,7 +84,7 @@ Projects/
 The mobile app is a **public client** — no client secret is embedded in the APK. Register it in ThunderID
 as a mobile/native application with a custom-scheme redirect URI and PKCE (SRS Appendix C, item 4), with
 **Sign-In Approach set to Redirect / hosted login, not Bring Your Own UI** — see
-[`doc/setup/ThunderID-mobile-client.md`](doc/setup/ThunderID-mobile-client.md) for why BYOUI conflicts with
+[`doc/setup/thunderid-mobile-client.md`](doc/setup/thunderid-mobile-client.md) for why BYOUI conflicts with
 SEC-ID-06. Record the client ID and redirect scheme in your own untracked local config (`.env.json`, gitignored — see `.env.example` for the shape `--dart-define-from-file` expects), never in code or a
 committed file — see
 [`CoreGrid/doc/setup/ThunderID.md`](../CoreGrid/doc/setup/ThunderID.md) for how the equivalent React
@@ -115,16 +115,16 @@ flutter test      # passing
 
 This repo starts empty — run `flutter create .` to scaffold the standard Flutter project layout (`lib/`,
 `android/`, `pubspec.yaml`, etc.). The full `lib/` layout, package selection, and per-feature responsibilities
-are specified in [`doc/MOBILE-SPECIFICATION.md`](doc/MOBILE-SPECIFICATION.md) §2–§3 — read that before
+are specified in [`doc/mobile-specification.md`](doc/mobile-specification.md) §2–§3 — read that before
 scaffolding, rather than improvising a structure. If you're a group member picking a feature to start on,
-[`doc/TEAM-ALLOCATION.md`](doc/TEAM-ALLOCATION.md) says which one is already yours. In short: one
+[`doc/team-allocation.md`](doc/team-allocation.md) says which one is already yours. In short: one
 `lib/features/<name>/` folder per capability,
 owning its own screens, Riverpod providers, and API calls together (never split into global `screens/`,
 `providers/`, `services/` trees), mirroring the ownership-boundary rule the backend and React frontend
 already follow ([`CoreGrid/CONTRIBUTING.md` § Project Structure](../CoreGrid/CONTRIBUTING.md#project-structure)).
 
 **Adding a new feature:** create `lib/features/<name>/`, wire its routes into `app/`'s `go_router`
-configuration, add its row to `doc/MOBILE-SPECIFICATION.md` §4 and §8, and put anything another feature will
+configuration, add its row to `doc/mobile-specification.md` §4 and §8, and put anything another feature will
 also need (a shared widget, a base API client) in `shared/` rather than reaching into another feature's
 folder.
 
@@ -138,3 +138,4 @@ a specific platform bug), a hidden invariant, or something genuinely surprising 
 
 See [`CoreGrid/CONTRIBUTING.md`](../CoreGrid/CONTRIBUTING.md) for backend/infrastructure setup, and
 [`CoreGrid/doc/SRS/`](../CoreGrid/doc/SRS/00-front-matter.md) for the requirements this app implements.
+

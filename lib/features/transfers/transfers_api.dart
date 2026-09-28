@@ -7,7 +7,7 @@ import 'models/initiate_transfer_request.dart';
 import 'models/transfer_response.dart';
 
 /// Every /api/transfers call owned by eatures/transfers/, over the
-/// shared Dio client (MOBILE-SPECIFICATION.md A 3.1). All failures are
+/// shared Dio client (mobile-specification.md A 3.1). All failures are
 /// normalised to [ApiException] so providers and screens never see a raw
 /// [DioException].
 class TransfersApi {
@@ -114,3 +114,4 @@ class TransfersApi {
 final transfersApiProvider = Provider<TransfersApi>((ref) {
   return TransfersApi(ref.watch(apiClientProvider));
 });
+

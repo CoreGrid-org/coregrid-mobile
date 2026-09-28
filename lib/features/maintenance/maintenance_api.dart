@@ -7,7 +7,7 @@ import 'models/fault_report.dart';
 import 'models/maintenance_filter.dart';
 
 /// Every `/api/maintenance` call this feature owns
-/// (`MOBILE-SPECIFICATION.md` §3.1). All failures are normalised to
+/// (`mobile-specification.md` §3.1). All failures are normalised to
 /// [ApiException] so providers/screens never see a raw [DioException] (§3.4).
 class MaintenanceApi {
   MaintenanceApi(this._dio);
@@ -198,3 +198,4 @@ class MaintenanceApi {
 final maintenanceApiProvider = Provider<MaintenanceApi>((ref) {
   return MaintenanceApi(ref.watch(apiClientProvider));
 });
+

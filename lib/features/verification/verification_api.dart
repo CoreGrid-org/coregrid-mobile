@@ -9,7 +9,7 @@ import 'models/verification_location.dart';
 import 'models/verification_task.dart';
 
 /// Every `/api/verification-tasks` and `/api/discrepancies` call this
-/// feature owns (`MOBILE-SPECIFICATION.md` §3.1). All failures are
+/// feature owns (`mobile-specification.md` §3.1). All failures are
 /// normalised to [ApiException] so providers/screens never see a raw
 /// [DioException] (§3.4).
 class VerificationApi {
@@ -233,3 +233,4 @@ class VerificationApi {
 final verificationApiProvider = Provider<VerificationApi>((ref) {
   return VerificationApi(ref.watch(apiClientProvider));
 });
+

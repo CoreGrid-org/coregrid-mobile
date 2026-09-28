@@ -104,3 +104,4 @@ Without `THUNDERID_APPLICATION_ID` the app still builds; both buttons then expla
 Recovery emails are only delivered once ThunderID's SMTP is configured — deferred to deployment
 (`CoreGrid/docs/setup/thunderid.md` step 8); until then use the Administrator reset.
 
+

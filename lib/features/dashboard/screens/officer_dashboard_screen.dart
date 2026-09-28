@@ -10,7 +10,6 @@ import '../../transfers/widgets/transfer_summary_card.dart';
 import '../../verification/models/verification_task.dart';
 import '../../verification/screens/verification_task_list_screen.dart';
 import '../../verification/verification_providers.dart';
-import '../../verification/verify_flow.dart';
 import '../../workflows/screens/workflow_list_screen.dart';
 import '../../workflows/workflows_providers.dart';
 import '../widgets/dashboard_section.dart';
@@ -45,61 +44,26 @@ class OfficerDashboardBody extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const FindAssetCard(),
-        const SectionHeader('At a glance'),
+        const SectionHeader('Your workload'),
         StatRow(
           cards: [
             StatCard(
               value: overdue,
-              label: 'Overdue\ntasks',
+              label: 'Overdue tasks',
               tone: StatusTone.danger,
               onTap: () => context.go('/verification'),
             ),
             StatCard(
               value: pendingList?.length,
-              label: 'Tasks to\nverify',
+              label: 'Tasks to verify',
               tone: StatusTone.warning,
               onTap: () => context.go('/verification'),
             ),
             StatCard(
               value: openFaults,
-              label: 'Open fault\nreports',
+              label: 'Open fault reports',
               tone: StatusTone.info,
               onTap: () => context.go('/faults'),
-            ),
-          ],
-        ),
-        const SectionHeader('Quick actions'),
-        QuickActionsGrid(
-          actions: [
-            QuickAction(
-              icon: Icons.build_circle_outlined,
-              label: 'Report a fault',
-              caption: 'Photo + description',
-              onTap: () => context.push('/maintenance/report'),
-            ),
-            QuickAction(
-              icon: Icons.auto_awesome_outlined,
-              label: 'Request evaluation',
-              caption: 'Ask the agent',
-              onTap: () => context.push('/workflows/new'),
-            ),
-            QuickAction(
-              icon: Icons.local_shipping_outlined,
-              label: 'Transfers',
-              caption: 'Request & receive',
-              onTap: () => context.push('/transfers'),
-            ),
-            QuickAction(
-              icon: Icons.flag_outlined,
-              label: 'Campaigns',
-              caption: 'Progress & scope',
-              onTap: () => context.go('/verification?view=campaigns'),
-            ),
-            QuickAction(
-              icon: Icons.qr_code_scanner,
-              label: 'Scan to verify',
-              caption: 'Campaign task check',
-              onTap: () => scanToVerify(context, ref),
             ),
           ],
         ),

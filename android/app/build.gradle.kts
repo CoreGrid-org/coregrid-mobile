@@ -27,7 +27,7 @@ android {
         versionName = flutter.versionName
         // Redirect scheme for flutter_appauth's PKCE callback (RFC 8252, SEC-ID-06).
         // Must match the custom scheme registered for this app in ThunderID —
-        // see doc/setup/ThunderID-mobile-client.md.
+        // see doc/setup/thunderid-mobile-client.md.
         manifestPlaceholders["appAuthRedirectScheme"] = "com.coregrid.mobile"
     }
 
@@ -49,3 +49,4 @@ kotlin {
 flutter {
     source = "../.."
 }
+

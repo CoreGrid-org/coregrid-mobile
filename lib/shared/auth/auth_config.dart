@@ -1,6 +1,6 @@
 /// Environment configuration for auth and the API client, read via
 /// `--dart-define` (or `--dart-define-from-file`) — never hardcoded, never
-/// committed (`doc/MOBILE-SPECIFICATION.md` §5.1).
+/// committed (`doc/mobile-specification.md` §5.1).
 abstract final class AuthConfig {
   /// CoreGrid backend base URL, e.g. `http://localhost:5083`.
   static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
@@ -27,7 +27,7 @@ abstract final class AuthConfig {
   );
 
   /// This app's registered ThunderID client ID (public/native client, no
-  /// secret — see doc/setup/ThunderID-mobile-client.md).
+  /// secret — see doc/setup/thunderid-mobile-client.md).
   static const String thunderIdClientId = String.fromEnvironment(
     'THUNDERID_CLIENT_ID',
   );
@@ -35,7 +35,7 @@ abstract final class AuthConfig {
   /// This app's ThunderID **Application ID** — not the Client ID; ThunderID's
   /// recovery gate only accepts the former. Optional: without it the
   /// password-reset entry points explain where else to reset instead
-  /// (doc/setup/ThunderID-mobile-client.md → Password recovery).
+  /// (doc/setup/thunderid-mobile-client.md → Password recovery).
   static const String thunderIdApplicationId = String.fromEnvironment(
     'THUNDERID_APPLICATION_ID',
   );
@@ -63,3 +63,4 @@ abstract final class AuthConfig {
       thunderIdIssuer.isNotEmpty &&
       thunderIdClientId.isNotEmpty;
 }
+

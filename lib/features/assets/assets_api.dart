@@ -11,7 +11,7 @@ import 'models/asset/asset_search.dart';
 import 'models/asset/asset_verification.dart';
 
 /// Every `/api/assets` call `features/assets/` owns, over the shared dio
-/// client (`MOBILE-SPECIFICATION.md` §3.1 — API calls live with the feature).
+/// client (`mobile-specification.md` §3.1 — API calls live with the feature).
 /// All failures are normalised to [ApiException] so providers/screens never
 /// see a raw [DioException].
 class AssetsApi {
@@ -185,3 +185,4 @@ class AssetsApi {
 final assetsApiProvider = Provider<AssetsApi>((ref) {
   return AssetsApi(ref.watch(apiClientProvider));
 });
+

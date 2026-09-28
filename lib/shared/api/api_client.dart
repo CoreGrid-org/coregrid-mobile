@@ -6,7 +6,7 @@ import '../auth/auth_controller.dart';
 import '../auth/auth_state.dart';
 import 'dev_tls.dart';
 
-/// The one shared `dio` instance (`MOBILE-SPECIFICATION.md` §3.4). Every
+/// The one shared `dio` instance (`mobile-specification.md` §3.4). Every
 /// feature's `*_api.dart` resolves this rather than constructing its own
 /// client, so auth-header attachment and base-URL config live in exactly one
 /// place.
@@ -17,7 +17,7 @@ import 'dev_tls.dart';
 ///    default and no `LogInterceptor` is added.
 ///
 /// NOT yet implemented (belongs to the shell owner's `shared/auth/` work per
-/// `TEAM-ALLOCATION.md`): the single silent refresh-and-retry on 401 described
+/// `team-allocation.md`): the single silent refresh-and-retry on 401 described
 /// in §3.4. Until `AuthController` exposes a refresh, a 401 surfaces as an
 /// [ApiException] with `isUnauthorized == true` and the calling screen shows
 /// the "session expired" error state.
@@ -48,3 +48,4 @@ final apiClientProvider = Provider<Dio>((ref) {
 
   return dio;
 });
+

@@ -9,16 +9,23 @@ import '../../assets/models/asset/asset_detail.dart';
 import '../../../shared/media/photo_picker.dart';
 import '../../../shared/widgets/photo_evidence_card.dart';
 import '../../../shared/widgets/ui.dart';
+import '../../scan/screens/scan_asset_screen.dart';
 import '../maintenance_providers.dart';
 
 /// Screen for reporting a fault against an asset, with observed condition and optional photo.
 class ReportFaultScreen extends ConsumerStatefulWidget {
-  const ReportFaultScreen({super.key, this.assetId, this.assetCode});
+  const ReportFaultScreen({
+    super.key,
+    this.assetId,
+    this.assetCode,
+    this.initialAsset,
+  });
 
   /// Pre-filled when navigating from an asset detail; null when arriving directly
   /// from the dashboard without a pre-selected asset.
   final String? assetId;
   final String? assetCode;
+  final AssetDetail? initialAsset;
 
   @override
   ConsumerState<ReportFaultScreen> createState() => _ReportFaultScreenState();
@@ -41,7 +48,13 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.assetId != null) {
+    if (widget.initialAsset != null) {
+      final asset = widget.initialAsset!;
+      _selectedAssetId = asset.id;
+      _selectedAssetCode = asset.assetCode;
+      _selectedAssetName = asset.name;
+      _selectedAssetDepartment = asset.departmentName;
+    } else if (widget.assetId != null) {
       _selectedAssetId = widget.assetId;
       _selectedAssetCode = widget.assetCode ?? widget.assetId;
     }
@@ -71,6 +84,11 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
     if (selected != null) {
       _onAssetSelected(selected);
     }
+  }
+
+  Future<void> _scanAsset() async {
+    final asset = await identifyAssetByScan(context);
+    if (mounted && asset != null) _onAssetSelected(asset);
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
@@ -141,8 +159,9 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
                 assetCode: _selectedAssetCode,
                 assetName: _selectedAssetName,
                 department: _selectedAssetDepartment,
-                locked: widget.assetId != null,
+                locked: widget.initialAsset == null && widget.assetId != null,
                 onPick: isLoading ? null : _openAssetPicker,
+                onScan: isLoading ? null : _scanAsset,
               ),
               const SectionHeader('Observed Condition'),
               Card(
@@ -232,6 +251,7 @@ class _AssetField extends StatelessWidget {
     required this.department,
     required this.locked,
     required this.onPick,
+    required this.onScan,
   });
 
   final String? assetCode;
@@ -239,15 +259,52 @@ class _AssetField extends StatelessWidget {
   final String? department;
   final bool locked;
   final VoidCallback? onPick;
+  final VoidCallback? onScan;
 
   @override
   Widget build(BuildContext context) {
     if (assetCode == null) {
-      return Card(
-        child: RecordTile(
-          icon: Icons.search,
-          title: 'Select Asset from Department…',
-          onTap: onPick,
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.colors.outlineVariant),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Choose the affected asset',
+              style: context.text.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Scan its QR label or search the assets available to you.',
+              style: context.mutedSmall,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onScan,
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Scan'),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onPick,
+                    icon: const Icon(Icons.search),
+                    label: const Text('Search'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       );
     }

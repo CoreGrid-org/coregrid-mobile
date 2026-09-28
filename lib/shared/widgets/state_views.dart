@@ -7,7 +7,7 @@ import 'status_pill.dart';
 import 'surfaces.dart';
 
 /// Plain-language text for any error a provider surfaces — never a raw
-/// exception string (MOBILE-SPECIFICATION.md §3.4).
+/// exception string (mobile-specification.md §3.4).
 String errorMessageFor(Object error, {String? fallback}) {
   if (error is ApiException) {
     if (error.isNetworkError) {
@@ -158,3 +158,4 @@ class AsyncView<T> extends StatelessWidget {
     };
   }
 }
+

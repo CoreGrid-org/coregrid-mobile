@@ -221,7 +221,7 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | Trigger | Successful scan or manual lookup |
 | Sequence | Attribute-driven read view (rendered from the type's attribute definitions, no hardcoded domain knowledge — same rule as the React client, FR-020) with entry points to Verify, Report Fault, and — if the asset's current lifecycle state allows it — Condition update |
 | States | Loading, error (asset not found / not accessible to this user's department), populated |
-| API calls | `GET /api/assets/{id}` (`GET /api/assets/qr/{code}` when reached by code instead of ID — same detail screen either way); condition update is `PATCH /api/assets/{id}/condition`, gated client-side to ACTIVE/UNDER_MAINTENANCE, via the condition-update bottom sheet. That endpoint is `CanManageAssets`-gated server-side — InventoryOfficer/Administrator only, **not** Staff — so the "Update Condition" button must only render for InventoryOfficer, the same way `canVerifyAssetsProvider` already gates the Verify button (see `doc/PROGRESS.md` FR-029 for a currently-open gap where this isn't yet enforced client-side) |
+| API calls | `GET /api/assets/{id}` (`GET /api/assets/qr/{code}` when reached by code instead of ID — same detail screen either way); condition update is `PATCH /api/assets/{id}/condition`, gated client-side to ACTIVE/UNDER_MAINTENANCE, via the condition-update bottom sheet. That endpoint is `CanManageAssets`-gated server-side — InventoryOfficer/Administrator only, **not** Staff — so the "Update Condition" button must only render for InventoryOfficer, the same way `canVerifyAssetsProvider` already gates the Verify button (see `doc/progress.md` FR-029 for a currently-open gap where this isn't yet enforced client-side) |
 
 ### 4.5 Physical Verification — FR-031, FR-059, FR-061
 
@@ -344,7 +344,7 @@ Three configurations, selected at build time via `--dart-define`, not committed 
 
 | Flavor | API base URL | ThunderID client |
 |---|---|---|
-| `dev` | `https://localhost:7240`, reached via `adb reverse` — see `doc/setup/local-dev-networking.md` for why this replaces the `10.0.2.2` emulator alias (it avoids an OIDC issuer-URL mismatch against ThunderID) and the TLS-trust setup it needs | Dev-registered mobile client (doc/setup/ThunderID-mobile-client.md) |
+| `dev` | `https://localhost:7240`, reached via `adb reverse` — see `doc/setup/local-dev-networking.md` for why this replaces the `10.0.2.2` emulator alias (it avoids an OIDC issuer-URL mismatch against ThunderID) and the TLS-trust setup it needs | Dev-registered mobile client (doc/setup/thunderid-mobile-client.md) |
 | `staging` | Deployed staging API | Staging-registered mobile client |
 | `prod` | Deployed production API | Production-registered mobile client |
 
@@ -370,7 +370,7 @@ ID in source that gets committed, and never commit a `.env`/`.env.json` file con
 ### 5.2 App identity and versioning
 
 - Application ID: `com.coregrid.mobile` (placeholder — confirm against the actual ThunderID redirect-scheme
-  registration in `doc/setup/ThunderID-mobile-client.md` before changing either, since they must match).
+  registration in `doc/setup/thunderid-mobile-client.md` before changing either, since they must match).
 - Version scheme: semantic `MAJOR.MINOR.PATCH+BUILD` in `pubspec.yaml`, `BUILD` incremented on every release
   build regardless of whether `MAJOR.MINOR.PATCH` changed.
 
@@ -446,9 +446,9 @@ single-evaluator Android APK deliverable (main SRS §2.4).
 ## 8. Traceability
 
 Maps each Flutter-owned requirement to the module that satisfies it, for quick lookup — current build
-status lives in [`PROGRESS.md`](PROGRESS.md), not here; this table doesn't change as work progresses. The
+status lives in [`progress.md`](progress.md), not here; this table doesn't change as work progresses. The
 **Owner** column is the same per-feature assignment as
-[`TEAM-ALLOCATION.md`](TEAM-ALLOCATION.md) — see that file for why, not just who.
+[`team-allocation.md`](team-allocation.md) — see that file for why, not just who.
 
 | Requirement | Module (§) | Owner |
 |---|---|---|
@@ -457,7 +457,7 @@ status lives in [`PROGRESS.md`](PROGRESS.md), not here; this table doesn't chang
 | FR-024, FR-025, IF-06, IF-07, IF-10, IF-12 | `features/scan/` (§4.3) | Student 1 (Jayashan) |
 | FR-028 | `features/assets/` (basic lookup only — advanced search/filter/export is React-only per SRS §3.4) | Student 1 (Jayashan) |
 | FR-029 | `features/assets/` (§4.4) | Student 1 (Jayashan) |
-| FR-031 | `features/assets/` — the ad hoc `POST /api/assets/{id}/verify` path (§4.5), not `features/scan/` — the asset-detail entry point doesn't depend on a scanner existing | Student 1 (Jayashan) — this component's named business-specific operation. Built but not yet routed — see `doc/PROGRESS.md` |
+| FR-031 | `features/assets/` — the ad hoc `POST /api/assets/{id}/verify` path (§4.5), not `features/scan/` — the asset-detail entry point doesn't depend on a scanner existing | Student 1 (Jayashan) — this component's named business-specific operation. Built but not yet routed — see `doc/progress.md` |
 | FR-058, FR-059, FR-061 | `features/verification/` (§4.5) | Student 4 (Hasitha) |
 | FR-033, IF-11 | `features/maintenance/` (§4.6) | Student 2 (Seneja) |
 | FR-037, FR-042 | `features/maintenance/` (§4.7) | Student 2 (Seneja) |
@@ -468,3 +468,5 @@ status lives in [`PROGRESS.md`](PROGRESS.md), not here; this table doesn't chang
 | IF-02, IF-05, IF-09 | Cross-cutting — `shared/widgets/`, `shared/auth/` route guards, `shared/api/` error mapping | Student 4 (Hasitha) — shell/shared |
 | IF-03 | Cross-cutting — form validation pattern in every feature's screens | Each feature's own owner |
 | IF-13 | Constraint, not a module — no location/biometric/Bluetooth/NFC code in the baseline | — |
+
+

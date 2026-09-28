@@ -47,7 +47,7 @@ bool _isOfficerOnly(String location) =>
     (location.startsWith('/assets/') && location.endsWith('/verify'));
 
 /// Route table mirrors the `lib/features/` layout one-to-one
-/// (`doc/MOBILE-SPECIFICATION.md` §3.1/§3.3) — no route lives outside its
+/// (`doc/mobile-specification.md` §3.1/§3.3) — no route lives outside its
 /// feature's folder. Each feature wires its own routes in here as it lands.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -165,10 +165,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/maintenance/report',
         builder: (context, state) {
-          final extra = state.extra as Map<String, String?>?;
+          final extra = state.extra;
+          if (extra is AssetDetail) {
+            return ReportFaultScreen(initialAsset: extra);
+          }
+          final values = extra as Map<String, String?>?;
           return ReportFaultScreen(
-            assetId: extra?['assetId'],
-            assetCode: extra?['assetCode'],
+            assetId: values?['assetId'],
+            assetCode: values?['assetCode'],
           );
         },
       ),
@@ -208,7 +212,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/transfers/new',
-        builder: (context, state) => const InitiateTransferScreen(),
+        builder: (context, state) => InitiateTransferScreen(
+          initialAsset: state.extra as AssetDetail?,
+        ),
       ),
       // Transfer detail; FR-046 receipt confirmation is its scan action.
       GoRoute(

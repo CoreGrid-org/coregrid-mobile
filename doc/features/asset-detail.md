@@ -1,6 +1,6 @@
 # `features/assets/` — Asset Detail
 
-Owner: **Student 1 — Jayashan Guruge** ([`TEAM-ALLOCATION.md`](../TEAM-ALLOCATION.md)).
+Owner: **Student 1 — Jayashan Guruge** ([`team-allocation.md`](../team-allocation.md)).
 Implements the Flutter slice of **Component A — Asset Registry & QR Identification**.
 
 | Requirement | What this feature does |
@@ -11,7 +11,7 @@ Implements the Flutter slice of **Component A — Asset Registry & QR Identifica
 | **FR-024 AC4** | Department Staff never see the **Verify** action; the API rejects a direct verify call from Staff with 403 regardless. |
 | **FR-024 A3/A4** | A code from another organisation shows "Asset not found" (never leaks existence); an offline device shows an offline state, never stale cached data. |
 
-Spec reference: [`MOBILE-SPECIFICATION.md` §4.4](../MOBILE-SPECIFICATION.md).
+Spec reference: [`mobile-specification.md` §4.4](../mobile-specification.md).
 
 ## Routes
 
@@ -67,9 +67,9 @@ lib/shared/api/
 ```
 
 > `lib/shared/api/` is nominally the app-shell owner's cross-cutting area
-> ([`TEAM-ALLOCATION.md`](../TEAM-ALLOCATION.md)). A minimal client was stood up here to unblock this
+> ([`team-allocation.md`](../team-allocation.md)). A minimal client was stood up here to unblock this
 > feature. **Not yet implemented** (left for the shell owner): the single silent refresh-and-retry on 401
-> described in `MOBILE-SPECIFICATION.md` §3.4 — a 401 currently surfaces as a "session expired" error state.
+> described in `mobile-specification.md` §3.4 — a 401 currently surfaces as a "session expired" error state.
 
 ## Behaviour notes
 
@@ -104,3 +104,4 @@ lib/shared/api/
 - End-to-end run against a live backend is blocked locally until a native ThunderID client is registered
   (see the `running-the-app` session note); the feature is built to spec and covered by widget tests
   against a faked `AssetsApi`.
+

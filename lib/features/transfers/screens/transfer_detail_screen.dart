@@ -2,7 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../shared/api/api_exception.dart';
+import '../../../shared/widgets/ui.dart';
 import '../models/transfer_response.dart';
 import '../transfers_providers.dart';
 import '../widgets/transfer_status_chip.dart';
@@ -22,35 +22,16 @@ class TransferDetailScreen extends ConsumerWidget {
     final transfer = ref.watch(transferDetailProvider(transferId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Transfer Details')),
-      body: switch (transfer) {
-        AsyncData(:final value) => _TransferDetailBody(transfer: value),
-        AsyncError(:final error) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.cloud_off_outlined, size: 48),
-                  const SizedBox(height: 16),
-                  Text(
-                    error is ApiException
-                        ? error.message
-                        : 'Could not load transfer.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
-                    onPressed: () =>
-                        ref.invalidate(transferDetailProvider(transferId)),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
+      appBar: AppBar(title: const Text('Transfer details')),
+      body: RefreshIndicator(
+        onRefresh: () => ref.refresh(transferDetailProvider(transferId).future),
+        child: AsyncView(
+          value: transfer,
+          errorTitle: 'Couldn\'t load this transfer',
+          onRetry: () => ref.invalidate(transferDetailProvider(transferId)),
+          data: (value) => _TransferDetailBody(transfer: value),
+        ),
+      ),
     );
   }
 }
@@ -178,4 +159,3 @@ class _Row extends StatelessWidget {
         trailing: Text(value, style: Theme.of(context).textTheme.bodyMedium),
       );
 }
-

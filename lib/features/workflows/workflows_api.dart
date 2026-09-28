@@ -7,7 +7,7 @@ import 'models/agent_workflow.dart';
 import 'models/workflow_asset_ref.dart';
 
 /// Every `/api/agent-workflows` call this feature owns
-/// (`MOBILE-SPECIFICATION.md` §3.1/§4.9). Note: §4.9 as written names
+/// (`mobile-specification.md` §3.1/§4.9). Note: §4.9 as written names
 /// `/api/workflows` — the real backend route is `/api/agent-workflows`
 /// (`AgentWorkflowsController`); this client follows the backend, and
 /// §4.9 should be corrected to match.
@@ -96,3 +96,4 @@ class WorkflowsApi {
 final workflowsApiProvider = Provider<WorkflowsApi>((ref) {
   return WorkflowsApi(ref.watch(apiClientProvider));
 });
+

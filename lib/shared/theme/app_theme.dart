@@ -15,8 +15,8 @@ abstract final class CoreGridBrand {
   /// Near-black for ink / primary text.
   static const Color ink = Color(0xFF1A1A1A);
 
-  /// Warm off-white scaffold.
-  static const Color warmWhite = Color(0xFFFAF8F6);
+  /// Pure white application canvas.
+  static const Color warmWhite = Colors.white;
 }
 
 /// Shared corner-radius scale — one source for "rounded" across every

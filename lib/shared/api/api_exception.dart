@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
-/// Typed error surfaced by every feature's API layer (`MOBILE-SPECIFICATION.md`
+/// Typed error surfaced by every feature's API layer (`mobile-specification.md`
 /// §3.4). Screens map this to a plain-language message and, where present,
 /// per-field form errors (IF-03/IF-09) — they never show a raw `DioException`.
 ///
 /// `shared/api/` is nominally the app-shell owner's (Student 4) cross-cutting
-/// area per `TEAM-ALLOCATION.md`; this is a deliberately minimal client stood
+/// area per `team-allocation.md`; this is a deliberately minimal client stood
 /// up so `features/assets/` can talk to the API. Refresh-token retry (§3.4) is
 /// left as a `TODO` for the shell owner rather than duplicated here.
 class ApiException implements Exception {
@@ -112,3 +112,4 @@ class ApiException implements Exception {
   @override
   String toString() => 'ApiException($statusCode): $message';
 }
+

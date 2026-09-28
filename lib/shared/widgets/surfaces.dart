@@ -421,7 +421,7 @@ class StatCard extends StatelessWidget {
               Text(
                 v == null ? '–' : '$v',
                 style: context.text.headlineSmall?.copyWith(
-                  color: context.colors.onSurface,
+                  color: tone.foreground(context),
                   fontWeight: FontWeight.w700,
                 ),
               ),

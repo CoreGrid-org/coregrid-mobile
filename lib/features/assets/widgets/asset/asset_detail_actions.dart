@@ -31,7 +31,7 @@ class AssetDetailActions extends ConsumerWidget {
     final reportFault = OutlinedButton.icon(
       onPressed: () => context.push(
         '/maintenance/report',
-        extra: {'assetId': asset.id, 'assetCode': asset.assetCode},
+        extra: asset,
       ),
       icon: const Icon(Icons.build_circle_outlined, size: 20),
       label: const Text('Report Fault'),

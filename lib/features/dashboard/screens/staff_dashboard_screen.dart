@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../shared/widgets/ui.dart';
 import '../../maintenance/maintenance_providers.dart';
 import '../../maintenance/widgets/fault_tile.dart';
 import '../widgets/dashboard_section.dart';
@@ -20,23 +18,6 @@ class StaffDashboardBody extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const FindAssetCard(),
-        const SectionHeader('Quick actions'),
-        QuickActionsGrid(
-          actions: [
-            QuickAction(
-              icon: Icons.build_circle_outlined,
-              label: 'Report a fault',
-              caption: 'Photo + description',
-              onTap: () => context.push('/maintenance/report'),
-            ),
-            QuickAction(
-              icon: Icons.manage_search,
-              label: 'Search assets',
-              caption: 'Filters & sorting',
-              onTap: () => context.push('/assets/search'),
-            ),
-          ],
-        ),
         DashboardPreview(
           title: 'My fault reports',
           data: faults,

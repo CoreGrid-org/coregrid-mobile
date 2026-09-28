@@ -3,12 +3,12 @@
 Tracks what's actually built in **this repository** against the Flutter-tagged requirements in the main
 [`CoreGrid` SRS](../../CoreGrid/doc/SRS/00-front-matter.md). Treat this file as more current than
 assumptions about the codebase. For the platform-wide picture (backend + React status), see
-[`CoreGrid/doc/PROGRESS.md`](../../CoreGrid/doc/PROGRESS.md); for how each requirement below maps to a
-module, see [`MOBILE-SPECIFICATION.md` §8](MOBILE-SPECIFICATION.md#8-traceability); for who owns it, see
-[`TEAM-ALLOCATION.md`](TEAM-ALLOCATION.md).
+[`CoreGrid/doc/progress.md`](../../CoreGrid/doc/progress.md); for how each requirement below maps to a
+module, see [`mobile-specification.md` §8](mobile-specification.md#8-traceability); for who owns it, see
+[`team-allocation.md`](team-allocation.md).
 
 Status as of 2026-09-27 (see the dated entries below for what changed since 2026-09-25): `features/auth/`, `features/dashboard/`, `features/verification/` and
-`features/workflows/` (Student 4/Hasitha's full scope per `TEAM-ALLOCATION.md`) landed first: ThunderID PKCE
+`features/workflows/` (Student 4/Hasitha's full scope per `team-allocation.md`) landed first: ThunderID PKCE
 sign-in via `flutter_appauth`, the SRS §2.3.1/v1.5 role gate (Auditor/Administrator routed to
 `/access-restricted`), sign-out revoking the refresh token against ThunderID's `oauth2/revoke` before
 clearing local state (FR-008), and a role-branched dashboard — no dev/bypass sign-in path, every sign-in
@@ -27,7 +27,7 @@ still empty.
 
 **2026-09-27 — app-wide redesign and navigation.** The app now runs in a role-filtered bottom-navigation
 shell (Home · Verify · Workflows · Faults · Account for Officers; Home · Faults · Account for Staff — see
-`MOBILE-SPECIFICATION.md` §3.3), with a new Account tab (`GET /api/me` profile, confirmed sign-out) and a
+`mobile-specification.md` §3.3), with a new Account tab (`GET /api/me` profile, confirmed sign-out) and a
 Faults tab listing the user's own fault reports. Every screen, including `features/scan/`,
 `features/assets/` and `features/maintenance/`, was restyled onto one shared UI kit
 (`shared/widgets/ui.dart`) and theme — no screen hard-codes its own palette any more. Behaviour, API
@@ -106,7 +106,7 @@ setup (`CoreGrid/docs/setup/thunderid.md` step 8): *Forgot password?* on the sig
 password* on Account open ThunderID's hosted `/gate/recovery?applicationId=…` page in the external browser
 (`url_launcher`, never a WebView — SEC-ID-06); CoreGrid never handles the password, and an existing session
 stays signed in. It needs a new `THUNDERID_APPLICATION_ID` define and recovery enabled on the **mobile**
-ThunderID application — see `doc/setup/ThunderID-mobile-client.md` → *Password recovery*. Until both are
+ThunderID application — see `doc/setup/thunderid-mobile-client.md` → *Password recovery*. Until both are
 done, the buttons explain the alternatives (ThunderID's own sign-in page, or an Administrator reset) instead
 of failing. `flutter analyze`: 0 issues; `flutter test`: 68 passing. Not yet tried on a device.
 
@@ -120,7 +120,7 @@ of failing. `flutter analyze`: 0 issues; `flutter test`: 68 passing. Not yet tri
 |---|---|---|
 | FR-001/007/008 — Sign in/out via ThunderID PKCE, role-aware nav, sign-out clears session | Student 4 (Hasitha) | ✅ (sign-in, role gate and route guard work; sign-out now revokes the stored refresh token via ThunderID's `oauth2/revoke` — RFC 7009 — before clearing local state, best-effort so an offline sign-out still succeeds locally) |
 | FR-020 — Attribute-driven asset detail rendering | Student 1 (Jayashan) | ✅ (`features/assets/` — `AssetDetailScreen` renders custom attributes from `data_type` alone, no domain-specific code; see [`doc/features/asset-detail.md`](features/asset-detail.md). Widget-tested; reached routinely from both scan and manual lookup against the real backend, so the earlier "blocked on ThunderID native client" caveat on this row no longer holds — a dev ThunderID mobile client is configured (`.env.json`) and in active use) |
-| FR-024 — QR scan → authoritative asset record within 3s | Student 1 (Jayashan) | ✅ (`features/scan/` opens the device camera from both dashboards, accepts QR codes, resolves `GET /api/assets/qr/{code}`, and immediately opens the returned authoritative record; torch, permission refusal, unknown-code, and offline recovery included. No widget test yet for `ScanAssetScreen` itself — worth adding before calling this fully evidenced per `TEAM-ALLOCATION.md`'s testing rule) |
+| FR-024 — QR scan → authoritative asset record within 3s | Student 1 (Jayashan) | ✅ (`features/scan/` opens the device camera from both dashboards, accepts QR codes, resolves `GET /api/assets/qr/{code}`, and immediately opens the returned authoritative record; torch, permission refusal, unknown-code, and offline recovery included. No widget test yet for `ScanAssetScreen` itself — worth adding before calling this fully evidenced per `team-allocation.md`'s testing rule) |
 | FR-025 — Manual asset-code entry fallback | Student 1 (Jayashan) | ✅ (`AssetLookupScreen` at `/assets`, reachable from the scanner's "Enter code instead" and camera-refused/error fallback; the dashboard's "Find an asset" field also resolves a typed code via the same call → resolves via `GET /api/assets/qr/{code}` → detail screen; non-leaking 404 + offline states) |
 | FR-028 — Asset search/filter (basic lookup + recent list) | Student 1 (Jayashan) | ✅ (`/assets/search`, reached from the dashboard's "Find an asset" field — which pre-fills `?q=` when the text isn't an exact code — or its filter icon; server-side server-side search by code/name/custom attribute, department/location/category/asset-type/status/condition filters, sorting and pagination via `GET /api/assets`; mock asset data supported. **Gap found 2026-09-27, not fixed (owner's call):** the department/location/category/asset-type filters send *names* (`department=Fleet`) but `AssetQueryParameters` only accepts ids (`departmentId`, `locationId`, `categoryId`, `assetTypeId`), and `sort_by`/`sort_order`/`page_size` aren't bound either (`sortBy`/`sortDirection`/`pageSize`) — so those filters and the sort are silently ignored by the API) |
 | FR-029 — Record asset condition | Student 1 (Jayashan) | ✅ (`features/assets/` — `PATCH /api/assets/{id}/condition` via the condition-update sheet, five-point scale, history written server-side; gated client-side to ACTIVE/UNDER_MAINTENANCE. Officer-only in the UI via `canUpdateAssetConditionProvider`, matching the backend's `CanManageAssets` — the earlier Staff-sees-a-button-that-403s gap is closed and covered by `asset_detail_screen_test.dart`) |
@@ -159,5 +159,7 @@ item outside it. Outstanding, in rough priority order:
 5. **Enable password recovery for the mobile ThunderID app** and set `THUNDERID_APPLICATION_ID` (see the
    2026-09-27 password-reset entry); recovery emails also need ThunderID SMTP, deferred to deployment.
 6. FR-049 condemnation.
-7. `staging`/`prod` ThunderID client registrations (`MOBILE-SPECIFICATION.md` §5.1) before a release build;
-   the dev client (`doc/setup/ThunderID-mobile-client.md`) is registered and in local use.
+7. `staging`/`prod` ThunderID client registrations (`mobile-specification.md` §5.1) before a release build;
+   the dev client (`doc/setup/thunderid-mobile-client.md`) is registered and in local use.
+
+
