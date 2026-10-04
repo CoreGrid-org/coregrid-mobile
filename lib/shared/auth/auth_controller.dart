@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -51,6 +52,12 @@ class AuthController extends Notifier<AuthState> {
       state = const AuthError(
         'App isn\'t configured with ThunderID/API values — pass '
         '--dart-define-from-file (see CONTRIBUTING.md).',
+      );
+      return;
+    }
+    if (kReleaseMode && !AuthConfig.usesHttps) {
+      state = const AuthError(
+        'Release builds need https:// for API_BASE_URL and THUNDERID_ISSUER.',
       );
       return;
     }

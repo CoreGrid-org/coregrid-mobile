@@ -1,9 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Declared explicitly rather than relying on AppAuth's manifest merging
+         it in — every API and ThunderID call needs it. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- usesCleartextTraffic="false": release talks HTTPS only (SRS §4.8).
+         Android 9+ already defaults to this, but minSdk is 26, so 8.0/8.1 would
+         otherwise allow plain HTTP. Debug builds are unaffected — their
+         networkSecurityConfig (src/debug) takes precedence over this flag. -->
     <application
         android:label="CoreGrid Mobile"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
