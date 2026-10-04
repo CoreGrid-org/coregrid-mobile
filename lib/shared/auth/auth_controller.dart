@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_exception.dart';
 import '../api/dev_tls.dart';
+import '../connectivity/connectivity_provider.dart';
 import 'auth_config.dart';
 import 'auth_state.dart';
 import 'token_storage.dart';
@@ -47,7 +48,19 @@ class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthUnauthenticated();
 
+  static const _offlineMessage =
+      'You\'re offline. Connect to Wi-Fi or mobile data, then sign in.';
+
+  bool get _isOnline => ref.read(isOnlineProvider).value ?? true;
+
   Future<void> signIn() async {
+    if (!_isOnline) {
+      // Not const: a fresh instance per tap, so repeated taps while still
+      // offline each re-notify and re-show the message.
+      // ignore: prefer_const_constructors
+      state = AuthError(_offlineMessage);
+      return;
+    }
     if (!AuthConfig.isConfigured) {
       state = const AuthError(
         'App isn\'t configured with ThunderID/API values — pass '
@@ -105,7 +118,9 @@ class AuthController extends Notifier<AuthState> {
     } on FlutterAppAuthUserCancelledException {
       state = const AuthUnauthenticated();
     } catch (e) {
-      state = AuthError('Sign-in failed: $e');
+      // Connection dropped mid-flow (e.g. during the token exchange) —
+      // say so plainly instead of surfacing the platform exception.
+      state = AuthError(_isOnline ? 'Sign-in failed: $e' : _offlineMessage);
     }
   }
 
