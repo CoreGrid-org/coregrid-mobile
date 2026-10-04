@@ -23,8 +23,6 @@ class CondemnAssetSheet extends ConsumerStatefulWidget {
 
   final AssetDetail asset;
 
-
-
   static Future<bool?> show(
     BuildContext context, {
     required AssetDetail asset,
@@ -32,10 +30,6 @@ class CondemnAssetSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
       builder: (_) => CondemnAssetSheet(asset: asset),
     );
   }
@@ -130,7 +124,8 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
     }
 
     final manualUrl = _evidenceUrlController.text.trim();
-    final effectiveEvidenceUrl = photoUrl ?? (manualUrl.isNotEmpty ? manualUrl : null);
+    final effectiveEvidenceUrl =
+        photoUrl ?? (manualUrl.isNotEmpty ? manualUrl : null);
 
     final request = CondemnAssetRequest(
       reason: _reasonController.text.trim(),
@@ -158,7 +153,8 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
   @override
   Widget build(BuildContext context) {
     final statusColors = AppColors.of(context);
-    final isSubmitting = ref.watch(condemnAssetControllerProvider).isLoading ||
+    final isSubmitting =
+        ref.watch(condemnAssetControllerProvider).isLoading ||
         _isUploadingPhoto;
 
     return SafeArea(
@@ -174,24 +170,13 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 12, bottom: 20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD7DCD9),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: statusColors.dangerContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.tile),
                     ),
                     child: Icon(
                       Icons.gavel_outlined,
@@ -232,7 +217,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: statusColors.warningContainer,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.control),
         border: Border.all(color: statusColors.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -287,7 +272,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
                 backgroundColor: context.colors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppRadius.control),
                 ),
               ),
               icon: const Icon(Icons.tune_rounded, size: 20),
@@ -318,16 +303,14 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: statusColors.dangerContainer,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: statusColors.danger.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(AppRadius.control),
+              border: Border.all(
+                color: statusColors.danger.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: statusColors.danger,
-                  size: 20,
-                ),
+                Icon(Icons.info_outline, color: statusColors.danger, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -349,10 +332,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
             enabled: !isSubmitting,
             maxLines: 4,
             maxLength: 1000,
-            style: TextStyle(
-              fontSize: 15,
-              color: context.colors.onSurface,
-            ),
+            style: TextStyle(fontSize: 15, color: context.colors.onSurface),
             decoration: _inputDecoration(
               label: 'Reason for Condemnation *',
               hint: 'Explain why the asset cannot be repaired or economically restored...',
@@ -369,7 +349,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppRadius.control),
                   child: Image.memory(
                     _photoBytes!,
                     height: 170,
@@ -384,7 +364,11 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
                     backgroundColor: Colors.black54,
                     radius: 18,
                     child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       onPressed: isSubmitting ? null : _removePhoto,
                     ),
                   ),
@@ -406,7 +390,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     side: BorderSide(color: context.colors.outlineVariant),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.tile),
                     ),
                   ),
                   icon: const Icon(Icons.camera_alt_outlined, size: 19),
@@ -428,7 +412,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     side: BorderSide(color: context.colors.outlineVariant),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.tile),
                     ),
                   ),
                   icon: const Icon(Icons.photo_library_outlined, size: 19),
@@ -448,10 +432,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
           TextFormField(
             controller: _evidenceUrlController,
             enabled: !isSubmitting,
-            style: TextStyle(
-              fontSize: 15,
-              color: context.colors.onSurface,
-            ),
+            style: TextStyle(fontSize: 15, color: context.colors.onSurface),
             decoration: _inputDecoration(
               label: 'Evidence URL (optional)',
               hint: 'https://... (link to inspection report or quote)',
@@ -459,7 +440,8 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
             validator: (v) {
               if (v != null && v.trim().isNotEmpty) {
                 final uri = Uri.tryParse(v.trim());
-                if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+                if (uri == null ||
+                    (!uri.isScheme('http') && !uri.isScheme('https'))) {
                   return 'Enter a valid URL starting with http:// or https://';
                 }
               }
@@ -472,7 +454,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: statusColors.dangerContainer,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.tile),
               ),
               child: Text(
                 _errorMessage!,
@@ -493,7 +475,7 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
                 backgroundColor: statusColors.danger,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppRadius.control),
                 ),
               ),
               icon: isSubmitting
@@ -508,7 +490,10 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
                   : const Icon(Icons.gavel_outlined, size: 20),
               label: Text(
                 isSubmitting ? 'Condemning asset...' : 'Condemn Asset',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -535,19 +520,16 @@ class _CondemnAssetSheetState extends ConsumerState<CondemnAssetSheet> {
       fillColor: context.colors.surfaceContainerLow,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.control),
         borderSide: BorderSide(color: context.colors.outlineVariant),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.control),
         borderSide: BorderSide(color: context.colors.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: statusColors.danger,
-          width: 1.5,
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        borderSide: BorderSide(color: statusColors.danger, width: 1.5),
       ),
     );
   }

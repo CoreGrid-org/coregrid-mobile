@@ -70,4 +70,3 @@ abstract final class AuthConfig {
       thunderIdIssuer.isNotEmpty &&
       thunderIdClientId.isNotEmpty;
 }
-

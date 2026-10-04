@@ -233,4 +233,3 @@ class VerificationApi {
 final verificationApiProvider = Provider<VerificationApi>((ref) {
   return VerificationApi(ref.watch(apiClientProvider));
 });
-

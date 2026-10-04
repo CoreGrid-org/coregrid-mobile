@@ -26,7 +26,8 @@ class CondemnAssetResponse {
       status: json['status'] as String? ?? '',
       condition: json['condition'] as String? ?? '',
       reason: json['reason'] as String?,
-      condemnedAt: DateTime.tryParse(json['condemned_at'] as String? ?? '') ??
+      condemnedAt:
+          DateTime.tryParse(json['condemned_at'] as String? ?? '') ??
           DateTime.now(),
     );
   }

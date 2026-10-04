@@ -212,9 +212,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/transfers/new',
-        builder: (context, state) => InitiateTransferScreen(
-          initialAsset: state.extra as AssetDetail?,
-        ),
+        builder: (context, state) =>
+            InitiateTransferScreen(initialAsset: state.extra as AssetDetail?),
       ),
       // Transfer detail; FR-046 receipt confirmation is its scan action.
       GoRoute(

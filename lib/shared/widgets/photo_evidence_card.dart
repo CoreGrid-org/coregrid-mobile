@@ -27,7 +27,7 @@ class PhotoEvidenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return ClayCard(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(

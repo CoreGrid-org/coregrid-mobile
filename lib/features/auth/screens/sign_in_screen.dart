@@ -39,19 +39,26 @@ class SignInScreen extends ConsumerWidget {
             children: [
               const Spacer(flex: 3),
               Center(
-                child: Image.asset(
-                  isDark
-                      ? 'assets/branding/w-coregrid.webp'
-                      : 'assets/branding/coregrid.webp',
-                  width: 120,
-                  height: 120,
+                child: Container(
+                  width: 148,
+                  height: 148,
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: Clay.surface(context, radius: AppRadius.pill),
+                  child: Image.asset(
+                    isDark
+                        ? 'assets/branding/w-coregrid.webp'
+                        : 'assets/branding/coregrid.webp',
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.xl + AppSpacing.sm),
               Text(
                 'CoreGrid',
                 textAlign: TextAlign.center,
-                style: context.text.headlineMedium,
+                style: context.text.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(

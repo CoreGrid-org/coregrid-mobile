@@ -168,4 +168,3 @@ class TransfersApi {
 final transfersApiProvider = Provider<TransfersApi>((ref) {
   return TransfersApi(ref.watch(apiClientProvider));
 });
-

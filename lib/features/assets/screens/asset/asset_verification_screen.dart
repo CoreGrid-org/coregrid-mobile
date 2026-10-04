@@ -108,7 +108,7 @@ class _AssetVerificationScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
+            ClayCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: EntityHeader(

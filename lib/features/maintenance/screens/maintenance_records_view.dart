@@ -405,7 +405,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Card(
+            ClayCard(
               child: RecordTile(
                 icon: Icons.date_range_outlined,
                 title: 'Reported',

@@ -147,29 +147,27 @@ class _InitiateTransferScreenState
             const SizedBox(height: AppSpacing.md),
             if (locations != null)
               switch (locations) {
-                AsyncData(:final value) =>
-                  DropdownButtonFormField<LocationDto>(
-                    key: ValueKey(_department!.id),
-                    isExpanded: true,
-                    initialValue: _location,
-                    decoration: const InputDecoration(
-                      labelText: 'Location',
-                      prefixIcon: Icon(Icons.place_outlined),
-                    ),
-                    items: [
-                      for (final location in value)
-                        DropdownMenuItem(
-                          value: location,
-                          child: Text(location.name),
-                        ),
-                    ],
-                    onChanged: isSubmitting
-                        ? null
-                        : (location) =>
-                            setState(() => _location = location),
-                    validator: (_) =>
-                        _location == null ? 'Select a location' : null,
+                AsyncData(:final value) => DropdownButtonFormField<LocationDto>(
+                  key: ValueKey(_department!.id),
+                  isExpanded: true,
+                  initialValue: _location,
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                    prefixIcon: Icon(Icons.place_outlined),
                   ),
+                  items: [
+                    for (final location in value)
+                      DropdownMenuItem(
+                        value: location,
+                        child: Text(location.name),
+                      ),
+                  ],
+                  onChanged: isSubmitting
+                      ? null
+                      : (location) => setState(() => _location = location),
+                  validator: (_) =>
+                      _location == null ? 'Select a location' : null,
+                ),
                 AsyncError(:final error) => _InlineLoadError(
                   message: errorMessageFor(
                     error,
@@ -242,10 +240,7 @@ class _AssetSelection extends StatelessWidget {
         if (asset == null)
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              border: Border.all(color: context.colors.outlineVariant),
-              borderRadius: BorderRadius.circular(AppRadius.card),
-            ),
+            decoration: Clay.surface(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
