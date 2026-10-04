@@ -26,7 +26,7 @@ class DashboardPreview<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = context.mutedBody;
-    Widget placeholder(Widget child) => Card(
+    Widget placeholder(Widget child) => ClayCard(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: child,

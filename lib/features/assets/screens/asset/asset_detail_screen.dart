@@ -89,7 +89,7 @@ class _AssetBodyState extends State<_AssetBody> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: AppSpacing.pageInsets,
       children: [
-        Card(
+        ClayCard(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(

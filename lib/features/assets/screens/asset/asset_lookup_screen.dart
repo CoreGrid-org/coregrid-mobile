@@ -65,7 +65,7 @@ class _AssetLookupScreenState extends ConsumerState<AssetLookupScreen> {
                 style: context.mutedBody,
               ),
               const SizedBox(height: AppSpacing.xl),
-              Card(
+              ClayCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(

@@ -7,9 +7,9 @@ exclusively to the ASP.NET Core Web API that lives in the sibling `CoreGrid` rep
 agentic-AI service directly (SRS constraint C-05).
 
 The requirements this app implements are specified in the main repository, not here — treat
-[`../CoreGrid/doc/SRS/`](../CoreGrid/doc/SRS/00-front-matter.md) as authoritative, and
-[`../CoreGrid/doc/progress.md`](../CoreGrid/doc/progress.md) as the current build-status source of truth for
-the whole platform. This repo's own [`doc/progress.md`](doc/progress.md) tracks only the mobile slice.
+[`../CoreGrid/docs/srs/`](../CoreGrid/docs/srs/00-front-matter.md) as authoritative. Build status is tracked
+in the issue tracker; this repo's mobile-specific requirements are in
+[`doc/software-requirements-specification.md`](doc/software-requirements-specification.md).
 Assume both repositories are checked out as siblings under the same parent directory — relative links
 between them depend on that layout.
 
@@ -25,10 +25,9 @@ calls, environment/build flavors, and the CI pipeline. Read it before scaffoldin
 the concrete "how" behind the SRS's "what". It is not itself part of the baselined SRS, so update it freely
 as the app is actually built — no scope-change process required for this file.
 
-**[`doc/team-allocation.md`](doc/team-allocation.md)** says which group member owns which `lib/features/`
-folder. If you're picking up work in this repo, check it before touching a feature that isn't clearly
-unowned — building someone else's assigned FR range without coordination is the kind of overlap SE3090's
-individual-contribution rules (main SRS §12.1) specifically penalise.
+**Ownership.** Each `lib/features/` folder belongs to one component maintainer (mobile SRS §10, main
+CoreGrid SRS §12). Before changing a feature you don't own, coordinate with its maintainer — cross-component
+changes need their review (main SRS §12.2).
 
 ## Conventions worth knowing
 

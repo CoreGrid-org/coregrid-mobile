@@ -19,7 +19,7 @@ class AssetRepairSummary extends ConsumerWidget {
     return switch (history) {
       AsyncData(:final value) => _RepairSummaryContent(summary: value),
       AsyncError() => const Notice(message: 'Repair summary unavailable.'),
-      _ => const Card(
+      _ => const ClayCard(
         child: Padding(
           padding: EdgeInsets.all(AppSpacing.lg),
           child: LinearProgressIndicator(),
@@ -36,7 +36,7 @@ class _RepairSummaryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return ClayCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(
           vertical: AppSpacing.lg,
@@ -76,7 +76,7 @@ class AssetHistorySection extends ConsumerWidget {
       AsyncData(:final value) when value.isEmpty => const Notice(
         message: 'No history recorded yet.',
       ),
-      AsyncData(:final value) => Card(
+      AsyncData(:final value) => ClayCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,

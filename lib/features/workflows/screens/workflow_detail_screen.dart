@@ -39,7 +39,7 @@ class _WorkflowStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, tone) = workflowVisual(workflow);
-    final running = !workflow.isResolved && !workflow.isFailed;
+    final fleet = workflow.fleet;
 
     return ListView(
       padding: AppSpacing.pageInsets,
@@ -47,14 +47,16 @@ class _WorkflowStatus extends StatelessWidget {
         Text(workflow.objective, style: context.text.headlineSmall),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Asset ${workflow.assetCode}',
+          workflow.isSingleAsset
+              ? 'Asset ${workflow.assetCode} · ${workflow.assetTypeName}'
+              : '${workflow.assetTypeName} fleet · ${workflow.categoryName}',
           style: context.text.bodyMedium?.copyWith(
             color: context.colors.onSurfaceVariant,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        Card(
+        ClayCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -63,32 +65,36 @@ class _WorkflowStatus extends StatelessWidget {
                 child: EntityHeader(
                   icon: icon,
                   iconTone: tone,
-                  title: humanizeStatus(workflow.status),
-                  subtitle: running
-                      ? 'The agent is working — this page updates '
-                            'automatically.'
-                      : 'Evaluation finished.',
+                  title: workflowStatusLabel(workflow),
+                  subtitle: _statusExplanation(workflow),
                 ),
               ),
-              if (running) const LinearProgressIndicator(minHeight: 3),
+              if (workflow.isInProgress)
+                const LinearProgressIndicator(minHeight: 3),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        if (workflow.isFailed)
+        if (workflow.isStopped || workflow.needsRevision)
           Notice(
-            tone: StatusTone.danger,
-            title: 'Evaluation failed',
+            tone: workflow.isStopped ? StatusTone.danger : StatusTone.warning,
+            title: workflow.isStopped
+                ? 'No action will be taken'
+                : 'Revision needed',
             message: workflow.failureReason ?? 'No reason was recorded.',
-          )
-        else if (workflow.isResolved)
-          Notice(
-            tone: StatusTone.success,
-            icon: Icons.lightbulb_outline,
-            title: 'Recommendation',
-            message:
-                workflow.recommendation ?? 'No recommendation was recorded.',
           ),
+        if (workflow.recommendation != null && !workflow.isInProgress)
+          Notice(
+            tone: tone == StatusTone.danger
+                ? StatusTone.neutral
+                : StatusTone.success,
+            icon: Icons.lightbulb_outline,
+            title:
+                'Recommendation: ${humanizeStatus(workflow.recommendation!)}',
+            message: workflow.reason ?? _fleetSummary(fleet),
+          ),
+        if (!workflow.isSingleAsset && (fleet?.assets.isNotEmpty ?? false))
+          _FleetBreakdown(fleet: fleet!),
         const SectionHeader('Details'),
         ListCard(
           children: [
@@ -100,6 +106,10 @@ class _WorkflowStatus extends StatelessWidget {
               label: 'Impact',
               value: workflow.isHighImpact ? 'High' : 'Standard',
             ),
+            if (fleet != null && !workflow.isSingleAsset)
+              InfoRow(label: 'Assets evaluated', value: '${fleet.assetCount}'),
+            if (workflow.revisionCount > 0)
+              InfoRow(label: 'Revisions', value: '${workflow.revisionCount}'),
             InfoRow(
               label: 'Requested',
               value: formatDateTime(workflow.createdAt),
@@ -113,19 +123,92 @@ class _WorkflowStatus extends StatelessWidget {
               InfoRow(label: 'Requested by', value: workflow.initiatedByEmail!),
           ],
         ),
-        if (workflow.awaitingApproval) ...[
+        if (workflow.isSingleAsset) ...[
           const SizedBox(height: AppSpacing.md),
-          const Notice(
-            message:
-                'High-impact recommendations are approved by an '
-                'administrator in the CoreGrid web console.',
+          OutlinedButton.icon(
+            onPressed: () => context.push('/assets/${workflow.assetId}'),
+            icon: const Icon(Icons.description_outlined, size: 20),
+            label: const Text('Open asset record'),
           ),
         ],
-        const SizedBox(height: AppSpacing.md),
-        OutlinedButton.icon(
-          onPressed: () => context.push('/assets/${workflow.assetId}'),
-          icon: const Icon(Icons.description_outlined, size: 20),
-          label: const Text('Open asset record'),
+      ],
+    );
+  }
+
+  static String _statusExplanation(AgentWorkflow w) => switch (w.status) {
+    'PLANNING' ||
+    'ANALYZING' ||
+    'VALIDATING' => 'The agents are working — this page updates automatically.',
+    'AWAITING_APPROVAL' =>
+      'High-impact recommendation. An Administrator decides in the CoreGrid '
+          'web console; this page updates when they do.',
+    'COMPLETED_ADVISORY' =>
+      'Policy-compliant and low impact, so no approval was needed.',
+    'APPROVED' => 'Approved by an Administrator.',
+    'REJECTED' => 'Rejected by an Administrator.',
+    'REVISION_REQUESTED' => 'No policy-permitted action yet.',
+    'FAILED_SAFE' => 'Stopped safely. No asset record was changed.',
+    _ => 'Evaluation finished.',
+  };
+
+  static String _fleetSummary(FleetEvaluation? fleet) {
+    if (fleet == null || fleet.actionCounts.isEmpty) {
+      return 'No per-asset breakdown was recorded.';
+    }
+    final mix = fleet.actionCounts.entries
+        .map((e) => '${e.value} ${humanizeStatus(e.key).toLowerCase()}')
+        .join(', ');
+    final deferred = fleet.deferredCount > 0
+        ? ' · ${fleet.deferredCount} deferred'
+        : '';
+    return 'Across ${fleet.assetCount} assets: $mix$deferred.';
+  }
+}
+
+/// Fleet evaluations: what the agent recommends for each asset and why, so
+/// the officer knows which assets in the field are affected. Each row opens
+/// that asset's record. Assets policy didn't clear come first.
+class _FleetBreakdown extends StatelessWidget {
+  const _FleetBreakdown({required this.fleet});
+
+  final FleetEvaluation fleet;
+
+  static StatusTone _tone(String verdict) => switch (verdict.toUpperCase()) {
+    'PASS' => StatusTone.success,
+    'NEEDS_REVISION' => StatusTone.warning,
+    'FAIL' => StatusTone.danger,
+    _ => StatusTone.neutral,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final assets = [
+      ...fleet.assets,
+    ]..sort((a, b) => _tone(b.verdict).index.compareTo(_tone(a.verdict).index));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader('Asset by asset · ${assets.length}'),
+        ListCard(
+          children: [
+            for (final a in assets)
+              RecordTile(
+                icon: Icons.inventory_2_outlined,
+                iconTone: _tone(a.verdict),
+                title: a.condition.isEmpty
+                    ? a.assetCode
+                    : '${a.assetCode} · ${humanizeStatus(a.condition)}',
+                subtitle: a.reason.isEmpty ? null : a.reason,
+                trailing: StatusPill(
+                  humanizeStatus(a.action),
+                  tone: _tone(a.verdict),
+                ),
+                onTap: a.assetId == null
+                    ? null
+                    : () => context.push('/assets/${a.assetId}'),
+              ),
+          ],
         ),
       ],
     );

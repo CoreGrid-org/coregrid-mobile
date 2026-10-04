@@ -121,17 +121,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         color: i == _page
                             ? context.colors.primary
                             : context.colors.outlineVariant,
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                     ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.md,
+                AppSpacing.xl,
+                AppSpacing.xl,
+              ),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
                 child: FilledButton(
                   onPressed: () {
                     if (_page == _pages.length - 1) {
@@ -168,12 +172,22 @@ class _OnboardingPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconTile(data.icon, color: data.color, size: 128),
+          // The same raised clay disc as the sign-in logo.
+          Container(
+            width: 176,
+            height: 176,
+            alignment: Alignment.center,
+            decoration: Clay.surface(context, radius: AppRadius.pill),
+            child: IconTile(data.icon, color: data.color, size: 104),
+          ),
           const SizedBox(height: 40),
           Text(
             data.title,
             textAlign: TextAlign.center,
-            style: context.text.headlineSmall,
+            style: context.text.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+            ),
           ),
           const SizedBox(height: 12),
           Text(

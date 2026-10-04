@@ -91,7 +91,7 @@ class AccountScreen extends ConsumerWidget {
               ),
               if (workplace != null && workplace.locations.isNotEmpty) ...[
                 SectionHeader('Locations · ${workplace.locations.length}'),
-                Card(
+                ClayCard(
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Wrap(
@@ -177,7 +177,7 @@ class _ProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return ClayCard(
       child: Column(
         children: [
           SizedBox(

@@ -415,7 +415,7 @@ class _SearchResults extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Card(
+          ClayCard(
             child: Column(
               children: [
                 for (var i = 0; i < result.items.length; i++) ...[

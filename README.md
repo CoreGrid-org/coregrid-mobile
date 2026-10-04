@@ -21,14 +21,13 @@ This repository contains the mobile client only. The CoreGrid API and web admini
 - flutter_appauth and flutter_secure_storage for authentication
 - mobile_scanner for QR identification
 - image_picker for photo evidence
-- Android is the supported evaluation target.
+- Android is the supported target platform.
 
 ## Documentation
 
 - [Mobile specification](doc/mobile-specification.md) — architecture, requirements, routes, API contracts, and traceability.
-- [Progress](doc/progress.md) — implementation status and known gaps.
-- [Team allocation](doc/team-allocation.md) — ownership and contribution boundaries.
-- [Software requirements specification](doc/software-requirements-specification.md) — mobile SRS, document control, AI-use disclosure, and repository commit evidence.
+- [Ownership](doc/software-requirements-specification.md#10-ownership-and-contribution) — which component maintains each feature folder.
+- [Software requirements specification](doc/software-requirements-specification.md) — mobile scope, users, requirements, interfaces, security and verification plan.
 - [Asset detail notes](doc/features/asset-detail.md) — asset detail flow and implementation notes.
 - [Local networking](doc/setup/local-dev-networking.md) — Android device, HTTPS, and adb reverse setup.
 - [ThunderID mobile client](doc/setup/thunderid-mobile-client.md) — redirect URI and client registration requirements.
@@ -63,10 +62,10 @@ flutter test
 Before opening a pull request, also run:
 
 ```bash
-dart analyze
+flutter analyze
 ```
 
-Use `flutter analyze` instead if the Flutter SDK is the configured analyzer entry point.
+CI (`.github/workflows/ci.yml`) runs both on every push and pull request to `main` and `development`, and builds a release APK on `main`.
 
 ## Repository layout
 
@@ -75,7 +74,7 @@ lib/app/                 Application shell and router
 lib/features/            Auth, assets, dashboards, maintenance, transfers, and workflows
 lib/shared/              API client, authentication, theme, and reusable widgets
 test/                    Unit and widget tests
-doc/                     Product, setup, ownership, and implementation documentation
+doc/                     Product, setup and implementation documentation
 android/                 Android application and development certificate configuration
 ```
 

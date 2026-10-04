@@ -1,4 +1,4 @@
-﻿/// Request body for `POST /api/transfers`
+/// Request body for `POST /api/transfers`
 /// (`backend/Features/Transfers/DTOs/TransferDtos.cs`
 /// `InitiateTransferRequest`). All three fields are [Required] on the
 /// backend; the form validates them client-side before calling [toJson].
@@ -16,9 +16,8 @@ class InitiateTransferRequest {
   /// Produces the snake_case JSON body expected by the backend
   /// (`JsonNamingPolicy.SnakeCaseLower`).
   Map<String, dynamic> toJson() => {
-        'asset_id': assetId,
-        'to_department_id': toDepartmentId,
-        'to_location_id': toLocationId,
-      };
+    'asset_id': assetId,
+    'to_department_id': toDepartmentId,
+    'to_location_id': toLocationId,
+  };
 }
-

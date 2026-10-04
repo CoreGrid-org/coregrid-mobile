@@ -185,4 +185,3 @@ class AssetsApi {
 final assetsApiProvider = Provider<AssetsApi>((ref) {
   return AssetsApi(ref.watch(apiClientProvider));
 });
-

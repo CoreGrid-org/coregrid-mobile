@@ -58,9 +58,15 @@ abstract final class AuthConfig {
   /// android/app/build.gradle.kts.
   static const String redirectUrl = 'com.coregrid.mobile://auth-callback';
 
+  /// Whether both the API and ThunderID are configured over `https://`.
+  /// Release builds refuse to sign in otherwise (SRS §4.8) — debug builds
+  /// skip the check so local dev setups keep working.
+  static bool get usesHttps =>
+      apiBaseUrl.trim().startsWith('https://') &&
+      thunderIdIssuer.trim().startsWith('https://');
+
   static bool get isConfigured =>
       apiBaseUrl.isNotEmpty &&
       thunderIdIssuer.isNotEmpty &&
       thunderIdClientId.isNotEmpty;
 }
-

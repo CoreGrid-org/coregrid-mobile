@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/ui.dart';
+import '../../scan/screens/scan_asset_screen.dart';
 import '../models/workflow_asset_ref.dart';
 import '../workflows_providers.dart';
 
@@ -34,6 +35,20 @@ class _InitiateWorkflowScreenState
     await ref
         .read(workflowAssetLookupControllerProvider.notifier)
         .lookup(_codeController.text);
+  }
+
+  Future<void> _scanAsset() async {
+    final scanned = await identifyAssetByScan(context);
+    if (!mounted || scanned == null) return;
+    ref
+        .read(workflowAssetLookupControllerProvider.notifier)
+        .select(
+          WorkflowAssetRef(
+            id: scanned.id,
+            assetCode: scanned.assetCode,
+            name: scanned.name,
+          ),
+        );
   }
 
   Future<void> _submit(WorkflowAssetRef asset) async {
@@ -70,7 +85,7 @@ class _InitiateWorkflowScreenState
               ),
               const SizedBox(height: AppSpacing.xl),
               const _Step(number: 1, title: 'Choose the asset'),
-              Card(
+              ClayCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: asset == null
@@ -106,6 +121,14 @@ class _InitiateWorkflowScreenState
                               busy: assetLookup.isLoading,
                               onPressed: _lookupAsset,
                             ),
+                            const SizedBox(height: AppSpacing.sm),
+                            OutlinedButton.icon(
+                              onPressed: assetLookup.isLoading
+                                  ? null
+                                  : _scanAsset,
+                              icon: const Icon(Icons.qr_code_scanner),
+                              label: const Text('Scan QR code'),
+                            ),
                           ],
                         )
                       : EntityHeader(
@@ -136,7 +159,7 @@ class _InitiateWorkflowScreenState
                   number: 2,
                   title: 'What should the agent evaluate?',
                 ),
-                Card(
+                ClayCard(
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: TextFormField(

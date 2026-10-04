@@ -2,6 +2,7 @@ import 'package:coregrid_mobile/features/assets/models/asset/asset_detail.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_location.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_task.dart';
 import 'package:coregrid_mobile/features/verification/screens/verification_task_detail_screen.dart';
+import 'package:coregrid_mobile/features/verification/screens/verification_task_list_screen.dart';
 import 'package:coregrid_mobile/features/verification/verification_api.dart';
 import 'package:coregrid_mobile/features/verification/verify_flow.dart';
 import 'package:flutter/material.dart';
@@ -183,6 +184,57 @@ void main() {
       await tester.tap(find.text('Verify anyway'));
       await tester.pumpAndSettle();
       expect(visited, ['/assets/a9/verify']);
+    });
+  });
+
+  group('scan button on a task row', () {
+    Future<List<String>> run(WidgetTester tester, AssetDetail scanned) async {
+      final visited = <String>[];
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => Scaffold(
+              body: ListView(children: [TaskTile(task: _task())]),
+            ),
+          ),
+          GoRoute(
+            path: '/scan',
+            builder: (context, _) => TextButton(
+              onPressed: () => context.pop(scanned),
+              child: const Text('scanned'),
+            ),
+          ),
+          GoRoute(
+            path: '/verification/:id',
+            builder: (_, s) {
+              visited.add(s.uri.toString());
+              return const Text('task');
+            },
+          ),
+        ],
+      );
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.tap(find.byTooltip('Scan AST-001'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('scanned'));
+      await tester.pumpAndSettle();
+      return visited;
+    }
+
+    testWidgets('opens the task already confirmed when the label matches', (
+      tester,
+    ) async {
+      final visited = await run(tester, _asset('a1', 'AST-001'));
+      expect(visited, ['/verification/t1?scanned=1']);
+    });
+
+    testWidgets('names the wrong asset when the label doesn\'t match', (
+      tester,
+    ) async {
+      final visited = await run(tester, _asset('a9', 'AST-009'));
+      expect(visited, isEmpty);
+      expect(find.textContaining('That label is AST-009'), findsOneWidget);
     });
   });
 }

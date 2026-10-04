@@ -61,7 +61,7 @@ class _RecordBody extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: AppSpacing.pageInsets,
       children: [
-        Card(
+        ClayCard(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -190,7 +190,7 @@ class _RecordBody extends StatelessWidget {
         ],
         if (record.photoUrl?.isNotEmpty ?? false) ...[
           const SectionHeader('Photo evidence'),
-          Card(
+          ClayCard(
             clipBehavior: Clip.antiAlias,
             child: Image.network(
               record.photoUrl!,

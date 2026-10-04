@@ -1,13 +1,13 @@
 # `features/assets/` — Asset Detail
 
-Owner: **Student 1 — Jayashan Guruge** ([`team-allocation.md`](../team-allocation.md)).
+Owner: **Component A** (main CoreGrid SRS §12, Component Ownership).
 Implements the Flutter slice of **Component A — Asset Registry & QR Identification**.
 
 | Requirement | What this feature does |
 |---|---|
 | **FR-020** | Renders the asset detail read view **dynamically from the asset type's attribute definitions** — no hardcoded domain knowledge, same rule as the React client. |
 | **FR-029** | Records an asset's condition on the defined scale (New / Good / Fair / Poor / Unserviceable); the change is written to asset history server-side. |
-| **FR-028** (basic) | Lookup-by-code resolution only. Advanced search / filter / export stays React-only ([SRS §3.4](../../../CoreGrid/doc/SRS/03-system-architecture.md)). |
+| **FR-028** (basic) | Lookup-by-code resolution only. Advanced search / filter / export stays React-only ([SRS §3.4](../../../CoreGrid/docs/srs/03-system-architecture.md)). |
 | **FR-024 AC4** | Department Staff never see the **Verify** action; the API rejects a direct verify call from Staff with 403 regardless. |
 | **FR-024 A3/A4** | A code from another organisation shows "Asset not found" (never leaks existence); an offline device shows an offline state, never stale cached data. |
 
@@ -66,8 +66,7 @@ lib/shared/api/
   api_exception.dart           typed error model (field errors, network flag, 401/403/404 helpers)
 ```
 
-> `lib/shared/api/` is nominally the app-shell owner's cross-cutting area
-> ([`team-allocation.md`](../team-allocation.md)). A minimal client was stood up here to unblock this
+> `lib/shared/api/` belongs to the app shell (Component D). A minimal client was stood up here to unblock this
 > feature. **Not yet implemented** (left for the shell owner): the single silent refresh-and-retry on 401
 > described in `mobile-specification.md` §3.4 — a 401 currently surfaces as a "session expired" error state.
 
@@ -85,7 +84,7 @@ lib/shared/api/
   `features/assets/screens/asset_verification_screen.dart`; it submits presence,
   observed location, and condition to `POST /api/assets/{id}/verify` and shows
   success, discrepancy, and error states. Report Fault remains a "not built yet"
-  entry point owned by `features/maintenance/` (Student 2).
+  entry point owned by `features/maintenance/` (Component B).
 - **`autoDispose`** on the detail/history providers — leaving the screen drops the cache so a re-scan always
   does a fresh read (FR-024 A4: never show stale business data as current).
 

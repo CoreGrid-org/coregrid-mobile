@@ -98,7 +98,7 @@ class _ConditionUpdateSheetState extends ConsumerState<ConditionUpdateSheet> {
               onChanged: (c) {
                 if (!isSubmitting && c != null) setState(() => _selected = c);
               },
-              child: Card(
+              child: ClayCard(
                 child: Column(
                   children: [
                     for (var i = 0; i < AssetCondition.values.length; i++) ...[

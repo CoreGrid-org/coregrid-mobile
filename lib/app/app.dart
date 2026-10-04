@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../shared/theme/app_theme.dart';
+import '../shared/widgets/connectivity_banner.dart';
 import 'router.dart';
 
 /// Removes Android's stretch/glow overscroll effect app-wide and disables
@@ -35,6 +36,7 @@ class CoreGridApp extends ConsumerWidget {
       routerConfig: router,
       scrollBehavior: _NoOverscrollBehavior(),
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => ConnectivityBanner(child: child!),
     );
   }
 }

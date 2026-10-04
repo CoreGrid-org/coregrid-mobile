@@ -3,8 +3,42 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'status_pill.dart';
 
-/// A simple icon — sized and optionally tinted by [tone] or [color].
-/// Replaces the former tinted rounded-square badge with a plain icon.
+/// The standard raised surface: solid fill, [AppRadius.card] corners and
+/// the soft clay shadow ([Clay.surface]). Use instead of [Card].
+class ClayCard extends StatelessWidget {
+  const ClayCard({
+    super.key,
+    required this.child,
+    this.color,
+    this.margin,
+    this.onTap,
+    this.clipBehavior = Clip.antiAlias,
+  });
+
+  final Widget child;
+  final Color? color;
+  final EdgeInsetsGeometry? margin;
+  final VoidCallback? onTap;
+  final Clip clipBehavior;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.card);
+    return Container(
+      margin: margin,
+      decoration: Clay.surface(context, color: color),
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: radius,
+        clipBehavior: clipBehavior,
+        child: onTap == null ? child : InkWell(onTap: onTap, child: child),
+      ),
+    );
+  }
+}
+
+/// An icon on a soft tinted rounded square — tinted by [tone], or [color],
+/// or the brand orange.
 class IconTile extends StatelessWidget {
   const IconTile(this.icon, {super.key, this.tone, this.color, this.size = 40});
 
@@ -18,11 +52,21 @@ class IconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colors;
-    final fg = color ?? scheme.primary;
-    return Icon(icon, color: fg, size: size * 0.55);
+    final fg = tone?.foreground(context) ?? color ?? scheme.primary;
+    final bg =
+        tone?.background(context) ??
+        (color?.withValues(alpha: 0.14) ?? scheme.primaryContainer);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(size * 0.34),
+      ),
+      child: Icon(icon, color: fg, size: size * 0.5),
+    );
   }
 }
-
 
 /// Group title above a block of content, with an optional trailing action
 /// ("See all").
@@ -60,7 +104,7 @@ class SectionHeader extends StatelessWidget {
               style: TextButton.styleFrom(
                 visualDensity: VisualDensity.compact,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                foregroundColor: context.colors.onSurface,
+                foregroundColor: context.colors.primary,
               ),
               child: Text(actionLabel!),
             ),
@@ -160,12 +204,13 @@ class ListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return ClayCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) const Divider(indent: AppSpacing.lg),
+            if (i > 0)
+              const Divider(indent: AppSpacing.lg, endIndent: AppSpacing.lg),
             children[i],
           ],
         ],
@@ -219,7 +264,8 @@ class InfoRow extends StatelessWidget {
   }
 }
 
-/// A simple inline hint — icon + message text, no background.
+/// An inline hint on a soft [tone]-tinted tile — icon + optional title +
+/// message.
 class Notice extends StatelessWidget {
   const Notice({
     super.key,
@@ -236,7 +282,8 @@ class Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = context.colors.onSurfaceVariant;
+    final fg = tone.foreground(context);
+    final ink = context.colors.onSurface;
     final resolvedIcon =
         icon ??
         switch (tone) {
@@ -245,16 +292,17 @@ class Notice extends StatelessWidget {
           StatusTone.danger => Icons.error_outline,
           _ => Icons.info_outline,
         };
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.sm,
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: tone.background(context),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(resolvedIcon, color: muted, size: 18),
-          const SizedBox(width: AppSpacing.sm),
+          Icon(resolvedIcon, color: fg, size: 20),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,8 +311,8 @@ class Notice extends StatelessWidget {
                   Text(
                     title!,
                     style: context.text.bodyMedium?.copyWith(
-                      color: muted,
-                      fontWeight: FontWeight.w600,
+                      color: fg,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -272,7 +320,7 @@ class Notice extends StatelessWidget {
                 Text(
                   message,
                   style: context.text.bodySmall?.copyWith(
-                    color: muted,
+                    color: ink,
                     height: 1.4,
                   ),
                 ),
@@ -283,7 +331,6 @@ class Notice extends StatelessWidget {
       ),
     );
   }
-
 }
 
 /// Primary call-to-action with a built-in busy state — every form's submit
@@ -409,26 +456,32 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final v = value;
-    return Card(
-      color: Colors.white,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md + 2),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                v == null ? '–' : '$v',
-                style: context.text.headlineSmall?.copyWith(
-                  color: tone.foreground(context),
-                  fontWeight: FontWeight.w700,
-                ),
+    return ClayCard(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: tone.foreground(context),
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 2),
-              Text(label, maxLines: 2, style: context.mutedSmall),
-            ],
-          ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              v == null ? '–' : '$v',
+              style: context.text.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs + 2),
+            Text(label, maxLines: 2, style: context.mutedSmall),
+          ],
         ),
       ),
     );
@@ -448,7 +501,7 @@ class StatRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < cards.length; i++) ...[
-            if (i > 0) const SizedBox(width: AppSpacing.sm),
+            if (i > 0) const SizedBox(width: AppSpacing.md),
             Expanded(child: cards[i]),
           ],
         ],

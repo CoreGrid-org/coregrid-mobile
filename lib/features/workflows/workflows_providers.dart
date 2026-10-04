@@ -12,15 +12,19 @@ final agentWorkflowsProvider = FutureProvider.autoDispose<List<AgentWorkflow>>((
   return workflows.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 });
 
-/// One workflow's status/outcome, polled every 5s while unresolved.
+/// One workflow's status/outcome. Polled every 5s while the agents run and
+/// every 15s while it waits for an Administrator, so the decision shows up
+/// without a manual refresh; polling stops once the workflow is finished.
 final agentWorkflowProvider = StreamProvider.autoDispose
     .family<AgentWorkflow, String>((ref, id) async* {
       final api = ref.watch(workflowsApiProvider);
       while (true) {
         final workflow = await api.getWorkflowById(id);
         yield workflow;
-        if (workflow.isResolved || workflow.isFailed) return;
-        await Future<void>.delayed(const Duration(seconds: 5));
+        if (workflow.isFinished) return;
+        await Future<void>.delayed(
+          Duration(seconds: workflow.isAwaitingApproval ? 15 : 5),
+        );
       }
     });
 
@@ -35,6 +39,8 @@ class WorkflowAssetLookupController extends AsyncNotifier<WorkflowAssetRef?> {
       () => ref.read(workflowsApiProvider).resolveAssetByCode(code),
     );
   }
+
+  void select(WorkflowAssetRef asset) => state = AsyncData(asset);
 
   void reset() => state = const AsyncData(null);
 }

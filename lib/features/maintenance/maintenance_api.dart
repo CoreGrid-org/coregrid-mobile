@@ -198,4 +198,3 @@ class MaintenanceApi {
 final maintenanceApiProvider = Provider<MaintenanceApi>((ref) {
   return MaintenanceApi(ref.watch(apiClientProvider));
 });
-
