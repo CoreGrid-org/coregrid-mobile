@@ -383,55 +383,26 @@ gitignored and never committed, the same rule as any other secret in this reposi
 ## 6. CI/CD Pipeline
 
 Matches the main repo's stated CI approach (its own SRS §3.3: GitHub Actions, "additional jobs for the React
-build and Flutter analyse"). Once `flutter create` has been run, add this as
-`.github/workflows/ci.yml`:
+build and Flutter analyse"). The workflow lives in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
+— treat that file as the source of truth rather than copying it here.
 
-```yaml
-name: CI
+- `analyze-and-test` gates every push and pull request to `main`/`development` (matching the main repo's
+  branch names): `flutter pub get`, `flutter analyze`, `flutter test`.
+- `build-apk` runs only on pushes to `main`. It reads environment-specific values from repository secrets
+  — never from a committed `--dart-define` value, consistent with §5.1. Analyze and test never need them.
+  If a required secret isn't set, the APK build is skipped with a warning (a release build without them
+  can't sign in, so there's nothing useful to publish); if one is set but isn't `https://`, the job fails:
 
-on:
-  push:
-    branches: [main, development]
-  pull_request:
-    branches: [main, development]
+  | Secret | Required | Maps to |
+  |---|---|---|
+  | `PROD_API_BASE_URL` | Yes | `API_BASE_URL` |
+  | `PROD_THUNDERID_ISSUER` | Yes | `THUNDERID_ISSUER` |
+  | `PROD_THUNDERID_CLIENT_ID` | Yes | `THUNDERID_CLIENT_ID` |
+  | `PROD_THUNDERID_APPLICATION_ID` | No — enables in-app password recovery | `THUNDERID_APPLICATION_ID` |
 
-jobs:
-  analyze-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.0'
-          channel: stable
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
-
-  build-apk:
-    needs: analyze-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.0'
-          channel: stable
-      - run: flutter pub get
-      - run: >
-          flutter build apk --release
-          --dart-define=API_BASE_URL=${{ secrets.PROD_API_BASE_URL }}
-          --dart-define=THUNDERID_CLIENT_ID=${{ secrets.PROD_THUNDERID_CLIENT_ID }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coregrid-mobile-release
-          path: build/app/outputs/flutter-apk/app-release.apk
-```
-
-`analyze-and-test` gates every push and pull request to `main`/`development`, matching the branch names
-already used in the main repo. `build-apk` runs only on `main`, and reads environment-specific values from
-repository secrets — never from a committed `--dart-define` value, consistent with §5.1.
+- The APK's build number is the workflow run number, so `BUILD` increments on every release build (§5.2).
+- Release signing still uses the debug keystore (`android/app/build.gradle.kts`) until the §5.3 release
+  keystore is wired in.
 
 ## 7. Testing Strategy
 
