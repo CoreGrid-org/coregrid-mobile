@@ -49,19 +49,17 @@ class _WorkflowList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final running = workflows
-        .where((w) => !w.isResolved && !w.isFailed)
-        .toList();
-    final done = workflows.where((w) => w.isResolved || w.isFailed).toList();
+    final groups = [
+      ('Needs a decision', workflows.where((w) => w.isAwaitingApproval)),
+      ('In progress', workflows.where((w) => w.isInProgress)),
+      ('Finished', workflows.where((w) => w.isFinished)),
+    ];
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: AppSpacing.pageInsetsFab,
       children: [
-        for (final (title, group) in [
-          ('In progress', running),
-          ('Finished', done),
-        ])
+        for (final (title, group) in groups)
           if (group.isNotEmpty) ...[
             SectionHeader(
               '$title · ${group.length}',
@@ -87,29 +85,44 @@ class WorkflowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, tone) = workflowVisual(workflow);
-    final subtitle = workflow.isFailed
-        ? (workflow.failureReason ?? 'Evaluation failed')
-        : workflow.isResolved
-        ? (workflow.recommendation ?? 'Completed')
-        : 'Started ${formatDateTime(workflow.createdAt)}';
+    final recommendation = workflow.recommendation;
+    final subtitle = workflow.isInProgress
+        ? 'Started ${formatDateTime(workflow.createdAt)}'
+        : workflow.isStopped || workflow.needsRevision
+        ? (workflow.failureReason ?? workflowStatusLabel(workflow))
+        : recommendation != null
+        ? 'Recommends ${humanizeStatus(recommendation).toLowerCase()}'
+        : 'Completed';
 
     return RecordTile(
       icon: icon,
       iconTone: tone,
-      title: '${workflow.assetCode} · ${workflow.objective}',
+      title: '${workflow.targetLabel} · ${workflow.objective}',
       subtitle: subtitle,
-      trailing: StatusPill(humanizeStatus(workflow.status), tone: tone),
+      trailing: StatusPill(workflowStatusLabel(workflow), tone: tone),
       onTap: () => context.push('/workflows/${workflow.id}'),
     );
   }
 }
 
-(IconData, StatusTone) workflowVisual(AgentWorkflow w) {
-  if (w.isFailed) return (Icons.error_outline, StatusTone.danger);
-  if (w.isResolved) {
-    return w.awaitingApproval
-        ? (Icons.pending_actions_outlined, StatusTone.warning)
-        : (Icons.task_alt, StatusTone.success);
-  }
-  return (Icons.autorenew_rounded, StatusTone.info);
-}
+/// A short, officer-friendly name for a workflow's status.
+String workflowStatusLabel(AgentWorkflow w) => switch (w.status) {
+  'PLANNING' => 'Planning',
+  'ANALYZING' => 'Analysing',
+  'VALIDATING' => 'Checking policy',
+  'AWAITING_APPROVAL' => 'Awaiting approval',
+  'APPROVED' => 'Approved',
+  'REJECTED' => 'Rejected',
+  'COMPLETED_ADVISORY' => 'Completed',
+  'REVISION_REQUESTED' => 'Needs revision',
+  'FAILED_SAFE' => 'Stopped safely',
+  _ => humanizeStatus(w.status),
+};
+
+(IconData, StatusTone) workflowVisual(AgentWorkflow w) => switch (w.status) {
+  'AWAITING_APPROVAL' => (Icons.pending_actions_outlined, StatusTone.warning),
+  'REVISION_REQUESTED' => (Icons.edit_note_outlined, StatusTone.warning),
+  'FAILED_SAFE' || 'REJECTED' => (Icons.block_outlined, StatusTone.danger),
+  'APPROVED' || 'COMPLETED_ADVISORY' => (Icons.task_alt, StatusTone.success),
+  _ => (Icons.autorenew_rounded, StatusTone.info),
+};

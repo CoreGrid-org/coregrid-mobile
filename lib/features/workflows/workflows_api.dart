@@ -16,11 +16,15 @@ class WorkflowsApi {
 
   final Dio _dio;
 
-  /// `GET /api/agent-workflows` — retrieves workflows.
+  /// `GET /api/agent-workflows` — the newest workflows (a `PagedResult`).
   Future<List<AgentWorkflow>> getWorkflows() async {
     try {
-      final response = await _dio.get<List<dynamic>>('/api/agent-workflows');
-      return (response.data ?? const [])
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/agent-workflows',
+        queryParameters: {'pageSize': 50},
+      );
+      final items = response.data?['items'];
+      return (items is List ? items : const [])
           .whereType<Map<String, dynamic>>()
           .map(AgentWorkflow.fromJson)
           .toList();
@@ -96,4 +100,3 @@ class WorkflowsApi {
 final workflowsApiProvider = Provider<WorkflowsApi>((ref) {
   return WorkflowsApi(ref.watch(apiClientProvider));
 });
-
