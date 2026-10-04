@@ -1,7 +1,7 @@
 # CoreGrid Mobile — Application Specification
 
 This document consolidates everything specific to the Flutter client into one place, in the same style as
-the main [`CoreGrid` SRS](../../CoreGrid/doc/SRS/00-front-matter.md) chapters (see e.g. Chapter 17, Chapter
+the main [`CoreGrid` SRS](../../CoreGrid/docs/srs/00-front-matter.md) chapters (see e.g. Chapter 17, Chapter
 18). It is **not** part of the baselined SRS itself — that document lives in the main repository and any
 change to it goes through the scope-change process described in its front matter (§00). This is an
 implementation-level companion, scoped entirely to this repository, and it can change freely as the app is
@@ -191,9 +191,9 @@ enforces the split itself, after `GET /api/me` resolves `role`. Officer and Staf
 Auditor and Administrator land on `/access-restricted` instead (`features/auth/screens/
 access_restricted_screen.dart`), and their refresh token is cleared immediately rather than left valid —
 an unsupported role never counts as a real mobile session. Mirrors the React frontend's own
-`/access-restricted` route (`CoreGrid/doc/setup/ThunderID.md`). The full role-to-platform picture — why each
+`/access-restricted` route (`CoreGrid/docs/setup/thunderid.md`). The full role-to-platform picture — why each
 role uses the client(s) it does, and how both clients integrate with ThunderID and the API — is
-`CoreGrid/doc/SRS/03-system-architecture.md` §3.4.1 (Figure 10).
+`CoreGrid/docs/srs/03-system-architecture.md` §3.4.1 (Figure 10).
 
 ### 4.2 Dashboard — FR-083
 
@@ -221,7 +221,7 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | Trigger | Successful scan or manual lookup |
 | Sequence | Attribute-driven read view (rendered from the type's attribute definitions, no hardcoded domain knowledge — same rule as the React client, FR-020) with entry points to Verify, Report Fault, and — if the asset's current lifecycle state allows it — Condition update |
 | States | Loading, error (asset not found / not accessible to this user's department), populated |
-| API calls | `GET /api/assets/{id}` (`GET /api/assets/qr/{code}` when reached by code instead of ID — same detail screen either way); condition update is `PATCH /api/assets/{id}/condition`, gated client-side to ACTIVE/UNDER_MAINTENANCE, via the condition-update bottom sheet. That endpoint is `CanManageAssets`-gated server-side — InventoryOfficer/Administrator only, **not** Staff — so the "Update Condition" button must only render for InventoryOfficer, the same way `canVerifyAssetsProvider` already gates the Verify button (see `doc/progress.md` FR-029 for a currently-open gap where this isn't yet enforced client-side) |
+| API calls | `GET /api/assets/{id}` (`GET /api/assets/qr/{code}` when reached by code instead of ID — same detail screen either way); condition update is `PATCH /api/assets/{id}/condition`, gated client-side to ACTIVE/UNDER_MAINTENANCE, via the condition-update bottom sheet. That endpoint is `CanManageAssets`-gated server-side — InventoryOfficer/Administrator only, **not** Staff — so the "Update Condition" button must only render for InventoryOfficer, the same way `canVerifyAssetsProvider` already gates the Verify button |
 
 ### 4.5 Physical Verification — FR-031, FR-059, FR-061
 
@@ -443,31 +443,30 @@ repository secrets — never from a committed `--dart-define` value, consistent 
 
 Out of scope for the baseline: automated integration/end-to-end tests driving a real device, and golden-image
 screenshot tests. Neither is required by the SRS, and both would add CI time disproportionate to a
-single-evaluator Android APK deliverable (main SRS §2.4).
+single Android APK deliverable (main SRS §2.4).
 
 ## 8. Traceability
 
-Maps each Flutter-owned requirement to the module that satisfies it, for quick lookup — current build
-status lives in [`progress.md`](progress.md), not here; this table doesn't change as work progresses. The
-**Owner** column is the same per-feature assignment as
-[`team-allocation.md`](team-allocation.md) — see that file for why, not just who.
+Maps each Flutter-owned requirement to the module that satisfies it, for quick lookup. Delivery status is
+tracked in the issue tracker, not here; this table doesn't change as work progresses. The **Component**
+column is the owning component from the main CoreGrid SRS §12 (Component Ownership).
 
-| Requirement | Module (§) | Owner |
+| Requirement | Module (§) | Component |
 |---|---|---|
-| FR-001, FR-008, SEC-ID-06 | `shared/auth/` (§4.1) | Student 4 (Hasitha) — app shell |
-| FR-020 | `features/assets/` (§4.4) | Student 1 (Jayashan) |
-| FR-024, FR-025, IF-06, IF-07, IF-10, IF-12 | `features/scan/` (§4.3) | Student 1 (Jayashan) |
-| FR-028 | `features/assets/` (basic lookup only — advanced search/filter/export is React-only per SRS §3.4) | Student 1 (Jayashan) |
-| FR-029 | `features/assets/` (§4.4) | Student 1 (Jayashan) |
-| FR-031 | `features/assets/` — the ad hoc `POST /api/assets/{id}/verify` path (§4.5), not `features/scan/` — the asset-detail entry point doesn't depend on a scanner existing | Student 1 (Jayashan) — this component's named business-specific operation. Built but not yet routed — see `doc/progress.md` |
-| FR-058, FR-059, FR-061 | `features/verification/` (§4.5) | Student 4 (Hasitha) |
-| FR-033, IF-11 | `features/maintenance/` (§4.6) | Student 2 (Seneja) |
-| FR-037, FR-042 | `features/maintenance/` (§4.7) | Student 2 (Seneja) |
-| FR-043, FR-046 | `features/transfers/` (§4.8) | Student 3 (Bhanuka) |
-| FR-083 | `features/dashboard/` (§4.2) | Student 4 (Hasitha) — built last, once other features exist to summarise |
-| FR-067, FR-069, FR-076 | `features/workflows/` (§4.9) | Student 4 (Hasitha) — "agent status display" per main SRS §12 |
-| FR-080 | `features/notifications/` (§4.10) | Student 2 (Seneja) — same FR-077–080 range as this owner's backend notification service |
-| IF-02, IF-05, IF-09 | Cross-cutting — `shared/widgets/`, `shared/auth/` route guards, `shared/api/` error mapping | Student 4 (Hasitha) — shell/shared |
+| FR-001, FR-008, SEC-ID-06 | `shared/auth/` (§4.1) | D — app shell |
+| FR-020 | `features/assets/` (§4.4) | A |
+| FR-024, FR-025, IF-06, IF-07, IF-10, IF-12 | `features/scan/` (§4.3) | A |
+| FR-028 | `features/assets/` (basic lookup only — advanced search/filter/export is React-only per SRS §3.4) | A |
+| FR-029 | `features/assets/` (§4.4) | A |
+| FR-031 | `features/assets/` — the ad hoc `POST /api/assets/{id}/verify` path (§4.5), not `features/scan/` — the asset-detail entry point doesn't depend on a scanner existing | A — this component's named business-specific operation |
+| FR-058, FR-059, FR-061 | `features/verification/` (§4.5) | D |
+| FR-033, IF-11 | `features/maintenance/` (§4.6) | B |
+| FR-037, FR-042 | `features/maintenance/` (§4.7) | B |
+| FR-043, FR-046 | `features/transfers/` (§4.8) | C |
+| FR-083 | `features/dashboard/` (§4.2) | D — built last, once other features exist to summarise |
+| FR-067, FR-069, FR-076 | `features/workflows/` (§4.9) | D — agent status display |
+| FR-080 | `features/notifications/` (§4.10) | B — same FR-077–080 range as this owner's backend notification service |
+| IF-02, IF-05, IF-09 | Cross-cutting — `shared/widgets/`, `shared/auth/` route guards, `shared/api/` error mapping | D — shell/shared |
 | IF-03 | Cross-cutting — form validation pattern in every feature's screens | Each feature's own owner |
 | IF-13 | Constraint, not a module — no location/biometric/Bluetooth/NFC code in the baseline | — |
 

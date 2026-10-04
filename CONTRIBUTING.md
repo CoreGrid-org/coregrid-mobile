@@ -87,7 +87,7 @@ as a mobile/native application with a custom-scheme redirect URI and PKCE (SRS A
 [`doc/setup/thunderid-mobile-client.md`](doc/setup/thunderid-mobile-client.md) for why BYOUI conflicts with
 SEC-ID-06. Record the client ID and redirect scheme in your own untracked local config (`.env.json`, gitignored — see `.env.example` for the shape `--dart-define-from-file` expects), never in code or a
 committed file — see
-[`CoreGrid/doc/setup/ThunderID.md`](../CoreGrid/doc/setup/ThunderID.md) for how the equivalent React
+[`CoreGrid/docs/setup/thunderid.md`](../CoreGrid/docs/setup/thunderid.md) for how the equivalent React
 registration was done.
 
 ## 3. Configure the API base URL
@@ -113,11 +113,10 @@ flutter test      # passing
 
 ## Project Structure
 
-This repo starts empty — run `flutter create .` to scaffold the standard Flutter project layout (`lib/`,
-`android/`, `pubspec.yaml`, etc.). The full `lib/` layout, package selection, and per-feature responsibilities
-are specified in [`doc/mobile-specification.md`](doc/mobile-specification.md) §2–§3 — read that before
-scaffolding, rather than improvising a structure. If you're a group member picking a feature to start on,
-[`doc/team-allocation.md`](doc/team-allocation.md) says which one is already yours. In short: one
+The full `lib/` layout, package selection, and per-feature responsibilities are specified in
+[`doc/mobile-specification.md`](doc/mobile-specification.md) §2–§3 — read that before adding a feature,
+rather than improvising a structure. Feature ownership is listed in
+[mobile SRS §10](doc/software-requirements-specification.md#10-ownership-and-contribution). In short: one
 `lib/features/<name>/` folder per capability,
 owning its own screens, Riverpod providers, and API calls together (never split into global `screens/`,
 `providers/`, `services/` trees), mirroring the ownership-boundary rule the backend and React frontend
@@ -137,5 +136,5 @@ a specific platform bug), a hidden invariant, or something genuinely surprising 
 ## Need Help?
 
 See [`CoreGrid/CONTRIBUTING.md`](../CoreGrid/CONTRIBUTING.md) for backend/infrastructure setup, and
-[`CoreGrid/doc/SRS/`](../CoreGrid/doc/SRS/00-front-matter.md) for the requirements this app implements.
+[`CoreGrid/docs/srs/`](../CoreGrid/docs/srs/00-front-matter.md) for the requirements this app implements.
 

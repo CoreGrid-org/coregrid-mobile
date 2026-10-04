@@ -1,8 +1,8 @@
 # ThunderID — Mobile Client Registration
 
 The web application's ThunderID setup is documented in
-[`CoreGrid/doc/setup/ThunderID.md`](../../../CoreGrid/doc/setup/ThunderID.md) and
-[`CoreGrid/doc/SRS/appendix-c-thunderid-configuration-checklist.md`](../../../CoreGrid/doc/SRS/appendix-c-thunderid-configuration-checklist.md).
+[`CoreGrid/docs/setup/thunderid.md`](../../../CoreGrid/docs/setup/thunderid.md) and
+[`CoreGrid/docs/srs/appendix-c-thunderid-configuration-checklist.md`](../../../CoreGrid/docs/srs/appendix-c-thunderid-configuration-checklist.md).
 This file covers only what's specific to the Flutter client (checklist item 4). For running ThunderID, the
 backend, and this app together against an emulator/device on your own machine — networking, TLS trust for
 both self-signed dev certs, and the `flutter run` command — see
@@ -20,7 +20,7 @@ Register CoreGrid Mobile in ThunderID as a **mobile / native application** (publ
   shall use an external user agent for authentication"). It would also mean hand-rolling the flow-driving
   state machine and native passkey ceremonies (Android Credential Manager / iOS
   `ASAuthorizationController`) instead of using `flutter_appauth`, and would diverge from the React SPA's
-  own redirect-based hosted login (`CoreGrid/doc/setup/ThunderID.md` step 4). If the console currently has
+  own redirect-based hosted login (`CoreGrid/docs/setup/thunderid.md` step 4). If the console currently has
   this application set to Bring Your Own UI, switch it to the redirect-based sign-in approach before
   building against it.
 - **Grant type:** Authorisation Code with PKCE
@@ -32,7 +32,7 @@ Register CoreGrid Mobile in ThunderID as a **mobile / native application** (publ
   not an `https://` deep link, unless ThunderID's mobile client type in your deployment specifically expects
   App Links/Universal Links instead
 - **Allowed user type:** `CoreGridUser` only (same type as the React SPA — see
-  `CoreGrid/doc/setup/ThunderID.md` step 1). Leave "Allow all user types" off.
+  `CoreGrid/docs/setup/thunderid.md` step 1). Leave "Allow all user types" off.
 - **Access token attributes:** `email`, `given_name`, `family_name`, `roles` — the same set as the React SPA
   (`CoreGrid/docs/setup/thunderid.md` step 4). **Scopes:** `openid`, `profile`, `email`, `roles` (the app
   requests all four). The backend's `RoleEnrichmentMiddleware` resolves each bearer token to a CoreGrid user

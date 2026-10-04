@@ -46,7 +46,7 @@ normally. Without it, sign-in succeeds but the dashboard says the CoreGrid role 
 release). It already trusts:
 
 - `android/app/src/debug/res/raw/thunderid_dev_cert.pem` — ThunderID's cert, committed to the repo (fine to
-  share — dev-only, not a secret), valid to 2027-08-09. Re-export it (see `CoreGrid/doc/setup/ThunderID.md`)
+  share — dev-only, not a secret), valid to 2027-08-09. Re-export it (see `CoreGrid/docs/setup/thunderid.md`)
   and replace this file only if the ThunderID container gets recreated with a new cert.
 - `android/app/src/debug/res/raw/backend_dev_cert.pem` — the backend's `dotnet dev-certs https` cert. **This
   one is machine-specific and not portable** — each developer generates their own:
