@@ -232,7 +232,7 @@ class _TaskHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return ClayCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

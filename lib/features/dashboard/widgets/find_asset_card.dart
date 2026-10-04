@@ -77,18 +77,13 @@ class _FindAssetCardState extends ConsumerState<FindAssetCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return ClayCard(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Find an asset',
-              style: context.text.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text('Find an asset', style: context.text.titleLarge),
             const SizedBox(height: 2),
             Text(
               'Scan its label, or type a code or name.',
@@ -135,51 +130,64 @@ class _ScanButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = context.text;
-    final accent = context.colors.primary;
-    final foreground = context.colors.onPrimary;
+    const accent = CoreGridBrand.orangeDeep;
+    const foreground = Colors.white;
 
-    return Material(
-      color: accent,
-      borderRadius: BorderRadius.circular(AppRadius.control),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: foreground.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(12),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.30),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+            spreadRadius: -4,
+          ),
+        ],
+      ),
+      child: Material(
+        color: accent,
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: foreground.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(AppRadius.tile),
+                  ),
+                  child: const Icon(Icons.qr_code_scanner, color: foreground),
                 ),
-                child: Icon(Icons.qr_code_scanner, color: foreground),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Scan QR code',
-                      style: textTheme.titleSmall?.copyWith(
-                        color: foreground,
-                        fontWeight: FontWeight.w600,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Scan QR code',
+                        style: textTheme.titleSmall?.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Point your camera at the asset label',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: foreground.withValues(alpha: 0.85),
+                      Text(
+                        'Point your camera at the asset label',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: foreground.withValues(alpha: 0.85),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.arrow_forward, color: foreground, size: 20),
-            ],
+                const Icon(Icons.arrow_forward, color: foreground, size: 20),
+              ],
+            ),
           ),
         ),
       ),

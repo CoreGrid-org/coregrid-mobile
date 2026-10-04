@@ -86,8 +86,7 @@ class OfficerDashboardBody extends ConsumerWidget {
           data: incoming,
           emptyLabel: 'No approved transfers heading to your department.',
           onSeeAll: () => context.push('/transfers'),
-          itemBuilder: (transfer) =>
-              TransferSummaryCard(transfer: transfer),
+          itemBuilder: (transfer) => TransferSummaryCard(transfer: transfer),
         ),
         DashboardPreview(
           title: 'Recent evaluations',

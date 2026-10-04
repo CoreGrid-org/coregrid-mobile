@@ -43,87 +43,82 @@ class GreetingHeader extends ConsumerWidget {
         (name == 'there' ? '?' : name.characters.first.toUpperCase());
     final org = me?.organizationName;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _salutation(now),
-                        style: context.mutedBody,
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_salutation(now), style: context.mutedBody),
+                    const SizedBox(height: 2),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6,
                       ),
+                    ),
+                    if (org != null && org.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        name,
+                        org,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: context.text.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.4,
-                        ),
+                        style: context.mutedSmall,
                       ),
-                      if (org != null && org.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          org,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.mutedSmall,
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.xs),
-                const NotificationBell(),
-                const SizedBox(width: AppSpacing.xs),
-                Tooltip(
-                  message: 'Account',
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () => context.go('/account'),
-                    child: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: context.colors.primaryContainer,
-                      child: Text(
-                        initials,
-                        style: context.text.titleSmall?.copyWith(
-                          color: context.colors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              const NotificationBell(),
+              const SizedBox(width: AppSpacing.xs),
+              Tooltip(
+                message: 'Account',
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => context.go('/account'),
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: CoreGridBrand.orangeDeep,
+                    child: Text(
+                      initials,
+                      style: context.text.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.xs + 2,
-              runSpacing: AppSpacing.xs + 2,
-              children: [
-                if (role != null)
-                  _InfoChip(icon: Icons.badge_outlined, label: roleLabel(role!)),
-                if (department != null)
-                  _InfoChip(
-                    icon: Icons.apartment_rounded,
-                    label: department.departmentName,
-                  ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Wrap(
+            spacing: AppSpacing.xs + 2,
+            runSpacing: AppSpacing.xs + 2,
+            children: [
+              if (role != null)
+                _InfoChip(icon: Icons.badge_outlined, label: roleLabel(role!)),
+              if (department != null)
                 _InfoChip(
-                  icon: Icons.calendar_today_rounded,
-                  label: DateFormat('EEE, d MMM').format(now),
+                  icon: Icons.apartment_rounded,
+                  label: department.departmentName,
                 ),
-              ],
-            ),
-          ],
-        ),
+              _InfoChip(
+                icon: Icons.calendar_today_rounded,
+                label: DateFormat('EEE, d MMM').format(now),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -140,17 +135,14 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md - 2,
-        vertical: AppSpacing.xs,
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs + 2,
       ),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
+      decoration: Clay.surface(context, radius: AppRadius.pill),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: context.colors.onSurfaceVariant),
+          Icon(icon, size: 14, color: context.colors.primary),
           const SizedBox(width: AppSpacing.xs),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 200),

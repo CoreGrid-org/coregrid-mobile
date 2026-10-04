@@ -116,10 +116,9 @@ class _DockedBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = context.theme.brightness == Brightness.light;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: isLight ? Colors.white : context.colors.surfaceContainer,
+        color: context.colors.surfaceContainerLowest,
         border: Border(top: BorderSide(color: context.colors.outlineVariant)),
       ),
       child: child,

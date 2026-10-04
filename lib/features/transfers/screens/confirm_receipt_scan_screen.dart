@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../shared/api/api_exception.dart';
+import '../../../shared/theme/app_theme.dart';
 import '../../assets/assets_api.dart';
 import '../transfers_providers.dart';
 
@@ -63,13 +64,10 @@ class _ConfirmReceiptScanScreenState
     await _scannerController.stop();
 
     // Step 1: Resolve the QR payload to an AssetDetail so we know the asset id.
-    final assetResult = await AsyncValue.guard<String>(
-      () async {
-        final asset =
-            await ref.read(assetsApiProvider).getByCode(code);
-        return asset.id;
-      },
-    );
+    final assetResult = await AsyncValue.guard<String>(() async {
+      final asset = await ref.read(assetsApiProvider).getByCode(code);
+      return asset.id;
+    });
 
     if (!mounted) return;
 
@@ -137,8 +135,9 @@ class _ConfirmReceiptScanScreenState
               tooltip: state.torchState == TorchState.on
                   ? 'Turn off flashlight'
                   : 'Turn on flashlight',
-              onPressed:
-                  state.isRunning ? _scannerController.toggleTorch : null,
+              onPressed: state.isRunning
+                  ? _scannerController.toggleTorch
+                  : null,
               icon: Icon(
                 state.torchState == TorchState.on
                     ? Icons.flash_on_rounded
@@ -172,7 +171,8 @@ class _ConfirmReceiptScanScreenState
                   tapToFocus: true,
                   onDetect: _onDetect,
                   errorBuilder: (context, error) => _CameraUnavailable(
-                    message: error.errorCode ==
+                    message:
+                        error.errorCode ==
                             MobileScannerErrorCode.permissionDenied
                         ? 'Camera access was not allowed.'
                         : 'The camera could not be started.',
@@ -207,17 +207,17 @@ class _ScanGuide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
-        child: Center(
-          child: Container(
-            width: 248,
-            height: 248,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.white, width: 3),
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
+    child: Center(
+      child: Container(
+        width: 248,
+        height: 248,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white, width: 3),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _ScanStatus extends StatelessWidget {
@@ -250,7 +250,7 @@ class _ScanStatus extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xE6202625),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.control),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -273,7 +273,8 @@ class _ScanStatus extends StatelessWidget {
               TextButton.icon(
                 onPressed: onScanAgain,
                 style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFFFB48A)),
+                  foregroundColor: const Color(0xFFFFB48A),
+                ),
                 icon: const Icon(Icons.qr_code_scanner_rounded),
                 label: const Text('Scan again'),
               ),
@@ -291,71 +292,76 @@ class _CameraPermissionDenied extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.no_photography_outlined,
-                  color: Colors.white, size: 48),
-              const SizedBox(height: 16),
-              const Text(
-                'Camera access is needed to scan the asset QR code. '
-                'Allow it in Settings or go back.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, height: 1.45),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                  onPressed: openAppSettings,
-                  child: const Text('Open Settings')),
-              const SizedBox(height: 10),
-              OutlinedButton(
-                onPressed: onCancel,
-                style:
-                    OutlinedButton.styleFrom(foregroundColor: Colors.white),
-                child: const Text('Go back'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.no_photography_outlined,
+            color: Colors.white,
+            size: 48,
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          const Text(
+            'Camera access is needed to scan the asset QR code. '
+            'Allow it in Settings or go back.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, height: 1.45),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: openAppSettings,
+            child: const Text('Open Settings'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: onCancel,
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+            child: const Text('Go back'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _CameraUnavailable extends StatelessWidget {
-  const _CameraUnavailable(
-      {required this.message, required this.onCancel});
+  const _CameraUnavailable({required this.message, required this.onCancel});
   final String message;
   final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.no_photography_outlined,
-                  color: Colors.white, size: 48),
-              const SizedBox(height: 16),
-              Text(message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white)),
-              const SizedBox(height: 20),
-              OutlinedButton(
-                onPressed: onCancel,
-                style:
-                    OutlinedButton.styleFrom(foregroundColor: Colors.white),
-                child: const Text('Go back'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.no_photography_outlined,
+            color: Colors.white,
+            size: 48,
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white),
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton(
+            onPressed: onCancel,
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+            child: const Text('Go back'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Sentinel error thrown when the scanned asset id does not match the
 /// transfer's expected asset — distinct from an API/network failure so
 /// [_ScanStatus] can show the specific "wrong asset" message.
 class _AssetMismatchError implements Exception {}
-

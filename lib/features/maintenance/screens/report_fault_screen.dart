@@ -164,7 +164,7 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
                 onScan: isLoading ? null : _scanAsset,
               ),
               const SectionHeader('Observed Condition'),
-              Card(
+              ClayCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Wrap(
@@ -184,7 +184,7 @@ class _ReportFaultScreenState extends ConsumerState<ReportFaultScreen> {
                 ),
               ),
               const SectionHeader('Fault Description'),
-              Card(
+              ClayCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: TextFormField(
@@ -266,10 +266,7 @@ class _AssetField extends StatelessWidget {
     if (assetCode == null) {
       return Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          border: Border.all(color: context.colors.outlineVariant),
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
+        decoration: Clay.surface(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -316,7 +313,7 @@ class _AssetField extends StatelessWidget {
       department,
     ].whereType<String>().where((s) => s.isNotEmpty).toList();
 
-    return Card(
+    return ClayCard(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: EntityHeader(

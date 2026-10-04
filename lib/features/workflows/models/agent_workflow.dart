@@ -16,6 +16,7 @@ class AgentWorkflow {
     this.failureReason,
     this.fleet,
     required this.correlationId,
+    this.initiatedByUserId,
     this.initiatedByEmail,
     this.startedAt,
     this.completedAt,
@@ -47,6 +48,9 @@ class AgentWorkflow {
   final String? failureReason;
   final FleetEvaluation? fleet;
   final String correlationId;
+
+  /// Who requested it — matched against `/api/me` for the "Mine" filter.
+  final String? initiatedByUserId;
   final String? initiatedByEmail;
   final DateTime? startedAt;
   final DateTime? completedAt;
@@ -86,6 +90,7 @@ class AgentWorkflow {
           ? FleetEvaluation.fromJson(fleet)
           : null,
       correlationId: json['correlation_id'] as String? ?? '',
+      initiatedByUserId: json['initiated_by_user_id']?.toString(),
       initiatedByEmail: json['initiated_by_email'] as String?,
       startedAt: _parseDate(json['started_at']),
       completedAt: _parseDate(json['completed_at']),
@@ -139,20 +144,28 @@ class FleetEvaluation {
 /// One asset's chosen action and the reason for it.
 class FleetAssetResult {
   const FleetAssetResult({
+    this.assetId,
     required this.assetCode,
+    this.condition = '',
     required this.action,
     required this.verdict,
     required this.reason,
   });
 
+  final String? assetId;
   final String assetCode;
+
+  /// The asset's recorded condition when it was evaluated.
+  final String condition;
   final String action;
   final String verdict;
   final String reason;
 
   factory FleetAssetResult.fromJson(Map<String, dynamic> json) {
     return FleetAssetResult(
+      assetId: json['asset_id'] as String?,
       assetCode: json['asset_code'] as String? ?? '',
+      condition: json['condition'] as String? ?? '',
       action: json['action'] as String? ?? '',
       verdict: json['verdict'] as String? ?? '',
       reason: json['reason'] as String? ?? '',

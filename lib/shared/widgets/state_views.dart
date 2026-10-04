@@ -158,4 +158,3 @@ class AsyncView<T> extends StatelessWidget {
     };
   }
 }
-

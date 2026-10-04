@@ -48,4 +48,3 @@ final apiClientProvider = Provider<Dio>((ref) {
 
   return dio;
 });
-

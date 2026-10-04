@@ -92,7 +92,7 @@ class _RaiseDiscrepancyScreenState
                 style: context.mutedBody,
               ),
               const SectionHeader('Details'),
-              Card(
+              ClayCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(

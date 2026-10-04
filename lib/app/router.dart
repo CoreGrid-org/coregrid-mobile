@@ -20,6 +20,7 @@ import '../features/verification/screens/verification_task_list_screen.dart';
 import '../features/workflows/screens/initiate_workflow_screen.dart';
 import '../features/workflows/screens/workflow_detail_screen.dart';
 import '../features/workflows/screens/workflow_list_screen.dart';
+import '../features/transfers/screens/confirm_receipt_scan_screen.dart';
 import '../features/transfers/screens/initiate_transfer_screen.dart';
 import '../features/transfers/screens/transfer_detail_screen.dart';
 import '../features/transfers/screens/transfer_list_screen.dart';
@@ -212,15 +213,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/transfers/new',
-        builder: (context, state) => InitiateTransferScreen(
-          initialAsset: state.extra as AssetDetail?,
-        ),
+        builder: (context, state) =>
+            InitiateTransferScreen(initialAsset: state.extra as AssetDetail?),
       ),
       // Transfer detail; FR-046 receipt confirmation is its scan action.
       GoRoute(
         path: '/transfers/:id',
         builder: (context, state) =>
             TransferDetailScreen(transferId: state.pathParameters['id']!),
+      ),
+      // FR-046: confirm receipt by scanning the delivered asset.
+      GoRoute(
+        path: '/transfers/:id/confirm-scan',
+        builder: (context, state) =>
+            ConfirmReceiptScanScreen(transferId: state.pathParameters['id']!),
       ),
       // Workflow creation / detail. Officer only.
       GoRoute(

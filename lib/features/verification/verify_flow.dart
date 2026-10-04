@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../shared/widgets/ui.dart';
 import '../assets/models/asset/asset_detail.dart';
 import '../scan/screens/scan_asset_screen.dart';
+import 'models/verification_task.dart';
 import 'verification_providers.dart';
 
 /// The field procedure (FR-059): walk up to an asset, scan its label, and
@@ -15,6 +16,26 @@ Future<void> scanToVerify(BuildContext context, WidgetRef ref) async {
   final asset = await identifyAssetByScan(context);
   if (asset == null || !context.mounted) return;
   await openVerificationFor(context, ref, asset, scanned: true);
+}
+
+/// Scan straight from a task row: when the label matches [task]'s asset,
+/// open the task with its identity already confirmed; otherwise say which
+/// asset was scanned instead.
+Future<void> scanTaskAsset(BuildContext context, VerificationTask task) async {
+  final asset = await identifyAssetByScan(context);
+  if (asset == null || !context.mounted) return;
+  if (asset.id == task.assetId) {
+    context.push('/verification/${task.id}?scanned=1');
+    return;
+  }
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        'That label is ${asset.assetCode} (${asset.name}), not '
+        '${task.assetCode}. Find the right asset and scan again.',
+      ),
+    ),
+  );
 }
 
 /// Opens [asset]'s pending task if the officer has one, else offers ad-hoc

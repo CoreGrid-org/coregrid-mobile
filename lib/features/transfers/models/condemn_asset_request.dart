@@ -1,9 +1,6 @@
 /// Payload for `POST /api/assets/{id}/condemn` (FR-049).
 class CondemnAssetRequest {
-  const CondemnAssetRequest({
-    this.reason,
-    this.evidenceUrl,
-  });
+  const CondemnAssetRequest({this.reason, this.evidenceUrl});
 
   /// Officer's justification (max 1000 chars per backend model validation).
   final String? reason;

@@ -20,7 +20,7 @@ class AssetDetailActions extends ConsumerWidget {
 
   final AssetDetail asset;
 
-    @override
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canVerify = ref.watch(canVerifyAssetsProvider);
     // Same role as verification (RequestTransfer: Officer/Admin), and only
@@ -36,10 +36,7 @@ class AssetDetailActions extends ConsumerWidget {
             asset.lifecycleStatus == AssetLifecycleStatus.underMaintenance);
 
     final reportFault = OutlinedButton.icon(
-      onPressed: () => context.push(
-        '/maintenance/report',
-        extra: asset,
-      ),
+      onPressed: () => context.push('/maintenance/report', extra: asset),
       icon: const Icon(Icons.build_circle_outlined, size: 20),
       label: const Text('Report Fault'),
     );

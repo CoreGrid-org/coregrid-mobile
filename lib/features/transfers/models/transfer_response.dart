@@ -1,4 +1,4 @@
-﻿/// Wire model for `TransferResponse` (`backend/Features/Transfers/DTOs/
+/// Wire model for `TransferResponse` (`backend/Features/Transfers/DTOs/
 /// TransferDtos.cs`). Field names match the backend's
 /// `JsonNamingPolicy.SnakeCaseLower` policy. Enum values are the C#
 /// identifier strings produced by `JsonStringEnumConverter`
@@ -102,4 +102,3 @@ enum TransferStatus {
     return unknown;
   }
 }
-

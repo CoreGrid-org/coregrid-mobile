@@ -1,30 +1,67 @@
 import 'package:flutter/material.dart';
 
-/// CoreGrid brand palette — orange & white edition.
-/// Primary accent is the brand orange; white surfaces give a clean, warm feel.
+/// CoreGrid brand palette — "clay" edition: a warm cream canvas with soft,
+/// raised surfaces and two oranges. [orange] is the vivid brand colour for
+/// accents; [orangeDeep] carries text and button
+/// labels (white on it is 4.7:1, WCAG AA).
 abstract final class CoreGridBrand {
-  /// Primary brand orange.
+  /// Vivid brand orange — gradients, accents, icon fills.
   static const Color orange = Color(0xFFEE6C0E);
 
-  /// Deeper orange for text/interactive elements on light backgrounds (WCAG AA).
-  static const Color orangeDeep = Color(0xFFCC5500);
+  /// Burnt orange for text and filled controls (AA with white).
+  static const Color orangeDeep = Color(0xFFC2500A);
 
-  /// Soft warm orange for containers / highlights.
-  static const Color orangeLight = Color(0xFFFFF0E6);
+  /// Soft peach for containers / selected states.
+  static const Color orangeLight = Color(0xFFFFE6D5);
 
-  /// Near-black for ink / primary text.
-  static const Color ink = Color(0xFF1A1A1A);
+  /// Warm near-black for primary text.
+  static const Color ink = Color(0xFF2B1D14);
 
-  /// Pure white application canvas.
-  static const Color warmWhite = Colors.white;
+  /// Warm cream application canvas — clay shadows need a non-white ground
+  /// to read as depth.
+  static const Color cream = Color(0xFFF8F1EA);
+
+  /// Raised card surface on [cream].
+  static const Color clayWhite = Color(0xFFFFFCF9);
 }
 
 /// Shared corner-radius scale — one source for "rounded" across every
 /// surface, instead of each widget picking its own number.
 abstract final class AppRadius {
-  static const double card = 16;
-  static const double control = 12;
+  static const double card = 24;
+  static const double control = 18;
+  static const double tile = 14;
+  static const double sheet = 32;
   static const double pill = 999;
+}
+
+/// The clay surface: solid fill, generous radius and a soft, warm shadow
+/// that lifts it off the cream canvas. One recipe for every raised surface
+/// so depth reads the same everywhere — no gradients, no glows.
+abstract final class Clay {
+  static List<BoxShadow> shadows(BuildContext context) {
+    final light = Theme.of(context).brightness == Brightness.light;
+    return [
+      BoxShadow(
+        color: light
+            ? const Color(0xFF7A4A2A).withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.35),
+        blurRadius: 24,
+        offset: const Offset(0, 8),
+        spreadRadius: -4,
+      ),
+    ];
+  }
+
+  static BoxDecoration surface(
+    BuildContext context, {
+    Color? color,
+    double radius = AppRadius.card,
+  }) => BoxDecoration(
+    color: color ?? context.colors.surfaceContainerLowest,
+    borderRadius: BorderRadius.circular(radius),
+    boxShadow: shadows(context),
+  );
 }
 
 /// 4-pt spacing scale. Screens use these rather than ad-hoc numbers so
@@ -112,7 +149,7 @@ class AppColors extends ThemeExtension<AppColors> {
     danger: Color(0xFFB42318),
     dangerContainer: Color(0xFFFDECEA),
     neutral: Color(0xFF5A5A5A),
-    neutralContainer: Color(0xFFF0EEEB),
+    neutralContainer: Color(0xFFF1E6DC),
   );
 
   static const dark = AppColors(
@@ -165,39 +202,50 @@ abstract final class AppTheme {
       brightness: brightness,
     );
 
+    // Warm neutrals throughout (no cool greys) so cream canvas, cards and
+    // the orange read as one palette.
     final scheme = isLight
         ? seeded.copyWith(
             primary: CoreGridBrand.orangeDeep,
             onPrimary: Colors.white,
             primaryContainer: CoreGridBrand.orangeLight,
-            onPrimaryContainer: const Color(0xFF5C1F00),
+            onPrimaryContainer: const Color(0xFF5A2300),
             secondary: const Color(0xFF7A4010),
             onSecondary: Colors.white,
             secondaryContainer: const Color(0xFFFFDCC8),
             onSecondaryContainer: const Color(0xFF2F1200),
-            // Keep surfaces bright white / warm-grey for the clean look.
-            surface: Colors.white,
+            surface: CoreGridBrand.clayWhite,
             onSurface: CoreGridBrand.ink,
-            onSurfaceVariant: const Color(0xFF6B6460),
-            surfaceContainerLowest: Colors.white,
-            surfaceContainerLow: const Color(0xFFFAF8F6),
-            surfaceContainer: const Color(0xFFF5F2EF),
-            surfaceContainerHigh: const Color(0xFFEFEBE7),
-            surfaceContainerHighest: const Color(0xFFE8E3DE),
-            outline: const Color(0xFFBCB4AC),
-            outlineVariant: const Color(0xFFE8E3DE),
+            onSurfaceVariant: const Color(0xFF75655A),
+            surfaceContainerLowest: CoreGridBrand.clayWhite,
+            surfaceContainerLow: const Color(0xFFFBF6F1),
+            surfaceContainer: const Color(0xFFF5ECE4),
+            surfaceContainerHigh: const Color(0xFFF1E6DC),
+            surfaceContainerHighest: const Color(0xFFEADDD1),
+            outline: const Color(0xFFC9B8AA),
+            outlineVariant: const Color(0xFFEFE4DA),
             error: AppColors.light.danger,
           )
         : seeded.copyWith(
-            primary: const Color(0xFFFFB77A),
-            onPrimary: const Color(0xFF4A1800),
-            primaryContainer: const Color(0xFF6B2D00),
+            primary: const Color(0xFFFF9F5C),
+            onPrimary: const Color(0xFF3D1500),
+            primaryContainer: const Color(0xFF5A2600),
             onPrimaryContainer: const Color(0xFFFFDCC8),
+            surface: const Color(0xFF1C1612),
+            onSurface: const Color(0xFFF3E9E1),
+            onSurfaceVariant: const Color(0xFFC2B2A5),
+            surfaceContainerLowest: const Color(0xFF261F1A),
+            surfaceContainerLow: const Color(0xFF221B17),
+            surfaceContainer: const Color(0xFF2B231E),
+            surfaceContainerHigh: const Color(0xFF332A24),
+            surfaceContainerHighest: const Color(0xFF3C322B),
+            outline: const Color(0xFF6E5F54),
+            outlineVariant: const Color(0xFF3A302A),
           );
 
-    // Light: warm white canvas; dark: dark surface.
-    final canvas = isLight ? CoreGridBrand.warmWhite : scheme.surface;
-    final cardColor = isLight ? Colors.white : scheme.surfaceContainer;
+    // Cream canvas; cards (surfaceContainerLowest) sit raised on it.
+    final canvas = isLight ? CoreGridBrand.cream : const Color(0xFF17120F);
+    final cardColor = scheme.surfaceContainerLowest;
 
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
     final text = base.textTheme.copyWith(
@@ -263,7 +311,6 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.card),
-          side: BorderSide(color: scheme.outlineVariant),
         ),
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
@@ -276,9 +323,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         // Orange tint on the selected indicator.
         indicatorColor: scheme.primaryContainer,
-        indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.control),
-        ),
+        indicatorShape: const StadiumBorder(),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => text.labelSmall?.copyWith(
@@ -301,42 +346,51 @@ abstract final class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: scheme.primary,
+        backgroundColor: CoreGridBrand.orangeDeep,
         foregroundColor: Colors.white,
-        elevation: 2,
+        elevation: 3,
         focusElevation: 4,
-        hoverElevation: 3,
+        hoverElevation: 4,
+        highlightElevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
         ),
       ),
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        side: BorderSide(color: scheme.outlineVariant),
+        shape: const StadiumBorder(),
+        side: BorderSide.none,
+        backgroundColor: scheme.surfaceContainerHigh,
+        selectedColor: scheme.primaryContainer,
+        labelStyle: text.labelLarge?.copyWith(color: scheme.onSurface),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
           selectedBackgroundColor: scheme.primaryContainer,
           selectedForegroundColor: scheme.onPrimaryContainer,
+          backgroundColor: scheme.surfaceContainerLowest,
           side: BorderSide(color: scheme.outlineVariant),
+          shape: const StadiumBorder(),
           textStyle: text.labelLarge,
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(64, 52),
+          minimumSize: const Size(64, 54),
           shape: controlShape,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           textStyle: text.labelLarge?.copyWith(fontSize: 15),
-          backgroundColor: scheme.primary,
+          backgroundColor: CoreGridBrand.orangeDeep,
           foregroundColor: Colors.white,
+          disabledBackgroundColor: scheme.surfaceContainerHighest,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(64, 52),
+          minimumSize: const Size(64, 54),
           shape: controlShape,
-          side: BorderSide(color: scheme.outline.withValues(alpha: 0.6)),
+          backgroundColor: scheme.surfaceContainerLowest,
+          side: BorderSide(color: scheme.outlineVariant, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           textStyle: text.labelLarge?.copyWith(fontSize: 15),
           foregroundColor: scheme.primary,
@@ -351,9 +405,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isLight
-            ? const Color(0xFFF5F2EF)
-            : scheme.surfaceContainerHigh,
+        fillColor: scheme.surfaceContainer,
         border: inputBorder(Colors.transparent),
         enabledBorder: inputBorder(Colors.transparent),
         focusedBorder: inputBorder(scheme.primary, 1.5),
@@ -361,7 +413,7 @@ abstract final class AppTheme {
         focusedErrorBorder: inputBorder(scheme.error, 1.5),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 16,
+          vertical: 17,
         ),
         hintStyle: TextStyle(color: scheme.onSurfaceVariant),
       ),
@@ -380,25 +432,32 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
         ),
-        backgroundColor: isLight ? const Color(0xFF2C2C2C) : cardColor,
+        backgroundColor: isLight
+            ? CoreGridBrand.ink
+            : scheme.surfaceContainerHighest,
         contentTextStyle: const TextStyle(color: Colors.white),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         showDragHandle: true,
-        backgroundColor: isLight ? Colors.white : scheme.surfaceContainer,
+        backgroundColor: canvas,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.sheet),
+          ),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: isLight ? Colors.white : scheme.surfaceContainer,
+        backgroundColor: cardColor,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: scheme.primary,
         linearTrackColor: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       dividerTheme: DividerThemeData(
         color: scheme.outlineVariant,

@@ -85,7 +85,7 @@ class _InitiateWorkflowScreenState
               ),
               const SizedBox(height: AppSpacing.xl),
               const _Step(number: 1, title: 'Choose the asset'),
-              Card(
+              ClayCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: asset == null
@@ -159,7 +159,7 @@ class _InitiateWorkflowScreenState
                   number: 2,
                   title: 'What should the agent evaluate?',
                 ),
-                Card(
+                ClayCard(
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     child: TextFormField(

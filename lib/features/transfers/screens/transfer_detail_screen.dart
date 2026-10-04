@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -41,74 +41,86 @@ class _TransferDetailBody extends StatelessWidget {
 
   final TransferResponse transfer;
 
+  static String _place(String? department, String? location) => [
+    department,
+    location,
+  ].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
+
   @override
   Widget build(BuildContext context) {
+    final from = _place(transfer.fromDepartmentName, transfer.fromLocationName);
+    final to = _place(transfer.toDepartmentName, transfer.toLocationName);
+
+    // Shared-kit rows ([InfoRow]) wrap long departments, locations and
+    // emails — a ListTile's trailing text overflowed and failed layout.
     return ListView(
-      padding: const EdgeInsets.all(20),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: AppSpacing.pageInsets,
       children: [
-        // ── Header ──────────────────────────────────────────────────────────
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${transfer.assetCode}: ${transfer.assetName}',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-            TransferStatusChip(status: transfer.status),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        // ── Route ────────────────────────────────────────────────────────────
-        _Section(title: 'Transfer Route', children: [
-          _Row('From', '${transfer.fromDepartmentName ?? '—'} / ${transfer.fromLocationName ?? '—'}'),
-          _Row('To',   '${transfer.toDepartmentName ?? '—'} / ${transfer.toLocationName ?? '—'}'),
-        ]),
-        const SizedBox(height: 16),
-
-        // ── People ───────────────────────────────────────────────────────────
-        _Section(title: 'People', children: [
-          _Row('Initiated by', transfer.initiatedByUserEmail ?? '—'),
-          if (transfer.approvedByUserEmail != null)
-            _Row('Approved by', transfer.approvedByUserEmail!),
-          if (transfer.confirmedByUserEmail != null)
-            _Row('Confirmed by', transfer.confirmedByUserEmail!),
-        ]),
-        const SizedBox(height: 16),
-
-        // ── Timestamps ───────────────────────────────────────────────────────
-        _Section(title: 'Timeline', children: [
-          _Row('Requested', _fmt(transfer.requestedAt)),
-          if (transfer.approvedAt != null)
-            _Row('Approved', _fmt(transfer.approvedAt!)),
-          if (transfer.confirmedAt != null)
-            _Row('Confirmed', _fmt(transfer.confirmedAt!)),
-        ]),
-
-        // ── Rejection reason ─────────────────────────────────────────────────
-        if (transfer.rejectionReason != null) ...[
-          const SizedBox(height: 16),
-          Card(
-            color: Theme.of(context).colorScheme.errorContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Rejection Reason',
-                      style: Theme.of(context).textTheme.labelLarge),
-                  const SizedBox(height: 4),
-                  Text(transfer.rejectionReason!),
-                ],
-              ),
+        ClayCard(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: EntityHeader(
+              icon: Icons.local_shipping_outlined,
+              iconTone: StatusTone.info,
+              title: transfer.assetName.isEmpty
+                  ? transfer.assetCode
+                  : transfer.assetName,
+              subtitle: transfer.assetCode,
+              trailing: TransferStatusChip(status: transfer.status),
+              large: true,
             ),
           ),
+        ),
+        if (transfer.rejectionReason case final reason?
+            when reason.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          Notice(tone: StatusTone.danger, title: 'Rejected', message: reason),
         ],
-
-        // ── Confirm Receipt button (FR-046) ──────────────────────────────────
+        const SectionHeader('Route'),
+        ListCard(
+          children: [
+            InfoRow(
+              icon: Icons.logout_rounded,
+              label: 'From',
+              value: from.isEmpty ? '—' : from,
+            ),
+            InfoRow(
+              icon: Icons.login_rounded,
+              label: 'To',
+              value: to.isEmpty ? '—' : to,
+            ),
+          ],
+        ),
+        const SectionHeader('People'),
+        ListCard(
+          children: [
+            InfoRow(
+              label: 'Requested by',
+              value: transfer.initiatedByUserEmail ?? '—',
+            ),
+            if (transfer.approvedByUserEmail case final email?)
+              InfoRow(label: 'Approved by', value: email),
+            if (transfer.confirmedByUserEmail case final email?)
+              InfoRow(label: 'Received by', value: email),
+          ],
+        ),
+        const SectionHeader('Timeline'),
+        ListCard(
+          children: [
+            InfoRow(
+              label: 'Requested',
+              value: formatDateTime(transfer.requestedAt),
+            ),
+            if (transfer.approvedAt case final at?)
+              InfoRow(label: 'Approved', value: formatDateTime(at)),
+            if (transfer.confirmedAt case final at?)
+              InfoRow(label: 'Received', value: formatDateTime(at)),
+          ],
+        ),
+        // FR-046: receipt is confirmed by scanning the delivered asset.
         if (transfer.status == TransferStatus.approved) ...[
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.xl),
           FilledButton.icon(
             onPressed: () =>
                 context.push('/transfers/${transfer.id}/confirm-scan'),
@@ -119,43 +131,4 @@ class _TransferDetailBody extends StatelessWidget {
       ],
     );
   }
-
-  static String _fmt(DateTime dt) {
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-'
-        '${dt.day.toString().padLeft(2, '0')} '
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children});
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 8),
-          Card(child: Column(children: children)),
-        ],
-      );
-}
-
-class _Row extends StatelessWidget {
-  const _Row(this.label, this.value);
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-        dense: true,
-        title: Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-        trailing: Text(value, style: Theme.of(context).textTheme.bodyMedium),
-      );
 }
