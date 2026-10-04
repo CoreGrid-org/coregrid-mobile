@@ -260,6 +260,23 @@ InventoryOfficer): name, period, scope, status, progress (`completed_task_count`
 discrepancy count, and the officer's own tasks in that campaign. No create/edit/close/report actions and no
 calls to the `CanManageCampaigns` endpoints.
 
+*What to scan.* The screen spells the campaign's scope out as a "What to scan" card (asset type, category,
+location, department — or "every registered asset" when unscoped). It also reads `GET /api/assets` with the
+campaign's own scope ids (`departmentId`, `locationId`, `categoryId`, `assetTypeId` — the same filters the
+server used to generate the tasks; at most 10 pages of 100) and joins that to the task list by asset id. That
+gives each to-verify row its asset type and groups the rows by registered location, so the officer can walk
+one place at a time. If this read fails, the checklist still shows as a flat list.
+
+*Campaign-scoped scan.* "Scan to verify" on this screen (`scanForCampaign`, `verify_flow.dart`) checks the
+scanned asset against the campaign rather than going to whatever task or ad-hoc verification applies
+(`classifyCampaignScan`): one of my pending tasks here → open it with identity confirmed. Already verified
+here → say so. My pending task in another campaign → offer to open that task. In scope but not on my list
+(another officer's task, or registered after the campaign started) → explain, and offer ad hoc. Outside the
+scope → show what was scanned against what the campaign covers, and offer ad hoc. Each dialog's main action
+is "Scan next". When the scoped asset list was too large to read in full, the scope check falls back to
+comparing type/department/location names. This is only guidance; the server still enforces assignment on
+`PATCH .../complete`.
+
 ### 4.6 Fault Reporting — FR-033, IF-05, IF-11
 
 | | |

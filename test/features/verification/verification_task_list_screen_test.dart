@@ -1,3 +1,4 @@
+import 'package:coregrid_mobile/features/verification/models/campaign_scope_assets.dart';
 import 'package:coregrid_mobile/features/verification/models/discrepancy.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_campaign.dart';
 import 'package:coregrid_mobile/features/verification/models/verification_location.dart';
@@ -34,6 +35,12 @@ class _FakeVerificationApi implements VerificationApi {
 
   @override
   Future<List<VerificationLocation>> getLocations() async => const [];
+
+  @override
+  Future<CampaignScopeAssets> getCampaignScopeAssets(
+    VerificationCampaign campaign, {
+    int maxPages = 10,
+  }) async => CampaignScopeAssets(assets: const []);
 
   @override
   Future<String> uploadPhoto({
