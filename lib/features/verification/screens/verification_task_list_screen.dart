@@ -189,12 +189,21 @@ class TaskTile extends StatelessWidget {
         ? describeDue(task.dueDate)
         : 'Verified ${formatDate(task.completedAt ?? task.dueDate)}';
 
+    // A task still to do gets its own scan button — scan the label right
+    // from the list and land on the task with identity confirmed (FR-059).
     return RecordTile(
       icon: icon,
       iconTone: tone,
       title: '${task.assetCode} · ${task.assetName}',
       subtitle: showCampaign ? '${task.campaignName} · $when' : when,
-      trailing: StatusPill(label, tone: tone),
+      trailing: task.isPending
+          ? IconButton.filledTonal(
+              onPressed: () => scanTaskAsset(context, task),
+              icon: const Icon(Icons.qr_code_scanner),
+              tooltip: 'Scan ${task.assetCode}',
+            )
+          : StatusPill(label, tone: tone),
+      showChevron: !task.isPending,
       onTap: () => context.push('/verification/${task.id}'),
     );
   }
@@ -255,7 +264,7 @@ class CampaignCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = context.mutedSmall;
 
-    return Card(
+    return ClayCard(
       child: InkWell(
         onTap: () => context.push('/campaigns/${campaign.id}'),
         child: Padding(

@@ -56,7 +56,7 @@ class _WorkflowStatus extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        Card(
+        ClayCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -93,6 +93,8 @@ class _WorkflowStatus extends StatelessWidget {
                 'Recommendation: ${humanizeStatus(workflow.recommendation!)}',
             message: workflow.reason ?? _fleetSummary(fleet),
           ),
+        if (!workflow.isSingleAsset && (fleet?.assets.isNotEmpty ?? false))
+          _FleetBreakdown(fleet: fleet!),
         const SectionHeader('Details'),
         ListCard(
           children: [
@@ -160,5 +162,55 @@ class _WorkflowStatus extends StatelessWidget {
         ? ' · ${fleet.deferredCount} deferred'
         : '';
     return 'Across ${fleet.assetCount} assets: $mix$deferred.';
+  }
+}
+
+/// Fleet evaluations: what the agent recommends for each asset and why, so
+/// the officer knows which assets in the field are affected. Each row opens
+/// that asset's record. Assets policy didn't clear come first.
+class _FleetBreakdown extends StatelessWidget {
+  const _FleetBreakdown({required this.fleet});
+
+  final FleetEvaluation fleet;
+
+  static StatusTone _tone(String verdict) => switch (verdict.toUpperCase()) {
+    'PASS' => StatusTone.success,
+    'NEEDS_REVISION' => StatusTone.warning,
+    'FAIL' => StatusTone.danger,
+    _ => StatusTone.neutral,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final assets = [
+      ...fleet.assets,
+    ]..sort((a, b) => _tone(b.verdict).index.compareTo(_tone(a.verdict).index));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader('Asset by asset · ${assets.length}'),
+        ListCard(
+          children: [
+            for (final a in assets)
+              RecordTile(
+                icon: Icons.inventory_2_outlined,
+                iconTone: _tone(a.verdict),
+                title: a.condition.isEmpty
+                    ? a.assetCode
+                    : '${a.assetCode} · ${humanizeStatus(a.condition)}',
+                subtitle: a.reason.isEmpty ? null : a.reason,
+                trailing: StatusPill(
+                  humanizeStatus(a.action),
+                  tone: _tone(a.verdict),
+                ),
+                onTap: a.assetId == null
+                    ? null
+                    : () => context.push('/assets/${a.assetId}'),
+              ),
+          ],
+        ),
+      ],
+    );
   }
 }

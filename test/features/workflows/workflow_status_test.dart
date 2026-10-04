@@ -194,5 +194,50 @@ void main() {
         expect(find.text('Open asset record'), findsNothing);
       },
     );
+
+    testWidgets('a fleet evaluation lists each asset, problems first', (
+      tester,
+    ) async {
+      final workflow = AgentWorkflow.fromJson(
+        _json(
+          scope: 'ASSET_TYPE',
+          assetId: null,
+          recommendation: 'REPAIR',
+          fleet: {
+            'asset_count': 2,
+            'action_counts': {'REPAIR': 1, 'DISPOSE': 1},
+            'assets': [
+              {
+                'asset_id': 'a1',
+                'asset_code': 'GEN-001',
+                'condition': 'FAIR',
+                'action': 'REPAIR',
+                'verdict': 'PASS',
+                'reason': 'Repair is cheaper than replacement.',
+              },
+              {
+                'asset_id': 'a2',
+                'asset_code': 'GEN-002',
+                'condition': 'UNSERVICEABLE',
+                'action': 'DISPOSE',
+                'verdict': 'FAIL',
+                'reason': 'Disposal needs a write-off approval.',
+              },
+            ],
+          },
+        ),
+      );
+      await _pumpDetail(tester, workflow);
+
+      expect(find.text('Asset by asset · 2'), findsOneWidget);
+      expect(find.text('GEN-001 · Fair'), findsOneWidget);
+      expect(find.text('Dispose'), findsOneWidget);
+      expect(find.text('Disposal needs a write-off approval.'), findsOneWidget);
+      // The asset policy didn't clear is listed first.
+      expect(
+        tester.getTopLeft(find.text('GEN-002 · Unserviceable')).dy,
+        lessThan(tester.getTopLeft(find.text('GEN-001 · Fair')).dy),
+      );
+    });
   });
 }

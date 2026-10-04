@@ -2,20 +2,70 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/auth/me_provider.dart';
 import '../../../shared/widgets/ui.dart';
 import '../models/agent_workflow.dart';
 import '../workflows_providers.dart';
 
 /// Agent workflow list (FR-067) — the Workflows tab. Route: `/workflows`.
-class WorkflowListScreen extends ConsumerWidget {
+///
+/// Opens on the officer's own requests ("Mine") with "Everyone" one tap
+/// away — the API returns the organisation's evaluations, and the officer
+/// mostly cares about the ones they're waiting on.
+class WorkflowListScreen extends ConsumerStatefulWidget {
   const WorkflowListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkflowListScreen> createState() => _WorkflowListScreenState();
+}
+
+class _WorkflowListScreenState extends ConsumerState<WorkflowListScreen> {
+  bool _mineOnly = true;
+
+  @override
+  Widget build(BuildContext context) {
     final workflows = ref.watch(agentWorkflowsProvider);
+    final myId = ref.watch(meProvider).asData?.value.id;
+    // Until the profile loads there's nothing to match "Mine" against.
+    final canFilter = myId != null && myId.isNotEmpty;
+    final mineOnly = _mineOnly && canFilter;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Workflows')),
+      appBar: AppBar(
+        title: const Text('Workflows'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              0,
+              AppSpacing.page,
+              AppSpacing.md,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: true,
+                    label: const Text('Mine'),
+                    icon: const Icon(Icons.person_outline),
+                    enabled: canFilter,
+                  ),
+                  const ButtonSegment(
+                    value: false,
+                    label: Text('Everyone'),
+                    icon: Icon(Icons.groups_outlined),
+                  ),
+                ],
+                selected: {mineOnly},
+                onSelectionChanged: (v) => setState(() => _mineOnly = v.first),
+              ),
+            ),
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/workflows/new'),
         icon: const Icon(Icons.auto_awesome_outlined),
@@ -35,7 +85,25 @@ class WorkflowListScreen extends ConsumerWidget {
                 'Ask the CoreGrid agent whether an asset should be repaired, '
                 'replaced or disposed of.',
           ),
-          data: (value) => _WorkflowList(workflows: value),
+          data: (value) {
+            final shown = mineOnly
+                ? value.where((w) => w.initiatedByUserId == myId).toList()
+                : value;
+            if (shown.isEmpty) {
+              return MessageView(
+                icon: Icons.person_search_outlined,
+                title: 'You haven\'t requested any evaluations',
+                message:
+                    'Request one from an asset\'s record, or see what '
+                    'others have asked the agent.',
+                action: OutlinedButton(
+                  onPressed: () => setState(() => _mineOnly = false),
+                  child: const Text('See everyone\'s'),
+                ),
+              );
+            }
+            return _WorkflowList(workflows: shown);
+          },
         ),
       ),
     );
@@ -50,26 +118,37 @@ class _WorkflowList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = [
-      ('Needs a decision', workflows.where((w) => w.isAwaitingApproval)),
-      ('In progress', workflows.where((w) => w.isInProgress)),
-      ('Finished', workflows.where((w) => w.isFinished)),
+      (
+        'Needs a decision',
+        workflows.where((w) => w.isAwaitingApproval).toList(),
+        StatusTone.warning,
+      ),
+      (
+        'In progress',
+        workflows.where((w) => w.isInProgress).toList(),
+        StatusTone.info,
+      ),
+      (
+        'Finished',
+        workflows.where((w) => w.isFinished).toList(),
+        StatusTone.success,
+      ),
     ];
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: AppSpacing.pageInsetsFab,
       children: [
-        for (final (title, group) in groups)
+        StatRow(
+          cards: [
+            for (final (title, group, tone) in groups)
+              StatCard(label: title, value: group.length, tone: tone),
+          ],
+        ),
+        for (final (title, group, _) in groups)
           if (group.isNotEmpty) ...[
-            SectionHeader(
-              '$title · ${group.length}',
-              padding: const EdgeInsets.only(
-                top: AppSpacing.md,
-                bottom: AppSpacing.sm,
-              ),
-            ),
+            SectionHeader('$title · ${group.length}'),
             ListCard(children: [for (final w in group) WorkflowTile(w)]),
-            const SizedBox(height: AppSpacing.md),
           ],
       ],
     );
