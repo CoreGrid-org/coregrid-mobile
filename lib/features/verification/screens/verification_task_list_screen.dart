@@ -165,10 +165,18 @@ class _TaskGroups extends StatelessWidget {
 
 /// One verification task row — shared with the campaign detail screen.
 class TaskTile extends StatelessWidget {
-  const TaskTile({super.key, required this.task, this.showCampaign = true});
+  const TaskTile({
+    super.key,
+    required this.task,
+    this.showCampaign = true,
+    this.assetTypeName,
+  });
 
   final VerificationTask task;
   final bool showCampaign;
+
+  /// What kind of asset to look for, when known (campaign checklist).
+  final String? assetTypeName;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +203,11 @@ class TaskTile extends StatelessWidget {
       icon: icon,
       iconTone: tone,
       title: '${task.assetCode} · ${task.assetName}',
-      subtitle: showCampaign ? '${task.campaignName} · $when' : when,
+      subtitle: [
+        if (showCampaign) task.campaignName,
+        if (assetTypeName case final type? when type.isNotEmpty) type,
+        when,
+      ].join(' · '),
       trailing: task.isPending
           ? IconButton.filledTonal(
               onPressed: () => scanTaskAsset(context, task),

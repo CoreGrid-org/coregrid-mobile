@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'models/campaign_scope_assets.dart';
 import 'models/discrepancy.dart';
 import 'models/verification_campaign.dart';
 import 'models/verification_location.dart';
@@ -35,6 +36,19 @@ final verificationCampaignsProvider =
 final verificationCampaignProvider = FutureProvider.autoDispose
     .family<VerificationCampaign, String>((ref, id) {
       return ref.watch(verificationApiProvider).getCampaign(id);
+    });
+
+/// The registered assets inside one campaign's scope — what the officer is
+/// looking for (type) and where (registered location), and the reference a
+/// campaign scan is checked against.
+final campaignScopeAssetsProvider = FutureProvider.autoDispose
+    .family<CampaignScopeAssets, String>((ref, campaignId) async {
+      final campaign = await ref.watch(
+        verificationCampaignProvider(campaignId).future,
+      );
+      return ref
+          .watch(verificationApiProvider)
+          .getCampaignScopeAssets(campaign);
     });
 
 /// Locations for the "asserted location" picker — org-wide, changes rarely,

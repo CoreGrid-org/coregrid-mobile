@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/api/api_client.dart';
 import '../../shared/api/api_exception.dart';
+import '../assets/models/asset/asset_detail.dart';
+import 'models/campaign_scope_assets.dart';
 import 'models/discrepancy.dart';
 import 'models/verification_campaign.dart';
 import 'models/verification_location.dart';
@@ -129,6 +131,47 @@ class VerificationApi {
         );
       }
       return VerificationCampaign.fromJson(data);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// `GET /api/assets` filtered by [campaign]'s scope — the same filters the
+  /// server used to generate the campaign's tasks. Pages through at most
+  /// [maxPages] × 100 assets; a larger (e.g. organisation-wide) scope comes
+  /// back with `complete: false`.
+  Future<CampaignScopeAssets> getCampaignScopeAssets(
+    VerificationCampaign campaign, {
+    int maxPages = 10,
+  }) async {
+    try {
+      const pageSize = 100;
+      final assets = <AssetDetail>[];
+      var page = 1;
+      var totalPages = 1;
+
+      do {
+        final response = await _dio.get<Map<String, dynamic>>(
+          '/api/assets',
+          queryParameters: {
+            'departmentId': ?campaign.scopeDepartmentId,
+            'locationId': ?campaign.scopeLocationId,
+            'categoryId': ?campaign.scopeAssetCategoryId,
+            'assetTypeId': ?campaign.scopeAssetTypeId,
+            'page': page,
+            'pageSize': pageSize,
+          },
+        );
+        final items = response.data?['items'];
+        if (items is! List) break;
+        assets.addAll(
+          items.whereType<Map<String, dynamic>>().map(AssetDetail.fromJson),
+        );
+        totalPages = (response.data?['total_pages'] as num?)?.toInt() ?? page;
+        page++;
+      } while (page <= totalPages && page <= maxPages);
+
+      return CampaignScopeAssets(assets: assets, complete: page > totalPages);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
