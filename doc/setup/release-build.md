@@ -3,6 +3,8 @@
 What must be true before building a `staging`/`prod` APK. Local development is unaffected by everything
 here — see [`local-dev-networking.md`](local-dev-networking.md) for that.
 
+For the live demo environment, with its values filled in, see [`demo-deployment.md`](demo-deployment.md).
+
 ## 1. Server side (outside this repo)
 
 - **HTTPS with a publicly trusted certificate** for both the CoreGrid API and ThunderID. Release builds
