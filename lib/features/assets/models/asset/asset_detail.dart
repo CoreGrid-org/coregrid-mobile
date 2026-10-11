@@ -9,6 +9,7 @@ class AssetDetail {
     required this.id,
     required this.assetCode,
     required this.name,
+    this.assetTypeId = '',
     required this.assetTypeName,
     required this.departmentName,
     required this.locationName,
@@ -24,6 +25,7 @@ class AssetDetail {
   final String id;
   final String assetCode;
   final String name;
+  final String assetTypeId;
   final String assetTypeName;
   final String departmentName;
   final String locationName;
@@ -62,6 +64,7 @@ class AssetDetail {
       id: json['id']?.toString() ?? '',
       assetCode: json['asset_code'] as String? ?? '',
       name: json['name'] as String? ?? '',
+      assetTypeId: json['asset_type_id']?.toString() ?? '',
       assetTypeName: json['asset_type_name'] as String? ?? '',
       departmentName: json['department_name'] as String? ?? '',
       locationName: json['location_name'] as String? ?? '',

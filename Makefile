@@ -25,7 +25,7 @@ DEVICE_FLAG := $(if $(DEVICE),-d $(DEVICE),)
 
 .DEFAULT_GOAL := help
 .PHONY: help setup env deps clean analyze format format-check \
-        test test-a test-b test-c test-d coverage check run run-demo \
+        test test-A test-B test-C test-D coverage check run run-demo \
         build-apk build-demo
 
 help: ## Show this help

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'models/agent_workflow.dart';
 import 'models/workflow_asset_ref.dart';
+import 'models/workflow_asset_type.dart';
 import 'workflows_api.dart';
 
 /// Agent workflows visible to the signed-in officer, newest first.
@@ -27,6 +28,28 @@ final agentWorkflowProvider = StreamProvider.autoDispose
         );
       }
     });
+
+/// Active asset types a fleet evaluation can target, sorted by category then
+/// name so the cascading pickers read in a stable order.
+final workflowAssetTypesProvider =
+    FutureProvider.autoDispose<List<WorkflowAssetType>>((ref) async {
+      final types = await ref.watch(workflowsApiProvider).getAssetTypes();
+      return types.toList()..sort(
+        (a, b) => a.categoryName != b.categoryName
+            ? a.categoryName.compareTo(b.categoryName)
+            : a.name.compareTo(b.name),
+      );
+    });
+
+/// The distinct categories across [workflowAssetTypesProvider], in order.
+List<WorkflowAssetCategory> categoriesOf(List<WorkflowAssetType> types) {
+  final seen = <String>{};
+  return [
+    for (final type in types)
+      if (seen.add(type.categoryId))
+        (id: type.categoryId, name: type.categoryName),
+  ];
+}
 
 /// Resolves a manually-typed asset code before initiating a workflow.
 class WorkflowAssetLookupController extends AsyncNotifier<WorkflowAssetRef?> {
@@ -56,15 +79,22 @@ class InitiateWorkflowController extends AsyncNotifier<void> {
   @override
   void build() {}
 
+  /// Starts a single-asset evaluation ([assetId]) or a fleet evaluation of
+  /// every active asset of a type ([assetTypeId]).
   Future<AgentWorkflow?> submit({
-    required String assetId,
+    String? assetId,
+    String? assetTypeId,
     required String objective,
   }) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(
       () => ref
           .read(workflowsApiProvider)
-          .createWorkflow(assetId: assetId, objective: objective),
+          .createWorkflow(
+            assetId: assetId,
+            assetTypeId: assetTypeId,
+            objective: objective,
+          ),
     );
     state = result.hasError
         ? AsyncError(result.error!, result.stackTrace!)

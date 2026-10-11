@@ -1,5 +1,6 @@
 import 'package:coregrid_mobile/features/workflows/models/agent_workflow.dart';
 import 'package:coregrid_mobile/features/workflows/models/workflow_asset_ref.dart';
+import 'package:coregrid_mobile/features/workflows/models/workflow_asset_type.dart';
 import 'package:coregrid_mobile/features/workflows/screens/workflow_detail_screen.dart';
 import 'package:coregrid_mobile/features/workflows/workflows_api.dart';
 import 'package:flutter/material.dart';
@@ -45,9 +46,13 @@ class _FakeWorkflowsApi implements WorkflowsApi {
 
   @override
   Future<AgentWorkflow> createWorkflow({
-    required String assetId,
+    String? assetId,
+    String? assetTypeId,
     required String objective,
   }) => throw UnimplementedError();
+
+  @override
+  Future<List<WorkflowAssetType>> getAssetTypes() => throw UnimplementedError();
 
   @override
   Future<WorkflowAssetRef> resolveAssetByCode(String code) =>
