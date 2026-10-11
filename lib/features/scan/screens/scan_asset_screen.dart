@@ -43,6 +43,7 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
   Object? _lookupError;
   String? _scannedCode;
   AssetDetail? _found;
+  Future<void>? _stopping;
 
   @override
   void dispose() {
@@ -51,7 +52,10 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
-    if (_isResolving) return;
+    // Frames keep arriving while stop() is in flight; claim the scan
+    // synchronously so a burst of detections can't start overlapping
+    // lookups that overwrite each other's result.
+    if (_isResolving || _found != null || _lookupError != null) return;
 
     final code = capture.barcodes
         .map((barcode) => barcode.rawValue?.trim())
@@ -60,7 +64,8 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
         .firstOrNull;
     if (code == null) return;
 
-    await _scannerController.stop();
+    _isResolving = true;
+    _stopping = _scannerController.stop();
     await _resolve(code);
   }
 
@@ -74,9 +79,18 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
       _scannedCode = code;
     });
 
-    final result = await AsyncValue.guard<AssetDetail>(
+    var result = await AsyncValue.guard<AssetDetail>(
       () => ref.read(assetsApiProvider).getByCode(code),
     );
+    // A dropped connection or cold-start timeout on the first request
+    // shouldn't cost the user a rescan — retry a transient failure once.
+    if (result.error case ApiException(isNetworkError: true) when mounted) {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      result = await AsyncValue.guard<AssetDetail>(
+        () => ref.read(assetsApiProvider).getByCode(code),
+      );
+    }
     if (!mounted) return;
 
     final asset = result.asData?.value;
@@ -111,6 +125,10 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
       _found = null;
       _scannedCode = null;
     });
+    // Starting while the previous stop() is still settling is ignored by
+    // the plugin and leaves a frozen preview.
+    await _stopping;
+    _stopping = null;
     await _scannerController.start();
   }
 
@@ -160,26 +178,20 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) => MobileScanner(
-                  controller: _scannerController,
-                  // Match the live recognition area to the on-screen frame,
-                  // rather than displaying a guide that has no scan behaviour.
-                  scanWindow: Rect.fromCenter(
-                    center: constraints.biggest.center(Offset.zero),
-                    width: _ScanGuide.size,
-                    height: _ScanGuide.size,
-                  ),
-                  tapToFocus: true,
-                  onDetect: _onDetect,
-                  errorBuilder: (context, error) => _CameraUnavailable(
-                    message:
-                        error.errorCode ==
-                            MobileScannerErrorCode.permissionDenied
-                        ? 'Camera access was not allowed.'
-                        : 'The camera could not be started.',
-                    onEnterCode: _enterCode,
-                  ),
+              // No scanWindow: its preview-to-image mapping under
+              // BoxFit.cover is off on many Android devices, shrinking or
+              // shifting the live area so labels inside the guide often went
+              // unread. The guide is aiming help; the whole frame scans.
+              MobileScanner(
+                controller: _scannerController,
+                tapToFocus: true,
+                onDetect: _onDetect,
+                errorBuilder: (context, error) => _CameraUnavailable(
+                  message:
+                      error.errorCode == MobileScannerErrorCode.permissionDenied
+                      ? 'Camera access was not allowed.'
+                      : 'The camera could not be started.',
+                  onEnterCode: _enterCode,
                 ),
               ),
               const _ScanGuide(),
