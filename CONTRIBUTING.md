@@ -111,6 +111,11 @@ flutter analyze   # zero issues
 flutter test      # passing
 ```
 
+The `Makefile` wraps these (`make check`) and the setup/run steps above (`make setup`, `make run`). To run
+only your component's tests while iterating, use `make test-a` / `test-b` / `test-c` / `test-d` — the
+split follows [mobile SRS §10](doc/software-requirements-specification.md#10-ownership-and-contribution).
+Run `make help` for every target.
+
 ## Project Structure
 
 The full `lib/` layout, package selection, and per-feature responsibilities are specified in
