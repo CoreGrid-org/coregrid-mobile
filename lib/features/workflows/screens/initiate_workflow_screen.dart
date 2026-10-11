@@ -5,9 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/ui.dart';
 import '../../scan/screens/scan_asset_screen.dart';
 import '../models/workflow_asset_ref.dart';
+import '../models/workflow_asset_type.dart';
 import '../workflows_providers.dart';
 
-/// Screen to initiate a new agent workflow for an asset. Route: `/workflows/new`.
+/// What an evaluation targets: one asset, or every active asset of a type.
+enum _Scope { asset, assetType }
+
+/// Screen to initiate a new agent workflow for one asset (scanned or typed)
+/// or for an asset type picked by category. Route: `/workflows/new`.
 class InitiateWorkflowScreen extends ConsumerStatefulWidget {
   const InitiateWorkflowScreen({super.key});
 
@@ -21,6 +26,12 @@ class _InitiateWorkflowScreenState
   final _codeController = TextEditingController();
   final _objectiveController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  var _scope = _Scope.asset;
+  WorkflowAssetCategory? _category;
+  WorkflowAssetType? _assetType;
+
+  /// For a chosen asset: evaluate every active asset of its type instead.
+  var _wholeType = false;
 
   @override
   void dispose() {
@@ -35,6 +46,7 @@ class _InitiateWorkflowScreenState
     await ref
         .read(workflowAssetLookupControllerProvider.notifier)
         .lookup(_codeController.text);
+    setState(() => _wholeType = false);
   }
 
   Future<void> _scanAsset() async {
@@ -47,16 +59,28 @@ class _InitiateWorkflowScreenState
             id: scanned.id,
             assetCode: scanned.assetCode,
             name: scanned.name,
+            assetTypeId: scanned.assetTypeId,
+            assetTypeName: scanned.assetTypeName,
           ),
         );
+    setState(() => _wholeType = false);
   }
 
-  Future<void> _submit(WorkflowAssetRef asset) async {
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    final asset = ref.read(workflowAssetLookupControllerProvider).asData?.value;
     final workflow = await ref
         .read(initiateWorkflowControllerProvider.notifier)
-        .submit(assetId: asset.id, objective: _objectiveController.text);
+        .submit(
+          assetId: _scope == _Scope.asset && !_wholeType ? asset?.id : null,
+          assetTypeId: switch (_scope) {
+            _Scope.asset when _wholeType => asset?.assetTypeId,
+            _Scope.asset => null,
+            _Scope.assetType => _assetType?.id,
+          },
+          objective: _objectiveController.text,
+        );
 
     if (workflow != null && mounted) {
       context.pushReplacement('/workflows/${workflow.id}');
@@ -68,6 +92,10 @@ class _InitiateWorkflowScreenState
     final assetLookup = ref.watch(workflowAssetLookupControllerProvider);
     final submitState = ref.watch(initiateWorkflowControllerProvider);
     final asset = assetLookup.asData?.value;
+    final hasTarget = switch (_scope) {
+      _Scope.asset => asset != null,
+      _Scope.assetType => _assetType != null,
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('Request Evaluation')),
@@ -79,16 +107,48 @@ class _InitiateWorkflowScreenState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'The CoreGrid agent reviews the asset\'s history and recommends '
+                'The CoreGrid agent reviews asset history and recommends '
                 'what to do next — for example repair, replace or dispose.',
                 style: context.mutedBody,
               ),
               const SizedBox(height: AppSpacing.xl),
-              const _Step(number: 1, title: 'Choose the asset'),
+              const _Step(number: 1, title: 'Choose what to evaluate'),
+              SegmentedButton<_Scope>(
+                segments: const [
+                  ButtonSegment(
+                    value: _Scope.asset,
+                    icon: Icon(Icons.qr_code_scanner),
+                    label: Text('One asset'),
+                  ),
+                  ButtonSegment(
+                    value: _Scope.assetType,
+                    icon: Icon(Icons.category_outlined),
+                    label: Text('Asset type'),
+                  ),
+                ],
+                selected: {_scope},
+                showSelectedIcon: false,
+                onSelectionChanged: submitState.isLoading
+                    ? null
+                    : (selection) => setState(() => _scope = selection.first),
+              ),
+              const SizedBox(height: AppSpacing.md),
               ClayCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: asset == null
+                  child: _scope == _Scope.assetType
+                      ? _AssetTypePicker(
+                          category: _category,
+                          assetType: _assetType,
+                          enabled: !submitState.isLoading,
+                          onCategoryChanged: (category) => setState(() {
+                            _category = category;
+                            _assetType = null;
+                          }),
+                          onAssetTypeChanged: (type) =>
+                              setState(() => _assetType = type),
+                        )
+                      : asset == null
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -131,12 +191,13 @@ class _InitiateWorkflowScreenState
                             ),
                           ],
                         )
-                      : EntityHeader(
-                          icon: Icons.check_rounded,
-                          iconTone: StatusTone.success,
-                          title: asset.name,
-                          subtitle: asset.assetCode,
-                          trailing: TextButton(
+                      : _ChosenAsset(
+                          asset: asset,
+                          wholeType: _wholeType,
+                          enabled: !submitState.isLoading,
+                          onWholeTypeChanged: (value) =>
+                              setState(() => _wholeType = value),
+                          change: TextButton(
                             onPressed: submitState.isLoading
                                 ? null
                                 : () {
@@ -153,7 +214,7 @@ class _InitiateWorkflowScreenState
                         ),
                 ),
               ),
-              if (asset != null) ...[
+              if (hasTarget) ...[
                 const SizedBox(height: AppSpacing.xl),
                 const _Step(
                   number: 2,
@@ -196,13 +257,223 @@ class _InitiateWorkflowScreenState
                   busyLabel: 'Starting…',
                   icon: Icons.auto_awesome_outlined,
                   busy: submitState.isLoading,
-                  onPressed: () => _submit(asset),
+                  onPressed: _submit,
                 ),
               ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The asset found by code or scan, with its type and category resolved, and
+/// the choice to evaluate just this asset or every active asset of its type.
+class _ChosenAsset extends ConsumerWidget {
+  const _ChosenAsset({
+    required this.asset,
+    required this.wholeType,
+    required this.enabled,
+    required this.onWholeTypeChanged,
+    required this.change,
+  });
+
+  final WorkflowAssetRef asset;
+  final bool wholeType;
+  final bool enabled;
+  final ValueChanged<bool> onWholeTypeChanged;
+  final Widget change;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final header = EntityHeader(
+      icon: Icons.check_rounded,
+      iconTone: StatusTone.success,
+      title: asset.name,
+      subtitle: asset.assetCode,
+      trailing: change,
+    );
+    // Without a type id there's nothing to widen to — single asset only.
+    if (asset.assetTypeId.isEmpty) return header;
+
+    // The asset record names its type but not its category; the asset-type
+    // list does. If that list can't load, the category is simply omitted.
+    final type = ref
+        .watch(workflowAssetTypesProvider)
+        .asData
+        ?.value
+        .where((t) => t.id == asset.assetTypeId)
+        .firstOrNull;
+    final typeName = type?.name ?? asset.assetTypeName;
+    final category = type?.categoryName ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        header,
+        const SizedBox(height: AppSpacing.sm),
+        InfoRow(
+          icon: Icons.category_outlined,
+          label: 'Asset type',
+          value: typeName,
+        ),
+        if (category.isNotEmpty)
+          InfoRow(
+            icon: Icons.folder_outlined,
+            label: 'Category',
+            value: category,
+          ),
+        const Divider(),
+        const SizedBox(height: AppSpacing.sm),
+        Text('Evaluate', style: context.text.titleSmall),
+        RadioGroup<bool>(
+          groupValue: wholeType,
+          onChanged: (value) {
+            if (enabled && value != null) onWholeTypeChanged(value);
+          },
+          child: Column(
+            children: [
+              RadioListTile<bool>(
+                value: false,
+                enabled: enabled,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Just this asset'),
+                subtitle: Text('Recommend an action for ${asset.assetCode}.'),
+              ),
+              RadioListTile<bool>(
+                value: true,
+                enabled: enabled,
+                contentPadding: EdgeInsets.zero,
+                title: Text('All $typeName assets'),
+                subtitle: Text(
+                  'Every active $typeName'
+                  '${category.isEmpty ? '' : ' in $category'}, '
+                  'evaluated together as a fleet.',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Category → asset type cascade for a fleet evaluation. Categories come
+/// from the asset types themselves, so only categories with a type appear.
+class _AssetTypePicker extends ConsumerWidget {
+  const _AssetTypePicker({
+    required this.category,
+    required this.assetType,
+    required this.enabled,
+    required this.onCategoryChanged,
+    required this.onAssetTypeChanged,
+  });
+
+  final WorkflowAssetCategory? category;
+  final WorkflowAssetType? assetType;
+  final bool enabled;
+  final ValueChanged<WorkflowAssetCategory?> onCategoryChanged;
+  final ValueChanged<WorkflowAssetType?> onAssetTypeChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final types = ref.watch(workflowAssetTypesProvider);
+
+    return switch (types) {
+      AsyncData(:final value) when value.isEmpty => const Notice(
+        icon: Icons.category_outlined,
+        message:
+            'No asset types are set up for your organisation yet. '
+            'Evaluate a single asset instead.',
+      ),
+      AsyncData(:final value) => _buildPickers(context, value),
+      AsyncError(:final error) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Notice(
+            tone: StatusTone.danger,
+            message: errorMessageFor(
+              error,
+              fallback: 'Couldn\'t load asset types.',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: () => ref.invalidate(workflowAssetTypesProvider),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try again'),
+          ),
+        ],
+      ),
+      _ => const Padding(
+        padding: EdgeInsets.all(AppSpacing.md),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    };
+  }
+
+  Widget _buildPickers(BuildContext context, List<WorkflowAssetType> types) {
+    final categories = categoriesOf(types);
+    final typesInCategory = category == null
+        ? const <WorkflowAssetType>[]
+        : types.where((type) => type.categoryId == category!.id).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<WorkflowAssetCategory>(
+          isExpanded: true,
+          initialValue: category,
+          decoration: const InputDecoration(
+            labelText: 'Category',
+            prefixIcon: Icon(Icons.folder_outlined),
+          ),
+          items: [
+            for (final c in categories)
+              DropdownMenuItem(value: c, child: Text(c.name)),
+          ],
+          onChanged: enabled ? onCategoryChanged : null,
+          validator: (value) => value == null ? 'Select a category' : null,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (category == null)
+          const InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Asset type',
+              prefixIcon: Icon(Icons.category_outlined),
+            ),
+            child: Text('Select a category first'),
+          )
+        else
+          DropdownButtonFormField<WorkflowAssetType>(
+            // Rebuilt per category so the previous category's type can't
+            // linger as the selected value.
+            key: ValueKey(category!.id),
+            isExpanded: true,
+            initialValue: assetType,
+            decoration: const InputDecoration(
+              labelText: 'Asset type',
+              prefixIcon: Icon(Icons.category_outlined),
+            ),
+            items: [
+              for (final type in typesInCategory)
+                DropdownMenuItem(value: type, child: Text(type.name)),
+            ],
+            onChanged: enabled ? onAssetTypeChanged : null,
+            validator: (value) => value == null ? 'Select an asset type' : null,
+          ),
+        if (assetType != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Notice(
+            icon: Icons.inventory_2_outlined,
+            message:
+                'Evaluates every active ${assetType!.name} asset together '
+                'and recommends an action for each.',
+          ),
+        ],
+      ],
     );
   }
 }

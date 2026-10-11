@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -16,8 +17,10 @@ Future<AssetDetail?> identifyAssetByScan(BuildContext context) =>
     context.push<AssetDetail>('/scan?purpose=identify');
 
 /// QR code scanner screen — resolves scanned codes against the API before
-/// navigating. In [identify] mode it pops with the resolved [AssetDetail]
-/// instead of opening the asset record.
+/// navigating. A match shows a confirmation card with the asset's
+/// availability and a way into its record; a code that isn't registered shows
+/// the scanned value so the user can tell a bad label from a misread. In
+/// [identify] mode it pops with the resolved [AssetDetail] instead.
 class ScanAssetScreen extends ConsumerStatefulWidget {
   const ScanAssetScreen({super.key, this.identify = false});
 
@@ -38,6 +41,9 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
   );
   bool _isResolving = false;
   Object? _lookupError;
+  String? _scannedCode;
+  AssetDetail? _found;
+  Future<void>? _stopping;
 
   @override
   void dispose() {
@@ -46,7 +52,10 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
-    if (_isResolving) return;
+    // Frames keep arriving while stop() is in flight; claim the scan
+    // synchronously so a burst of detections can't start overlapping
+    // lookups that overwrite each other's result.
+    if (_isResolving || _found != null || _lookupError != null) return;
 
     final code = capture.barcodes
         .map((barcode) => barcode.rawValue?.trim())
@@ -55,7 +64,8 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
         .firstOrNull;
     if (code == null) return;
 
-    await _scannerController.stop();
+    _isResolving = true;
+    _stopping = _scannerController.stop();
     await _resolve(code);
   }
 
@@ -65,33 +75,60 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
     setState(() {
       _isResolving = true;
       _lookupError = null;
+      _found = null;
+      _scannedCode = code;
     });
 
-    final result = await AsyncValue.guard<AssetDetail>(
+    var result = await AsyncValue.guard<AssetDetail>(
       () => ref.read(assetsApiProvider).getByCode(code),
     );
+    // A dropped connection or cold-start timeout on the first request
+    // shouldn't cost the user a rescan — retry a transient failure once.
+    if (result.error case ApiException(isNetworkError: true) when mounted) {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      result = await AsyncValue.guard<AssetDetail>(
+        () => ref.read(assetsApiProvider).getByCode(code),
+      );
+    }
     if (!mounted) return;
 
     final asset = result.asData?.value;
-    if (asset != null) {
-      if (widget.identify) {
-        context.pop(asset);
-      } else {
-        // The QR endpoint returns the authoritative AssetDetailDto. Passing
-        // it renders details immediately; AssetDetailScreen also refreshes.
-        context.pushReplacement('/assets/${asset.id}', extra: asset);
-      }
+    if (asset != null && widget.identify) {
+      context.pop(asset);
       return;
     }
 
+    if (asset != null) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.heavyImpact();
+    }
     setState(() {
+      _found = asset;
       _lookupError = result.error;
       _isResolving = false;
     });
   }
 
+  void _openFound() {
+    final asset = _found;
+    if (asset == null) return;
+    // The QR endpoint returns the authoritative AssetDetailDto. Passing it
+    // renders details immediately; AssetDetailScreen also refreshes.
+    context.pushReplacement('/assets/${asset.id}', extra: asset);
+  }
+
   Future<void> _scanAgain() async {
-    setState(() => _lookupError = null);
+    setState(() {
+      _lookupError = null;
+      _found = null;
+      _scannedCode = null;
+    });
+    // Starting while the previous stop() is still settling is ignored by
+    // the plugin and leaves a frozen preview.
+    await _stopping;
+    _stopping = null;
     await _scannerController.start();
   }
 
@@ -141,26 +178,20 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) => MobileScanner(
-                  controller: _scannerController,
-                  // Match the live recognition area to the on-screen frame,
-                  // rather than displaying a guide that has no scan behaviour.
-                  scanWindow: Rect.fromCenter(
-                    center: constraints.biggest.center(Offset.zero),
-                    width: _ScanGuide.size,
-                    height: _ScanGuide.size,
-                  ),
-                  tapToFocus: true,
-                  onDetect: _onDetect,
-                  errorBuilder: (context, error) => _CameraUnavailable(
-                    message:
-                        error.errorCode ==
-                            MobileScannerErrorCode.permissionDenied
-                        ? 'Camera access was not allowed.'
-                        : 'The camera could not be started.',
-                    onEnterCode: _enterCode,
-                  ),
+              // No scanWindow: its preview-to-image mapping under
+              // BoxFit.cover is off on many Android devices, shrinking or
+              // shifting the live area so labels inside the guide often went
+              // unread. The guide is aiming help; the whole frame scans.
+              MobileScanner(
+                controller: _scannerController,
+                tapToFocus: true,
+                onDetect: _onDetect,
+                errorBuilder: (context, error) => _CameraUnavailable(
+                  message:
+                      error.errorCode == MobileScannerErrorCode.permissionDenied
+                      ? 'Camera access was not allowed.'
+                      : 'The camera could not be started.',
+                  onEnterCode: _enterCode,
                 ),
               ),
               const _ScanGuide(),
@@ -168,11 +199,24 @@ class _ScanAssetScreenState extends ConsumerState<ScanAssetScreen> {
                 alignment: Alignment.bottomCenter,
                 child: SafeArea(
                   minimum: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-                  child: _ScanStatus(
-                    isResolving: _isResolving,
-                    error: _lookupError,
-                    onScanAgain: _scanAgain,
-                    onEnterCode: _enterCode,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    child: switch (_found) {
+                      final asset? => _AssetFoundCard(
+                        key: ValueKey('found-${asset.id}'),
+                        asset: asset,
+                        onOpen: _openFound,
+                        onScanAgain: _scanAgain,
+                      ),
+                      null => _ScanStatus(
+                        key: ValueKey(_lookupError == null ? 'idle' : 'error'),
+                        isResolving: _isResolving,
+                        error: _lookupError,
+                        scannedCode: _scannedCode,
+                        onScanAgain: _scanAgain,
+                        onEnterCode: _enterCode,
+                      ),
+                    },
                   ),
                 ),
               ),
@@ -288,31 +332,14 @@ class _ScanOverlayPainter extends CustomPainter {
       old.window != window || old.accent != accent;
 }
 
-class _ScanStatus extends StatelessWidget {
-  const _ScanStatus({
-    required this.isResolving,
-    required this.error,
-    required this.onScanAgain,
-    required this.onEnterCode,
-  });
+/// Dark result panel pinned under the scan window.
+class _ResultPanel extends StatelessWidget {
+  const _ResultPanel({required this.children});
 
-  final bool isResolving;
-  final Object? error;
-  final VoidCallback onScanAgain;
-  final VoidCallback onEnterCode;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    final api = error is ApiException ? error as ApiException : null;
-    final message = switch (api) {
-      ApiException(isNotFound: true) =>
-        'No asset with that QR code exists in your organisation.',
-      ApiException(isNetworkError: true) =>
-        'You\'re offline. Connect to a network and scan again.',
-      ApiException(:final message) => message,
-      _ => 'Hold steady — the asset opens as soon as the code is read.',
-    };
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -323,59 +350,288 @@ class _ScanStatus extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (isResolving)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: context.colors.primaryContainer,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                const Text(
-                  'Looking up asset…',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ],
-            )
-          else ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  error == null ? Icons.qr_code_2 : Icons.error_outline,
-                  color: error == null ? Colors.white70 : AppColors.dark.danger,
-                  size: 20,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: const TextStyle(color: Colors.white, height: 1.35),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            FilledButton.tonalIcon(
-              onPressed: error == null ? onEnterCode : onScanAgain,
-              icon: Icon(
-                error == null
-                    ? Icons.keyboard_outlined
-                    : Icons.qr_code_scanner_rounded,
-                size: 20,
-              ),
-              label: Text(error == null ? 'Enter code instead' : 'Scan again'),
-            ),
-          ],
-        ],
+        children: children,
       ),
     );
   }
+}
+
+class _ScanStatus extends StatelessWidget {
+  const _ScanStatus({
+    super.key,
+    required this.isResolving,
+    required this.error,
+    required this.scannedCode,
+    required this.onScanAgain,
+    required this.onEnterCode,
+  });
+
+  final bool isResolving;
+  final Object? error;
+  final String? scannedCode;
+  final VoidCallback onScanAgain;
+  final VoidCallback onEnterCode;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isResolving) {
+      return _ResultPanel(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: context.colors.primaryContainer,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              const Text(
+                'Looking up asset…',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    final api = error is ApiException ? error as ApiException : null;
+    if (api != null && api.isNotFound) {
+      return _NotRegistered(
+        code: scannedCode ?? '',
+        onScanAgain: onScanAgain,
+        onEnterCode: onEnterCode,
+      );
+    }
+
+    final message = switch (api) {
+      ApiException(isNetworkError: true) =>
+        'You\'re offline. Connect to a network and scan again.',
+      ApiException(:final message) => message,
+      _ when error != null => 'Something went wrong. Scan again.',
+      _ => 'Hold steady — the asset is checked as soon as the code is read.',
+    };
+
+    return _ResultPanel(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              error == null ? Icons.qr_code_2 : Icons.error_outline,
+              color: error == null ? Colors.white70 : AppColors.dark.danger,
+              size: 20,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white, height: 1.35),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        FilledButton.tonalIcon(
+          onPressed: error == null ? onEnterCode : onScanAgain,
+          icon: Icon(
+            error == null
+                ? Icons.keyboard_outlined
+                : Icons.qr_code_scanner_rounded,
+            size: 20,
+          ),
+          label: Text(error == null ? 'Enter code instead' : 'Scan again'),
+        ),
+      ],
+    );
+  }
+}
+
+/// The scanned value didn't match any asset the user can see (404).
+class _NotRegistered extends StatelessWidget {
+  const _NotRegistered({
+    required this.code,
+    required this.onScanAgain,
+    required this.onEnterCode,
+  });
+
+  final String code;
+  final VoidCallback onScanAgain;
+  final VoidCallback onEnterCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = AppColors.dark.danger;
+    return _ResultPanel(
+      children: [
+        Row(
+          children: [
+            Icon(Icons.gpp_bad_outlined, color: danger, size: 28),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                'Asset not registered',
+                style: context.text.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: danger.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(AppRadius.card / 2),
+            border: Border.all(color: danger.withValues(alpha: 0.5)),
+          ),
+          child: Text(
+            code,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const Text(
+          'No asset with that QR code exists in your organisation. Check the '
+          'label is a CoreGrid asset tag, or ask an administrator to register it.',
+          style: TextStyle(color: Colors.white70, height: 1.4),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        FilledButton.tonalIcon(
+          onPressed: onScanAgain,
+          icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+          label: const Text('Scan again'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextButton.icon(
+          onPressed: onEnterCode,
+          style: TextButton.styleFrom(foregroundColor: Colors.white),
+          icon: const Icon(Icons.keyboard_outlined, size: 20),
+          label: const Text('Enter code manually'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Confirms a scanned code resolved to a registered asset and says whether
+/// it's available, before the user opens the full record.
+class _AssetFoundCard extends StatelessWidget {
+  const _AssetFoundCard({
+    super.key,
+    required this.asset,
+    required this.onOpen,
+    required this.onScanAgain,
+  });
+
+  final AssetDetail asset;
+  final VoidCallback onOpen;
+  final VoidCallback onScanAgain;
+
+  @override
+  Widget build(BuildContext context) {
+    final success = AppColors.dark.success;
+    final (availability, tone) = _availabilityOf(asset.lifecycleStatus);
+    final place = [
+      asset.locationName,
+      asset.departmentName,
+    ].where((part) => part.isNotEmpty).join(' · ');
+
+    return _ResultPanel(
+      children: [
+        Row(
+          children: [
+            Icon(Icons.verified_rounded, color: success, size: 28),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                'Asset found',
+                style: context.text.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            StatusPill(availability, tone: tone),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          asset.name.isEmpty ? asset.assetCode : asset.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: context.text.titleLarge?.copyWith(color: Colors.white),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          [
+            asset.assetCode,
+            asset.assetTypeName,
+          ].where((part) => part.isNotEmpty).join(' · '),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        if (place.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              const Icon(Icons.place_outlined, color: Colors.white54, size: 16),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  place,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.lg),
+        FilledButton.icon(
+          onPressed: onOpen,
+          icon: const Icon(Icons.open_in_new_rounded, size: 20),
+          label: const Text('View asset details'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextButton.icon(
+          onPressed: onScanAgain,
+          style: TextButton.styleFrom(foregroundColor: Colors.white),
+          icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
+          label: const Text('Scan another'),
+        ),
+      ],
+    );
+  }
+
+  static (String, StatusTone) _availabilityOf(AssetLifecycleStatus status) =>
+      switch (status) {
+        AssetLifecycleStatus.active => ('Available', StatusTone.success),
+        AssetLifecycleStatus.underMaintenance ||
+        AssetLifecycleStatus.transferRequested => (
+          status.label,
+          StatusTone.warning,
+        ),
+        AssetLifecycleStatus.inTransit => (status.label, StatusTone.info),
+        AssetLifecycleStatus.condemned ||
+        AssetLifecycleStatus.disposalRequested ||
+        AssetLifecycleStatus.disposed => (status.label, StatusTone.danger),
+        AssetLifecycleStatus.unknown => ('Status unknown', StatusTone.neutral),
+      };
 }
 
 class _CameraPermissionDenied extends StatelessWidget {

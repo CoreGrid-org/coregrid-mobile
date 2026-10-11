@@ -5,6 +5,7 @@ import '../../shared/api/api_client.dart';
 import '../../shared/api/api_exception.dart';
 import 'models/agent_workflow.dart';
 import 'models/workflow_asset_ref.dart';
+import 'models/workflow_asset_type.dart';
 
 /// Every `/api/agent-workflows` call this feature owns
 /// (`mobile-specification.md` §3.1/§4.9). Note: §4.9 as written names
@@ -52,15 +53,22 @@ class WorkflowsApi {
     }
   }
 
-  /// `POST /api/agent-workflows` — creates a new agent workflow.
+  /// `POST /api/agent-workflows` — creates a new agent workflow for one
+  /// asset ([assetId]) or every active asset of a type ([assetTypeId]). The
+  /// API rejects a request with neither.
   Future<AgentWorkflow> createWorkflow({
-    required String assetId,
+    String? assetId,
+    String? assetTypeId,
     required String objective,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/api/agent-workflows',
-        data: {'asset_id': assetId, 'objective': objective.trim()},
+        data: {
+          'asset_id': ?assetId,
+          'asset_type_id': ?assetTypeId,
+          'objective': objective.trim(),
+        },
       );
       final data = response.data;
       if (data == null) {
@@ -70,6 +78,24 @@ class WorkflowsApi {
         );
       }
       return AgentWorkflow.fromJson(data);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// `GET /api/asset-types` — active asset types (with their category) a
+  /// fleet evaluation can target. 100 is the API's page cap.
+  Future<List<WorkflowAssetType>> getAssetTypes() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/asset-types',
+        queryParameters: {'includeInactive': false, 'pageSize': 100},
+      );
+      final items = response.data?['items'];
+      return (items is List ? items : const [])
+          .whereType<Map<String, dynamic>>()
+          .map(WorkflowAssetType.fromJson)
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

@@ -13,6 +13,7 @@ class _FakeAssetsApi extends Fake implements AssetsApi {
   _FakeAssetsApi();
 
   String? knownCode = 'AST-00042';
+  String status = 'ACTIVE';
   bool throwOffline = false;
   final lookedUpCodes = <String>[];
 
@@ -33,7 +34,7 @@ class _FakeAssetsApi extends Fake implements AssetsApi {
         'id': 'asset-123',
         'asset_code': assetCode,
         'name': 'Hydraulic Pump',
-        'status': 'ACTIVE',
+        'status': status,
         'condition': 'GOOD',
         'attributes': [],
       });
@@ -90,7 +91,9 @@ Widget _buildHarness({
         path: '/assets/:id',
         builder: (_, state) {
           navigationLog.add(state.uri.toString());
-          return Scaffold(body: Text('Asset Detail: ${state.pathParameters['id']}'));
+          return Scaffold(
+            body: Text('Asset Detail: ${state.pathParameters['id']}'),
+          );
         },
       ),
     ],
@@ -114,65 +117,45 @@ void main() {
       navigationLog = <String>[];
     });
 
-    testWidgets('camera success - scans valid code and navigates to asset record', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildHarness(api: api, navigationLog: navigationLog),
-      );
+    testWidgets(
+      'camera success - scans valid code and navigates to asset record',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildHarness(api: api, navigationLog: navigationLog),
+        );
 
-      // Navigate to /scan
-      await tester.tap(find.text('Open Scanner'));
-      await tester.pumpAndSettle();
+        // Navigate to /scan
+        await tester.tap(find.text('Open Scanner'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(ScanAssetScreen), findsOneWidget);
+        expect(find.byType(ScanAssetScreen), findsOneWidget);
 
-      // Simulate QR detection on MobileScanner
-      final mobileScanner = tester.widget<MobileScanner>(
-        find.byType(MobileScanner),
-      );
-      mobileScanner.onDetect!(
-        const BarcodeCapture(
-          barcodes: [Barcode(rawValue: 'AST-00042')],
-        ),
-      );
+        // Simulate QR detection on MobileScanner
+        final mobileScanner = tester.widget<MobileScanner>(
+          find.byType(MobileScanner),
+        );
+        mobileScanner.onDetect!(
+          const BarcodeCapture(barcodes: [Barcode(rawValue: 'AST-00042')]),
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(api.lookedUpCodes, contains('AST-00042'));
-      expect(navigationLog, contains('/assets/asset-123'));
-    });
+        expect(api.lookedUpCodes, contains('AST-00042'));
+        // A match is confirmed first — nothing opens until the user asks.
+        expect(find.text('Asset found'), findsOneWidget);
+        expect(find.text('Hydraulic Pump'), findsOneWidget);
+        expect(find.text('Available'), findsOneWidget);
+        expect(navigationLog, isNot(contains('/assets/asset-123')));
 
-    testWidgets('camera success - identify mode pops with resolved AssetDetail', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildHarness(api: api, navigationLog: navigationLog, identify: true),
-      );
+        await tester.tap(find.text('View asset details'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Open Scanner'));
-      await tester.pumpAndSettle();
+        expect(navigationLog, contains('/assets/asset-123'));
+      },
+    );
 
-      expect(find.text('Scan to confirm'), findsOneWidget);
-
-      final mobileScanner = tester.widget<MobileScanner>(
-        find.byType(MobileScanner),
-      );
-      mobileScanner.onDetect!(
-        const BarcodeCapture(
-          barcodes: [Barcode(rawValue: 'AST-00042')],
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      expect(api.lookedUpCodes, contains('AST-00042'));
-      expect(navigationLog, contains('popped:asset-123'));
-    });
-
-    testWidgets('permission refusal - shows permission denied view and settings option', (
-      tester,
-    ) async {
+    testWidgets('found asset - shows when it is not available', (tester) async {
+      api.status = 'UNDER_MAINTENANCE';
       await tester.pumpWidget(
         _buildHarness(api: api, navigationLog: navigationLog),
       );
@@ -180,167 +163,225 @@ void main() {
       await tester.tap(find.text('Open Scanner'));
       await tester.pumpAndSettle();
 
-      // Access controller via public MobileScanner widget in the tree
-      final mobileScanner = tester.widget<MobileScanner>(
-        find.byType(MobileScanner),
+      tester.widget<MobileScanner>(find.byType(MobileScanner)).onDetect!(
+        const BarcodeCapture(barcodes: [Barcode(rawValue: 'AST-00042')]),
       );
-      mobileScanner.controller!.value = MobileScannerState(
-        isInitialized: false,
-        availableCameras: 0,
-        cameraDirection: CameraFacing.back,
-        cameraLensType: CameraLensType.values.first,
-        deviceOrientation: DeviceOrientation.portraitUp,
-        isRunning: false,
-        isStarting: false,
-        size: Size.zero,
-        torchState: TorchState.off,
-        zoomScale: 1.0,
-        error: const MobileScannerException(
-          errorCode: MobileScannerErrorCode.permissionDenied,
-        ),
-      );
-
       await tester.pumpAndSettle();
 
-      expect(
-        find.text(
-          'Camera access is needed to scan an asset QR code. You can allow it in Settings or enter the code manually.',
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('Open Settings'), findsOneWidget);
-      expect(find.text('Enter asset code'), findsOneWidget);
+      expect(find.text('Asset found'), findsOneWidget);
+      expect(find.text('Under maintenance'), findsOneWidget);
+      expect(find.text('Available'), findsNothing);
+
+      // "Scan another" dismisses the result and returns to scanning.
+      await tester.tap(find.text('Scan another'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Asset found'), findsNothing);
+      expect(navigationLog, isEmpty);
     });
 
-    testWidgets('unknown code - displays 404 error message and scan again option', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildHarness(api: api, navigationLog: navigationLog),
-      );
+    testWidgets(
+      'camera success - identify mode pops with resolved AssetDetail',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildHarness(api: api, navigationLog: navigationLog, identify: true),
+        );
 
-      await tester.tap(find.text('Open Scanner'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Open Scanner'));
+        await tester.pumpAndSettle();
 
-      // Scan unknown code
-      final mobileScanner = tester.widget<MobileScanner>(
-        find.byType(MobileScanner),
-      );
-      mobileScanner.onDetect!(
-        const BarcodeCapture(
-          barcodes: [Barcode(rawValue: 'AST-UNKNOWN')],
-        ),
-      );
+        expect(find.text('Scan to confirm'), findsOneWidget);
 
-      await tester.pumpAndSettle();
+        final mobileScanner = tester.widget<MobileScanner>(
+          find.byType(MobileScanner),
+        );
+        mobileScanner.onDetect!(
+          const BarcodeCapture(barcodes: [Barcode(rawValue: 'AST-00042')]),
+        );
 
-      expect(
-        find.text('No asset with that QR code exists in your organisation.'),
-        findsOneWidget,
-      );
-      expect(find.text('Scan again'), findsOneWidget);
+        await tester.pumpAndSettle();
 
-      // Tap Scan again to clear error state
-      await tester.tap(find.text('Scan again'));
-      await tester.pumpAndSettle();
+        expect(api.lookedUpCodes, contains('AST-00042'));
+        expect(navigationLog, contains('popped:asset-123'));
+      },
+    );
 
-      expect(
-        find.text('Hold steady — the asset opens as soon as the code is read.'),
-        findsOneWidget,
-      );
-    });
+    testWidgets(
+      'permission refusal - shows permission denied view and settings option',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildHarness(api: api, navigationLog: navigationLog),
+        );
 
-    testWidgets('offline recovery - handles network error and recovers on scan again', (
-      tester,
-    ) async {
-      api.throwOffline = true;
+        await tester.tap(find.text('Open Scanner'));
+        await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        _buildHarness(api: api, navigationLog: navigationLog),
-      );
+        // Access controller via public MobileScanner widget in the tree
+        final mobileScanner = tester.widget<MobileScanner>(
+          find.byType(MobileScanner),
+        );
+        mobileScanner.controller!.value = MobileScannerState(
+          isInitialized: false,
+          availableCameras: 0,
+          cameraDirection: CameraFacing.back,
+          cameraLensType: CameraLensType.values.first,
+          deviceOrientation: DeviceOrientation.portraitUp,
+          isRunning: false,
+          isStarting: false,
+          size: Size.zero,
+          torchState: TorchState.off,
+          zoomScale: 1.0,
+          error: const MobileScannerException(
+            errorCode: MobileScannerErrorCode.permissionDenied,
+          ),
+        );
 
-      await tester.tap(find.text('Open Scanner'));
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Scan while offline
-      final mobileScanner = tester.widget<MobileScanner>(
-        find.byType(MobileScanner),
-      );
-      mobileScanner.onDetect!(
-        const BarcodeCapture(
-          barcodes: [Barcode(rawValue: 'AST-00042')],
-        ),
-      );
+        expect(
+          find.text(
+            'Camera access is needed to scan an asset QR code. You can allow it in Settings or enter the code manually.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Open Settings'), findsOneWidget);
+        expect(find.text('Enter asset code'), findsOneWidget);
+      },
+    );
 
-      await tester.pumpAndSettle();
+    testWidgets(
+      'unknown code - displays 404 error message and scan again option',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildHarness(api: api, navigationLog: navigationLog),
+        );
 
-      expect(
-        find.text('You\'re offline. Connect to a network and scan again.'),
-        findsOneWidget,
-      );
-      expect(find.text('Scan again'), findsOneWidget);
+        await tester.tap(find.text('Open Scanner'));
+        await tester.pumpAndSettle();
 
-      // Restore network connectivity and retry
-      api.throwOffline = false;
-      await tester.tap(find.text('Scan again'));
-      await tester.pumpAndSettle();
+        // Scan unknown code
+        final mobileScanner = tester.widget<MobileScanner>(
+          find.byType(MobileScanner),
+        );
+        mobileScanner.onDetect!(
+          const BarcodeCapture(barcodes: [Barcode(rawValue: 'AST-UNKNOWN')]),
+        );
 
-      // Re-trigger scan
-      final reScanner = tester.widget<MobileScanner>(
-        find.byType(MobileScanner),
-      );
-      reScanner.onDetect!(
-        const BarcodeCapture(
-          barcodes: [Barcode(rawValue: 'AST-00042')],
-        ),
-      );
+        await tester.pumpAndSettle();
 
-      await tester.pumpAndSettle();
+        expect(find.text('Asset not registered'), findsOneWidget);
+        // The scanned value is echoed so a misread is easy to spot.
+        expect(find.text('AST-UNKNOWN'), findsOneWidget);
+        expect(find.text('Enter code manually'), findsOneWidget);
+        expect(find.text('Scan again'), findsOneWidget);
+        expect(navigationLog, isEmpty);
 
-      expect(navigationLog, contains('/assets/asset-123'));
-    });
+        // Tap Scan again to clear error state
+        await tester.tap(find.text('Scan again'));
+        await tester.pumpAndSettle();
 
-    testWidgets('manual-entry fallback - non-identify mode navigates to asset list', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildHarness(api: api, navigationLog: navigationLog),
-      );
+        expect(
+          find.text(
+            'Hold steady — the asset is checked as soon as the code is read.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
 
-      await tester.tap(find.text('Open Scanner'));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'offline recovery - handles network error and recovers on scan again',
+      (tester) async {
+        api.throwOffline = true;
 
-      expect(find.text('Enter code instead'), findsOneWidget);
-      await tester.tap(find.text('Enter code instead'));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          _buildHarness(api: api, navigationLog: navigationLog),
+        );
 
-      expect(navigationLog, contains('/assets'));
-    });
+        await tester.tap(find.text('Open Scanner'));
+        await tester.pumpAndSettle();
 
-    testWidgets('manual-entry fallback - identify mode dialog resolves entered code', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _buildHarness(api: api, navigationLog: navigationLog, identify: true),
-      );
+        // Scan while offline
+        final mobileScanner = tester.widget<MobileScanner>(
+          find.byType(MobileScanner),
+        );
+        mobileScanner.onDetect!(
+          const BarcodeCapture(barcodes: [Barcode(rawValue: 'AST-00042')]),
+        );
 
-      await tester.tap(find.text('Open Scanner'));
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Enter code instead'), findsOneWidget);
-      await tester.tap(find.text('Enter code instead'));
-      await tester.pumpAndSettle();
+        expect(
+          find.text('You\'re offline. Connect to a network and scan again.'),
+          findsOneWidget,
+        );
+        expect(find.text('Scan again'), findsOneWidget);
 
-      // Dialog opens
-      expect(find.text('Enter asset code'), findsWidgets);
-      expect(find.byType(TextField), findsOneWidget);
+        // Restore network connectivity and retry
+        api.throwOffline = false;
+        await tester.tap(find.text('Scan again'));
+        await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'AST-00042');
-      await tester.tap(find.text('Confirm'));
-      await tester.pumpAndSettle();
+        // Re-trigger scan
+        final reScanner = tester.widget<MobileScanner>(
+          find.byType(MobileScanner),
+        );
+        reScanner.onDetect!(
+          const BarcodeCapture(barcodes: [Barcode(rawValue: 'AST-00042')]),
+        );
 
-      expect(api.lookedUpCodes, contains('AST-00042'));
-      expect(navigationLog, contains('popped:asset-123'));
-    });
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('View asset details'));
+        await tester.pumpAndSettle();
+
+        expect(navigationLog, contains('/assets/asset-123'));
+      },
+    );
+
+    testWidgets(
+      'manual-entry fallback - non-identify mode navigates to asset list',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildHarness(api: api, navigationLog: navigationLog),
+        );
+
+        await tester.tap(find.text('Open Scanner'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Enter code instead'), findsOneWidget);
+        await tester.tap(find.text('Enter code instead'));
+        await tester.pumpAndSettle();
+
+        expect(navigationLog, contains('/assets'));
+      },
+    );
+
+    testWidgets(
+      'manual-entry fallback - identify mode dialog resolves entered code',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildHarness(api: api, navigationLog: navigationLog, identify: true),
+        );
+
+        await tester.tap(find.text('Open Scanner'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Enter code instead'), findsOneWidget);
+        await tester.tap(find.text('Enter code instead'));
+        await tester.pumpAndSettle();
+
+        // Dialog opens
+        expect(find.text('Enter asset code'), findsWidgets);
+        expect(find.byType(TextField), findsOneWidget);
+
+        await tester.enterText(find.byType(TextField), 'AST-00042');
+        await tester.tap(find.text('Confirm'));
+        await tester.pumpAndSettle();
+
+        expect(api.lookedUpCodes, contains('AST-00042'));
+        expect(navigationLog, contains('popped:asset-123'));
+      },
+    );
   });
 }

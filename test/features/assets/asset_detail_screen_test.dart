@@ -153,6 +153,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openMore(tester);
 
     expect(find.text('Update Condition'), findsOneWidget);
   });
@@ -166,6 +167,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openMore(tester);
 
     expect(find.text('Update Condition'), findsNothing);
   });
@@ -178,6 +180,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openMore(tester);
 
     expect(find.text('Update Condition'), findsNothing);
   });
@@ -212,4 +215,12 @@ void main() {
 
     expect(find.text('You\'re offline'), findsOneWidget);
   });
+}
+
+/// Secondary actions live in the "More" sheet; open it when it's offered.
+Future<void> _openMore(WidgetTester tester) async {
+  final more = find.text('More');
+  if (more.evaluate().isEmpty) return;
+  await tester.tap(more);
+  await tester.pumpAndSettle();
 }

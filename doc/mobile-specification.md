@@ -210,7 +210,7 @@ role uses the client(s) it does, and how both clients integrate with ThunderID a
 | | |
 |---|---|
 | Trigger | "Scan QR code" — the primary button in the dashboard's "Find an asset" card |
-| Sequence | Camera preview (`mobile_scanner`) → decode → resolve → asset detail. A visible "Enter code manually" affordance is present from the start, not only after a failure, and is what's shown directly if camera permission is refused |
+| Sequence | Camera preview (`mobile_scanner`) → decode → resolve → result card → asset detail. A match shows "Asset found" with name, code, type, location and an availability pill (*Available* when ACTIVE, otherwise the lifecycle status) and opens the record on "View asset details"; a 404 shows "Asset not registered" with the scanned value echoed, plus "Scan again" / "Enter code manually". Identify mode skips the card and returns the asset to the caller. A visible "Enter code manually" affordance is present from the start, not only after a failure, and is what's shown directly if camera permission is refused |
 | States | Requesting permission, scanning, resolving (must return a result or a clear failure within 3s per IF-06), not found, manual-entry form |
 | API calls | `GET /api/assets/qr/{code}` |
 
@@ -339,9 +339,9 @@ requires `estimated_cost`/`actual_cost`, ≥10-character `work_performed`, a `co
 | | |
 |---|---|
 | Trigger | "Request Evaluation" from asset detail; workflow status from a notification or the dashboard |
-| Sequence | Initiate (states objective, receives a workflow ID immediately — does not block on completion) → status screen (current step, agents completed) → outcome screen (recommendation + approval status) once resolved |
+| Sequence | Initiate (choose scope — *One asset* by code or scan — its asset type and category are shown automatically and the officer chooses *Just this asset* (`asset_id`) or *All <type> assets* (`asset_type_id`) — or *Asset type* picked via category → type from `GET /api/asset-types` for a fleet evaluation (`asset_type_id`) — then state objective; receives a workflow ID immediately — does not block on completion) → status screen (current step, agents completed) → outcome screen (recommendation + approval status) once resolved |
 | States | Initiating, in progress (polled or pushed), outcome available, failed |
-| API calls | `POST /api/agent-workflows`, `GET /api/agent-workflows/{id}` (`AgentWorkflowsController` — this section previously said `/api/workflows`, the route name before the backend controller landed) |
+| API calls | `POST /api/agent-workflows`, `GET /api/agent-workflows/{id}`, `GET /api/asset-types` (`AgentWorkflowsController` — this section previously said `/api/workflows`, the route name before the backend controller landed) |
 | Note | No approval action here — approval is React-only per the responsibility boundary (main SRS §3.4). Officer only — Administrator initiates and Auditor/Administrator view workflow status from the web console instead (scope change v1.5); this screen is unreachable for those roles per §4.1's role gate |
 
 ### 4.10 Notifications — FR-080
